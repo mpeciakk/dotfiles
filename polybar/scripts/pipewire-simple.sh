@@ -12,6 +12,10 @@ getDefaultSource() {
     echo "${description}"
 }
 
+isMicMuted() {
+  mute = $(pactl get-source-mute 0 | awk -F' ' '${print $1}')
+}
+
 VOLUME=$(pamixer --get-volume-human)
 VOLUME_RAW=$(pamixer --get-volume)
 SINK=$(getDefaultSink)

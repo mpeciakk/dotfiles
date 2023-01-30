@@ -1,4 +1,4 @@
-font pango:monospace 8
+#font pango:monospace 8
 
 # This font is widely installed, provides lots of unicode glyphs, right-to-left
 # text rendering and scalability on retina/hidpi displays (thanks to pango).
@@ -6,48 +6,26 @@ font pango:monospace 8
 
 exec --no-startup-id dex --autostart --environment i3
 
-exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
+# exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 
 # Use pactl to adjust volume in PulseAudio.
 bindsym XF86AudioRaiseVolume exec --no-startup-id pamixer --increase 10
 bindsym XF86AudioLowerVolume exec --no-startup-id pamixer --decrease 10
 bindsym XF86AudioMute exec --no-startup-id pamixer --toggle-mute
 
-# use these keys for focus, movement, and resize directions when reaching for
-# the arrows is not convenient
-set $up l
-set $down k
-set $left j
-set $right semicolon
-
 # use Mouse+Mod1 to drag floating windows to their wanted position
 floating_modifier Mod1
-
-# start a terminal
-# bindsym Mod1+Return exec i3-sensible-terminal
 
 # kill focused window
 bindsym Mod1+Shift+q kill
 
-# change focus
-bindsym Mod1+$left focus left
-bindsym Mod1+$down focus down
-bindsym Mod1+$up focus up
-bindsym Mod1+$right focus right
-
-# alternatively, you can use the cursor keys:
+# move focus between windows:
 bindsym Mod1+Left focus left
 bindsym Mod1+Down focus down
 bindsym Mod1+Up focus up
 bindsym Mod1+Right focus right
 
-# move focused window
-bindsym Mod1+Shift+$left move left
-bindsym Mod1+Shift+$down move down
-bindsym Mod1+Shift+$up move up
-bindsym Mod1+Shift+$right move right
-
-# alternatively, you can use the cursor keys:
+# move windows:
 bindsym Mod1+Shift+Left move left
 bindsym Mod1+Shift+Down move down
 bindsym Mod1+Shift+Up move up
@@ -63,28 +41,12 @@ bindsym Mod1+v split v
 bindsym Mod1+f fullscreen toggle
 
 # change container layout (stacked, tabbed, toggle split)
-bindsym Mod1+s layout stacking
-bindsym Mod1+w layout tabbed
-bindsym Mod1+e layout toggle split
+# bindsym Mod1+s layout stacking
+# bindsym Mod1+w layout tabbed
+# bindsym Mod1+e layout toggle split
 
 # toggle tiling / floating
 bindsym Mod1+Shift+space floating toggle
-
-# change focus between tiling / floating windows
-# bindsym Mod1+space focus mode_toggle
-
-# focus the parent container
-bindsym Mod1+a focus parent
-
-# focus the child container
-#bindsym Mod1+d focus child
-
-# move the currently focused window to the scratchpad
-bindsym Mod1+Shift+minus move scratchpad
-
-# Show the next scratchpad window or hide the focused scratchpad window.
-# If there are multiple scratchpad windows, this command cycles through them.
-bindsym Mod1+minus scratchpad show
 
 # Define names for default workspaces for which we configure key bindings later on.
 # We use variables to avoid repeating the names in multiple places.
@@ -127,8 +89,6 @@ bindsym Mod1+Shift+0 move container to workspace number $ws10
 bindsym Mod1+Shift+c reload
 # restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
 bindsym Mod1+Shift+r restart
-# exit i3 (logs you out of your X session)
-bindsym Mod1+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
 
 # resize window (you can also use the mouse for that)
 mode "resize" {
@@ -171,3 +131,11 @@ for_window [class="^.*"] border none
 for_window [class="^Spotify"] move to workspace $ws9
 for_window [class="^discord"] move to workspace $ws8
 for_window [class="^Minecraft"] move to workspace $ws5
+for_window [title="Ain engine"] floating enable
+
+bindsym XF86AudioPlay exec playerctl play-pause -p spotify
+bindsym XF86AudioPause exec playerctl play-pause -p spotify
+bindsym XF86AudioNext exec playerctl next -p spotify
+bindsym XF86AudioPrev exec playerctl previous -p spotify
+
+bindsym Mod4+c exec pactl set-source-mute 0 toggle
