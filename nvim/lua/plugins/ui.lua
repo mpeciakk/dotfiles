@@ -4,13 +4,18 @@ return {
     "folke/tokyonight.nvim",
     opts = { style = "moon" },
   },
+
+  -- bottom bar
   {
     "nvim-lualine/lualine.nvim",
-    event = "VeryLazy"
+    event = "VeryLazy",
+    config = function()
+      require('lualine').setup()
+    end
   },
 
   -- better notifications
-  { 
+  {
     "rcarriga/nvim-notify",
     opts = {
       timeout = 3000,
@@ -53,13 +58,7 @@ return {
         bottom_search = true,
         command_palette = true,
         long_message_to_split = true,
-      },
+      }
     },
   },
-
-  -- dependencies
-  { "nvim-tree/nvim-web-devicons" },
-  { "nvim-lua/plenary.nvim" },
-  { "MunifTanjim/nui.nvim", lazy = true },
-  { "lukas-reineke/indent-blankline.nvim" },
 }

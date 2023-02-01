@@ -1,10 +1,7 @@
 return {
   {
     "neovim/nvim-lspconfig",
-    dependencies = {
-      "mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
-    },
+    dependencies = { "mason.nvim", "mason-lspconfig.nvim" },
     opts = {
       diagnostics = {
         underline = true,
@@ -43,76 +40,71 @@ return {
       local available = mlsp.get_available_servers()
 
       require("mason-lspconfig").setup()
-      require("mason-lspconfig").setup_handlers({ setup })
+      require("mason-lspconfig").setup_handlers({ setup })  
+    end
+  },
+  { "williamboman/mason-lspconfig.nvim", lazy = true },
+  { "tamago324/nlsp-settings.nvim", lazy = true },
+  { "jose-elias-alvarez/null-ls.nvim", lazy = true },  
+  {
+    "williamboman/mason.nvim",
+    config = function()
+      require("mason").setup()
     end,
   },
   {
-    "hrsh7th/cmp-nvim-lsp"
-  },
-  {
-    "hrsh7th/cmp-buffer"
-  },
-  {
-    "hrsh7th/cmp-path"
-  },
-  {
-    "hrsh7th/cmp-cmdline"
-  },
-  {
     "hrsh7th/nvim-cmp",
-    version = false,
-    event = "InsertEnter",
-    dependencies = {
-      "hrsh7th/cmp-nvim-lsp",
-      "hrsh7th/cmp-buffer",
-      "hrsh7th/cmp-path",
-    },
     opts = function()
       local cmp = require("cmp")
+
       return {
-        completion = {
-          completeopt = "menu,menuone,noinsert",
-        },
         mapping = cmp.mapping.preset.insert({
-          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<c-Space>"] = cmp.mapping.complete(),
           ["<Tab>"] = cmp.mapping.confirm({ select = true }),
+          ['<ESC>'] = cmp.mapping.abort(),
         }),
         sources = cmp.config.sources({
           { name = "nvim_lsp" },
           { name = "buffer" },
           { name = "path" },
+          { name = "luasnip" },
         }),
-        formatting = {
-          format = function(_, item)
-            local icons = require("config").icons.kinds
-            if icons[item.kind] then
-              item.kind = icons[item.kind] .. item.kind
-            end
-            return item
-          end,
-        },
-        experimental = {
-          ghost_text = {
-            hl_group = "LspCodeLens",
-          },
-        },
       }
     end,
+    event = { "InsertEnter", "CmdlineEnter" },
+    dependencies = {
+      "cmp-nvim-lsp",
+      "cmp_luasnip",
+      "cmp-buffer",
+      "cmp-path",
+      "cmp-cmdline",
+    },
+  },
+  { "hrsh7th/cmp-nvim-lsp", lazy = true },
+  { "saadparwaiz1/cmp_luasnip", lazy = true },
+  { "hrsh7th/cmp-buffer", lazy = true },
+  { "hrsh7th/cmp-path", lazy = true },
+  {
+    "hrsh7th/cmp-cmdline",
+    lazy = true,    
   },
   {
-    "echasnovski/mini.pairs",
-    event = "VeryLazy",
-    config = function(_, opts)
-      require("mini.pairs").setup(opts)
+    "L3MON4D3/LuaSnip",
+    config = function()
+      require("luasnip.loaders.from_lua").lazy_load()
+      require("luasnip.loaders.from_vscode").lazy_load()
+      require("luasnip.loaders.from_snipmate").lazy_load()
+    end,
+    event = "InsertEnter",
+  },
+  {
+    "glepnir/lspsaga.nvim",
+    config = function()
+      require("lspsaga").setup()
     end,
   },
-
   {
-
-    "williamboman/mason.nvim",
-    cmd = "Mason",
-    config = function(plugin, opts)
-      require("mason").setup(opts)
-    end,
+    "folke/neodev.nvim",
+    lazy = true,
   },
 }

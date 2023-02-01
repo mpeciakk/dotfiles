@@ -3,7 +3,7 @@ local M = {
   colorscheme = function()
     require("tokyonight").load()
   end,
-  
+
   icons = {
     diagnostics = {
       Error = " ",
@@ -61,7 +61,7 @@ end
 
 function M.late_setup()
 	require("config/keymaps")
-  
+
   if type(M.colorscheme) == "function" then
     M.colorscheme()
   else
