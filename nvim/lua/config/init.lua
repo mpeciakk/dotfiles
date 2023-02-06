@@ -55,12 +55,9 @@ local M = {
   },
 }
 
-function M.early_setup()
+function M.setup()
 	require("config/options")
-end
-
-function M.late_setup()
-	require("config/keymaps")
+  require("config/keymaps")
 
   if type(M.colorscheme) == "function" then
     M.colorscheme()

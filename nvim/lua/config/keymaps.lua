@@ -1,10 +1,22 @@
-local function map(mode, lhs, rhs, opts)
-  local keys = require("lazy.core.handler").handlers.keys
+vim.g.mapleader = " "
 
-  if not keys.active[keys.parse({ lhs, mode = mode }).id] then
-    vim.keymap.set(mode, lhs, rhs, opts)
-  end
-end
+local map = vim.keymap.set
+
+map("n", "nh", ":nohl<CR>")
+
+map("n", "x", '"_x')
+
+-- splitting windows
+map("n", "sv", "<C-w>v")
+map("n", "sh", "<C-w>s")
+map("n", "se", "<C-w>=")
+map("n", "sx", ":close<CR>")
+
+-- tabs
+map("n", "to", ":tabnew<CR>")
+map("n", "tx", ":tabclose<CR>")
+map("n", "tn", ":tabn<CR>")
+map("n", "tp", ":tabp<CR>")
 
 map("n", "<C-up>", "<C-w><up>")
 map("n", "<C-down>", "<C-w><down>")
@@ -14,10 +26,8 @@ map("n", "<C-Space>", "")
 
 map({ "i", "v", "n", "s" }, "<C-s>", "<cmd>w<cr><esc>", { desc = "Save file" })
 
-local keymap = vim.keymap.set
+-- nvim-tree
+map("n", "<C-e>", ":NvimTreeToggle<CR>")
 
--- LSP finder - Find the symbol's definition
--- If there is no definition, it will instead be hidden
--- When you use an action in finder like "open vsplit",
--- you can use <C-t> to jump back
-keymap("n", "gh", "<cmd>Lspsaga lsp_finder<CR>")
+-- telescope
+map("n", "ff", "<cmd>Telescope find_files<cr>")

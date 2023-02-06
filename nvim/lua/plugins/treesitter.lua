@@ -1,42 +1,35 @@
-return {
-  {
-    "nvim-treesitter/nvim-treesitter",
-    version = false, -- last release is way too old and doesn't work on Windows
-    build = ":TSUpdate",
-    event = "BufReadPost",
-    opts = {
-      highlight = { enable = true },
-      indent = { enable = true },
-      context_commentstring = { enable = true, enable_autocmd = false },
-      ensure_installed = {
-        "bash",
-        "help",
-        "html",
-        "javascript",
-        "json",
-        "lua",
-        "markdown",
-        "markdown_inline",
-        "python",
-        "query",
-        "regex",
-        "tsx",
-        "typescript",
-        "vim",
-        "yaml",
-      },
-      incremental_selection = {
-        enable = true,
-        keymaps = {
-          init_selection = "<C-space>",
-          node_incremental = "<C-space>",
-          scope_incremental = "<nop>",
-          node_decremental = "<bs>",
-        },
-      },
-    },
-    config = function(_, opts)
-      require("nvim-treesitter.configs").setup(opts)
-    end,
+local status, treesitter = pcall(require, "nvim-treesitter.configs")
+if not status then
+  return
+end
+
+treesitter.setup({
+  -- enable syntax highlighting
+  highlight = {
+    enable = true,
   },
-}
+  -- enable indentation
+  indent = { enable = true },
+  -- enable autotagging (w/ nvim-ts-autotag plugin)
+  autotag = { enable = true },
+  -- ensure these language parsers are installed
+  ensure_installed = {
+    "json",
+    "javascript",
+    "typescript",
+    "tsx",
+    "yaml",
+    "html",
+    "css",
+    "markdown",
+    "svelte",
+    "graphql",
+    "bash",
+    "lua",
+    "vim",
+    "dockerfile",
+    "gitignore",
+  },
+  -- auto install above language parsers
+  auto_install = true,
+})
