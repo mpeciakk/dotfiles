@@ -1,5 +1,6 @@
 /*
 !.gitignore
+!wp.sh
 !i3/
 !kitty/
 !nvim/
@@ -7,3 +8,5 @@
 !polybar/
 !rofi/
 !wired/
+!wallpapers/
+!wal/

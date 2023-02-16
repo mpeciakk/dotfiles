@@ -120,7 +120,7 @@ bindsym Mod1+r mode "resize"
 bindsym Mod1+Ctrl+Right move workspace to output HDMI-0 DP-0
 bindsym Mod1+Ctrl+Left move workspace to output HDMI-0 DP-0
 bindsym Print exec flameshot gui 
-bindsym Mod1+space exec "$HOME/.config/rofi/launchers/type-2/launcher.sh"
+bindsym Mod1+space exec rofi -show drun
 bindsym Ctrl+t exec i3-sensible-terminal
 
 exec_always --no-startup-id bash $HOME/.config/i3/startup.sh
