@@ -1,18 +1,3 @@
-#font pango:monospace 8
-
-# This font is widely installed, provides lots of unicode glyphs, right-to-left
-# text rendering and scalability on retina/hidpi displays (thanks to pango).
-#font pango:DejaVu Sans Mono 8
-
-exec --no-startup-id dex --autostart --environment i3
-
-# exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
-
-# Use pactl to adjust volume in PulseAudio.
-bindsym XF86AudioRaiseVolume exec --no-startup-id pamixer --increase 10
-bindsym XF86AudioLowerVolume exec --no-startup-id pamixer --decrease 10
-bindsym XF86AudioMute exec --no-startup-id pamixer --toggle-mute
-
 # use Mouse+Mod1 to drag floating windows to their wanted position
 floating_modifier Mod1
 
@@ -40,16 +25,10 @@ bindsym Mod1+v split v
 # enter fullscreen mode for the focused container
 bindsym Mod1+f fullscreen toggle
 
-# change container layout (stacked, tabbed, toggle split)
-# bindsym Mod1+s layout stacking
-# bindsym Mod1+w layout tabbed
-# bindsym Mod1+e layout toggle split
-
 # toggle tiling / floating
 bindsym Mod1+Shift+space floating toggle
 
-# Define names for default workspaces for which we configure key bindings later on.
-# We use variables to avoid repeating the names in multiple places.
+# Workspaces
 set $ws1 "1:Brave"
 set $ws2 "2:Terminal"
 set $ws3 "3:Code"
@@ -61,7 +40,7 @@ set $ws8 "8:Discord"
 set $ws9 "9:Spotify"
 set $ws10 "10"
 
-# switch to workspace
+# Switch to workspace
 bindsym Mod1+1 workspace number $ws1
 bindsym Mod1+2 workspace number $ws2
 bindsym Mod1+3 workspace number $ws3
@@ -73,7 +52,7 @@ bindsym Mod1+8 workspace number $ws8
 bindsym Mod1+9 workspace number $ws9
 bindsym Mod1+0 workspace number $ws10
 
-# move focused container to workspace
+# Move window to workspace
 bindsym Mod1+Shift+1 move container to workspace number $ws1
 bindsym Mod1+Shift+2 move container to workspace number $ws2
 bindsym Mod1+Shift+3 move container to workspace number $ws3
@@ -85,9 +64,7 @@ bindsym Mod1+Shift+8 move container to workspace number $ws8
 bindsym Mod1+Shift+9 move container to workspace number $ws9
 bindsym Mod1+Shift+0 move container to workspace number $ws10
 
-# reload the configuration file
 bindsym Mod1+Shift+c reload
-# restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
 bindsym Mod1+Shift+r restart
 
 # resize window (you can also use the mouse for that)
@@ -117,21 +94,25 @@ mode "resize" {
 
 bindsym Mod1+r mode "resize"
 
+exec_always --no-startup-id bash $HOME/.config/i3/startup.sh
+
+gaps inner 16
+
 bindsym Mod1+Ctrl+Right move workspace to output HDMI-0 DP-0
 bindsym Mod1+Ctrl+Left move workspace to output HDMI-0 DP-0
 bindsym Print exec flameshot gui 
 bindsym Mod1+space exec rofi -show drun
 bindsym Ctrl+t exec i3-sensible-terminal
 
-exec_always --no-startup-id bash $HOME/.config/i3/startup.sh
-
-gaps inner 4
-
 for_window [class="^.*"] border none
 for_window [class="^Spotify"] move to workspace $ws9
 for_window [class="^discord"] move to workspace $ws8
 for_window [class="^Minecraft"] move to workspace $ws5
 for_window [title="Ain engine"] floating enable
+
+bindsym XF86AudioRaiseVolume exec --no-startup-id pamixer --increase 10
+bindsym XF86AudioLowerVolume exec --no-startup-id pamixer --decrease 10
+bindsym XF86AudioMute exec --no-startup-id pamixer --toggle-mute
 
 bindsym XF86AudioPlay exec playerctl play-pause -p spotify
 bindsym XF86AudioPause exec playerctl play-pause -p spotify
