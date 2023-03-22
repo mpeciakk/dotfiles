@@ -102,7 +102,7 @@ bindsym Mod1+Ctrl+Right move workspace to output HDMI-0 DP-0
 bindsym Mod1+Ctrl+Left move workspace to output HDMI-0 DP-0
 bindsym Print exec flameshot gui 
 bindsym Mod1+space exec rofi -show drun
-bindsym Ctrl+t exec i3-sensible-terminal
+bindsym Ctrl+t exec kitty 
 
 for_window [class="^.*"] border none
 for_window [class="^Spotify"] move to workspace $ws9
