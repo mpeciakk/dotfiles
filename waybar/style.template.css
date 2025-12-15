@@ -1,0 +1,71 @@
+@import url("colors.css");
+
+window#waybar{
+  all:unset;
+}
+
+.modules-left {
+  padding: @padding-3;
+  border-radius: @radius-outer;
+  background: @base;
+  margin: @gaps-out;
+}
+
+.modules-center {
+  padding: @padding-3;
+  border-radius: @radius-outer;
+  background: @base;
+  margin: @gaps-out;
+}
+
+.modules-right {
+  padding: @padding-3;
+  border-radius: @radius-outer;
+  background: @base;
+  margin: @gaps-out;
+}
+
+tooltip {
+  background: @base;
+  color: @text;
+}
+
+#clock:hover, #custom-notification:hover {
+  transition: all .3s ease;
+  color: @text;
+}
+
+#clock, #custom-notification {
+  color: @text;
+  transition: all .3s ease;
+  padding: 0 @padding-4;
+}
+
+#workspaces {
+  padding: 0 @padding-4;
+}
+
+#workspaces button {
+  all: unset;
+  color: @text; 
+  transition: all .2s ease;
+  padding: 0 @padding-4;
+}
+
+#workspaces button:hover {
+  border: none;
+  transition: all .2s ease;
+  color: @accent;
+}
+
+#tray {
+  transition: all .3s ease; 
+}
+
+#tray menu * {
+  transition: all .3s ease; 
+}
+
+#tray menu separator {
+  transition: all .3s ease; 
+}

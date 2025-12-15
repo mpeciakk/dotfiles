@@ -1,0 +1,12 @@
+@import "config.rasi"
+
+mainbox {
+    children: [inputbar, message];
+}
+
+message {
+    padding: @padding-1;
+    border-radius: @radius-inner;
+    background-color: transparent;
+    text-color: @text;
+}

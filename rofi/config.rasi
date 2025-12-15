@@ -1,0 +1,79 @@
+configuration {
+    font: "JetBrainsMono Nerd Font 12";
+    show-icons: true;
+    icon-theme: "Adwaita"; 
+    display-drun: "Apps";
+    display-calc: "Math";
+    drun-display-format: "{name}";
+    disable-history: false;
+}
+
+@theme "/dev/null"
+@import "colors.rasi"
+
+window {
+    width: 600px;
+    border: @border-size;
+    border-color: @surface;
+    border-radius: @radius-outer;
+    background-color: @base;
+}
+
+mainbox {
+    children: [inputbar, listview];
+    padding: @padding-2;
+}
+
+inputbar {
+    background-color: @surface;
+    text-color: @text;
+    padding: @padding-0;
+    border-radius: @radius-inner;
+    children: [prompt, entry];
+}
+
+prompt {
+    background-color: transparent;
+    text-color: @accent;
+    font: "JetBrainsMono Nerd Font Bold 12";
+    margin: 0 8px 0 0;
+}
+
+entry {
+    background-color: transparent;
+    text-color: @text;
+}
+
+listview {
+    background-color: transparent;
+    lines: 6;
+    columns: 1;
+    scrollbar: false;
+    margin: 12px 0 0 0;
+}
+
+element {
+    padding: @padding-1;
+    border-radius: @radius-inner;
+    background-color: transparent;
+    text-color: @text;
+}
+
+element selected {
+    background-color: @surface;
+    text-color: @accent;
+}
+
+element-icon {
+    size: 28px;
+    margin: 0 12px 0 0;
+    background-color: transparent;
+}
+
+element-text {
+    vertical-align: 0.5;
+    background-color: transparent;
+    text-color: inherit;
+}
+
+

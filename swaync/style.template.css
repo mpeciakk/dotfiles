@@ -1,0 +1,56 @@
+@import url("colors.css");
+
+.control-center {
+    background: @base;
+    border-radius: @radius-outer;
+}
+
+.control-center .notification-row:focus,
+.control-center .notification-row:hover {
+    opacity: 1;
+    background: @base-solid;
+}
+ 
+.control-center-list {
+    background: transparent;
+}
+ 
+.widget-dnd {
+    color: @text;
+}
+ 
+.widget-title {
+  color: @text;
+}
+ 
+.widget-title>button {
+  color: @text;
+  border-radius: @radius-inner;
+}
+ 
+.widget-title>button:hover {
+  background: @base-solid;
+}
+
+.widget-mpris {
+    color: @text;
+    border-radius: @radius-inner;
+    margin: 0;
+}
+ 
+.widget-mpris > box > button {
+    border-radius: @radius-inner;
+}
+ 
+.widget-mpris-player {
+  margin: @padding-1;
+}
+ 
+.widget-mpris-title {
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+ 
+.widget-mpris-subtitle {
+    font-size: 1.1rem;
+}
