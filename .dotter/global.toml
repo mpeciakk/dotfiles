@@ -11,6 +11,7 @@ depends = []
 "config/nvim" = "~/.config/nvim"
 "config/starship" = "~/.config/starship"
 "config/swaync" = "~/.config/swaync"
+"config/uwsm" = "~/.config/uwsm"
 "config/waybar" = "~/.config/waybar"
 "config/yazi" = "~/.config/yazi"
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"

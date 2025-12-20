@@ -7,7 +7,6 @@ fish_add_path ~/.bun/bin
 zoxide init fish | source
 starship init fish | source
 atuin init fish | source
-kubectl completion fish | source
 
 if test -z $ASDF_DATA_DIR
     set _asdf_shims "$HOME/.asdf/shims"
