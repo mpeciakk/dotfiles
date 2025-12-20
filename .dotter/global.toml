@@ -1,0 +1,23 @@
+[helpers]
+
+[default]
+depends = []
+
+[default.files]
+"config/atuin" = "~/.config/atuin"
+"config/fish" = "~/.config/fish"
+"config/hypr" = "~/.config/hypr"
+"config/kitty" = "~/.config/kitty"
+"config/nvim" = "~/.config/nvim"
+"config/starship" = "~/.config/starship"
+"config/swaync" = "~/.config/swaync"
+"config/waybar" = "~/.config/waybar"
+"config/yazi" = "~/.config/yazi"
+"config/electron-flags.conf" = "~/.config/electron-flags.conf"
+"config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
+"applications/hidden" = "~/.local/share/applications/"
+
+[default.variables]
+
+[settings]
+default_target_type = "automatic"
