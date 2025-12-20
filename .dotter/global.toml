@@ -15,7 +15,10 @@ depends = []
 "config/yazi" = "~/.config/yazi"
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
 "config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
+
 "applications/hidden" = "~/.local/share/applications/"
+
+"autostart" = "~/.config/autostart"
 
 [default.variables]
 
