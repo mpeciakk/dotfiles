@@ -5,6 +5,7 @@ depends = []
 
 [default.files]
 "config/atuin" = "~/.config/atuin"
+"config/elephant" = "~/.config/elephant"
 "config/fish" = "~/.config/fish"
 "config/hypr" = "~/.config/hypr"
 "config/kitty" = "~/.config/kitty"
@@ -12,6 +13,7 @@ depends = []
 "config/starship" = "~/.config/starship"
 "config/swaync" = "~/.config/swaync"
 "config/uwsm" = "~/.config/uwsm"
+"config/walker" = "~/.config/walker"
 "config/waybar" = "~/.config/waybar"
 "config/yazi" = "~/.config/yazi"
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
