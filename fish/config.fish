@@ -2,6 +2,8 @@ set fish_greeting ""
 
 export TERM=xterm
 
+fish_add_path ~/.bun/bin
+
 zoxide init fish | source
 starship init fish | source
 atuin init fish | source
