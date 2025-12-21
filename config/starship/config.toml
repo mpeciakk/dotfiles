@@ -2,12 +2,11 @@ command_timeout = 1000
 
 "$schema" = 'https://starship.rs/config-schema.json'
 
-add_newline = false 
+add_newline = false
 
 format = """
  ➜\
 $directory\
-${custom.giturl}\
 $git_branch\
 $git_state\
 $git_status\
@@ -15,7 +14,9 @@ $line_break\
 $character
 """
 
-right_format = """$all"""
+right_format = """
+$nodejs\
+"""
 
 palette = "catppuccin_mocha"
 
@@ -47,109 +48,14 @@ base = "#1e1e2e"
 mantle = "#181825"
 crust = "#11111b"
 
-# [palettes.custom]
-# rosewater = "#f5e0dc"
-# flamingo = "#eb6f92"
-# pink = "#f5c2e7"
-# orange = "#cba6f7"
-# color_red = '#cc241d'
-# red = "#f38ba8"
-# maroon = "#eba0ac"
-# peach = "#fab387"
-# yellow = "#f9e2af"
-# green = "#a6e3a1"
-# teal = "#94e2d5"
-# sky = "#89dceb"
-# sapphire = "#74c7ec"
-# blue = "#89b4fa"
-# lavender = "#b4befe"
-# foam = "#9ccfd8"
-# pine = "#31748f"
-# gold = "#f6c177"
-# rose = "#ebbcba"
-# text = "#cdd6f4"
-# subtext1 = "#bac2de"
-# subtext0 = "#a6adc8"
-# overlay2 = "#9399b2"
-# overlay1 = "#7f849c"
-# overlay0 = "#6c7086"
-# surface2 = "#585b70"
-# surface1 = "#45475a"
-# surface0 = "#313244"
-# base = "#1e1e2e"
-# mantle = "#181825"
-# crust = "#11111b"
-
-[os.symbols]
-Windows = "󰍲"
-Ubuntu = "󰕈"
-SUSE = ""
-Raspbian = "󰐿"
-Mint = "󰣭"
-Macos = " "
-Manjaro = ""
-Linux = "󰌽"
-Gentoo = "󰣨"
-Fedora = "󰣛"
-Alpine = ""
-Amazon = ""
-Android = ""
-Arch = "󰣇"
-Artix = "󰣇"
-CentOS = ""
-Debian = "󰣚"
-Redhat = "󱄛"
-RedHatEnterprise = "󱄛"
-
-[username]
-#show_always = true
-#style_user = "bg:surface0 fg:text"
-#style_root = "bg:surface0 fg:text"
-#format = '[ $user ]($style)'
-
 [directory]
 style = "sapphire"
 format = "[ $path ]($style)"
-#truncation_length = 4
-#truncation_symbol = "…/"
-
-[directory.substitutions]
-"Documents" = "󰈙 "
-"Downloads" = " "
-"Music" = "󰝚 "
-"Pictures" = " "
-"Developer" = "󰲋 "
-
-[os]
-disabled = true
-#style = "bg:surface0 fg:text"
-
-[custom.giturl]
-# disabled = true
-description = "Display symbol for remote Git server"
-command = """
-GIT_REMOTE=$(command git ls-remote --get-url 2> /dev/null)
-if [[ "$GIT_REMOTE" =~ "github" ]]; then
-    GIT_REMOTE_SYMBOL=" "
-elif [[ "$GIT_REMOTE" =~ "gitlab" ]]; then
-    GIT_REMOTE_SYMBOL=" "
-elif [[ "$GIT_REMOTE" =~ "bitbucket" ]]; then
-    GIT_REMOTE_SYMBOL=" "
-elif [[ "$GIT_REMOTE" =~ "git" ]]; then
-    GIT_REMOTE_SYMBOL=" "
-else
-    GIT_REMOTE_SYMBOL=" "
-fi
-echo "$GIT_REMOTE_SYMBOL "
-"""
-when = 'git rev-parse --is-inside-work-tree 2> /dev/null'
-format = "at $output"
 
 [git_branch]
 symbol = "[](black) "
-# format =  ' [$symbol$branch(:$remote_branch)]($style)[]'
 style = "fg:lavender bg:black"
-format =  '  on [$symbol$branch]($style)[](black)'
+format =  'on [$symbol$branch]($style)[](black)'
 
 [git_status]
 format = ' [($all_status$ahead_behind )]($style)'
@@ -181,24 +87,15 @@ format = '[[ $symbol( $version) ]]($style)'
 
 [kotlin]
 symbol = ""
-
 format = '[[ $symbol( $version) ]]($style)'
 
 [haskell]
 symbol = ""
-
 format = '[[ $symbol( $version) ]]($style)'
 
 [python]
 symbol = ""
-
 format = '[[ $symbol( $version) ]]($style)'
-
-
-[docker_context]
-symbol = ""
-format = '[ $symbol( $context) ]($style)'
-
 
 [time]
 disabled = true
@@ -207,7 +104,7 @@ style = "bg:peach"
 format = '[[  $time ](fg:mantle bg:foam)]($style)'
 
 [line_break]
-disabled = true 
+disabled = true
 
 [character]
 disabled = false
