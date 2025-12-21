@@ -1,7 +1,5 @@
 set fish_greeting ""
 
-export TERM=xterm
-
 fish_add_path ~/.bun/bin
 
 zoxide init fish | source
@@ -45,4 +43,3 @@ alias lt='eza --icons=auto --tree'
 
 alias mkdir='mkdir -p'
 alias cat="bat"
-alias c="clear"
