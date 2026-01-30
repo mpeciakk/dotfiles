@@ -1,0 +1,10 @@
+{
+    "tab_size": 4,
+    "lsp": {
+        "qml": {
+            "binary": {
+                "arguments": ["-E"],
+            },
+        },
+    },
+}

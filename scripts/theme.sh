@@ -1,9 +1,11 @@
 export COLOR_BG="1e1e2e"
 export COLOR_FG="cdd6f4"
+
 export COLOR_ACCENT="89b4fa"
 export COLOR_ALT="313244"
 export COLOR_URGENT="f38ba8"
 export COLOR_SUCCESS="a6e3a1"
+
 export OPACITY="aa"
 
 export RADIUS_INNER="8"

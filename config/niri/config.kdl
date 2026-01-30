@@ -1,0 +1,47 @@
+include "input.kdl"
+include "output.kdl"
+include "layout.kdl"
+include "workspace.kdl"
+include "window_rules.kdl"
+include "workspace.kdl"
+include "bindings.kdl"
+
+spawn-at-startup "uwsm" "app" "--" "swayidle" "-w"
+spawn-at-startup "uwsm" "app" "--" "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+
+prefer-no-csd
+
+screenshot-path "~/pictures/screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+animations {
+
+}
+
+debug {
+  honor-xdg-activation-with-invalid-serial
+}
+
+recent-windows {
+    debounce-ms 750
+
+    open-delay-ms 0
+
+    highlight {
+        active-color "#999999ff"
+        urgent-color "#ff9999ff"
+        padding 8
+        corner-radius 8
+    }
+
+    previews {
+        max-height 200
+        max-scale 0.5
+    }
+
+    binds {
+        Mod+Tab         { next-window; }
+        Mod+Shift+Tab   { previous-window; }
+        Mod+grave       { next-window     filter="app-id"; }
+        Mod+Shift+grave { previous-window filter="app-id"; }
+    }
+}

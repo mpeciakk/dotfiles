@@ -1,0 +1,14 @@
+input {
+    keyboard {
+        xkb {
+            layout "pl"
+        }
+    }
+
+    mouse {
+        accel-speed -0.8
+        accel-profile "flat"
+    }
+
+    focus-follows-mouse max-scroll-amount="95%"
+}

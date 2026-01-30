@@ -1,0 +1,35 @@
+layout {
+    gaps 8
+    center-focused-column "never"
+
+    background-color "transparent"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    default-column-width { proportion 0.5; }
+
+    focus-ring {
+        off
+    }
+
+    border {
+        off
+    }
+
+    blur {
+  on
+  passes 4 // number of times to apply the blur effect
+  radius 1.0 // radius of the blur effect
+  noise 0.1 //add grain to the blur
+}
+}
+
+gestures {
+    hot-corners {
+        off
+    }
+}

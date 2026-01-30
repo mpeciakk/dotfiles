@@ -1,0 +1,12 @@
+output "DP-1" {
+    mode "3840x2160@143.851"
+    scale 1.5
+    position x=0 y=0
+    focus-at-startup
+}
+
+output "HDMI-A-1" {
+    mode "1920x1080@144"
+    scale 1.0
+    position x=2560 y=0
+}

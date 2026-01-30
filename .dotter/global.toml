@@ -5,24 +5,26 @@ depends = []
 
 [default.files]
 "config/atuin" = "~/.config/atuin"
-"config/elephant" = "~/.config/elephant"
-"config/fish" = "~/.config/fish"
-"config/hypr" = "~/.config/hypr"
 "config/kitty" = "~/.config/kitty"
-"config/mako" = "~/.config/mako"
 "config/mpv" = "~/.config/mpv"
 "config/nvim" = "~/.config/nvim"
-"config/starship/config.toml" = "~/.config/starship.toml"
 "config/uwsm" = "~/.config/uwsm"
-"config/walker" = "~/.config/walker"
-"config/waybar" = "~/.config/waybar"
 "config/yazi" = "~/.config/yazi"
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
 "config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
+"config/niri" = "~/.config/niri"
+"config/quickshell" = "~/.config/quickshell"
+"config/nushell" = "~/.config/nushell"
+"config/fuzzel" = "~/.config/fuzzel"
+"config/swayidle" = "~/.config/swayidle"
+"config/pipewire" = "~/.config/pipewire"
+"config/waybar" = "~/.config/waybar"
 
-"applications/hidden" = "~/.local/share/applications/"
+"applications" = "~/.local/share/applications/"
 
 "autostart" = "~/.config/autostart"
+"config/user-dirs.dirs" = "~/.config/user-dirs.dirs"
+"config/mimeapps.list" = "~/.config/mimeapps.list"
 
 [default.variables]
 

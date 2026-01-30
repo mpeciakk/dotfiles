@@ -1,7 +1,7 @@
 vim.lsp.enable({
   "lua_ls",
   -- "c3_lsp",
-  -- "clangd",
+  "clangd",
   -- "docker_language_server",
   -- "docker_compose_language_service",
   -- "kotlin_lsp",
