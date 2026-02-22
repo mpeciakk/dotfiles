@@ -7,7 +7,7 @@ binds {
 
     Mod+Space repeat=false { spawn "fuzzel"; }
 
-    Mod+L { spawn "~/dotfiles/scripts/lock.sh"; }
+    Mod+L { spawn "~/dotfiles/bin/lock.sh"; }
 
     Mod+O repeat=false { toggle-overview; }
 

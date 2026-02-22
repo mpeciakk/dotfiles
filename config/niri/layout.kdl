@@ -21,11 +21,11 @@ layout {
     }
 
     blur {
-  on
-  passes 4 // number of times to apply the blur effect
-  radius 1.0 // radius of the blur effect
-  noise 0.1 //add grain to the blur
-}
+      on
+      passes 4
+      radius 1.0
+      noise 0.1
+    }
 }
 
 gestures {

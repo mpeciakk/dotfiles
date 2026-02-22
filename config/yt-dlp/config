@@ -1,0 +1,12 @@
+-x
+
+-f bestaudio/best
+
+--cookies ~/.config/rmpc/cookies.txt
+
+--embed-metadata
+--embed-thumbnail
+
+--audio-quality 0
+
+

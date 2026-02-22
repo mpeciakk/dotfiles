@@ -1,71 +1,109 @@
-@import url("colors.css");
+@import "colors.css";
 
-window#waybar{
-  all:unset;
+/* -----------------------------------------------------
+ * General
+ * ----------------------------------------------------- */
+
+* {
+    font-family: "JetBrainsMono Nerd Font", FontAwesome, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
 }
 
-.modules-left {
-  padding: 8px;
-  border-radius: 12px;
-  background: @base;
-  margin: 8px;
+window#waybar {
+    background-color: transparent;
+    color: @text;
+    transition-property: background-color;
+    transition-duration: .5s;
 }
 
-.modules-center {
-  padding: 8px;
-  border-radius: 12px;
-  background: @base;
-  margin: 8px;
+/* -----------------------------------------------------
+ * Module Groups (The "Islands")
+ * ----------------------------------------------------- */
+
+.modules-left, .modules-center, .modules-right {
+    background-color: alpha(@base, 0.75); /* Semi-transparent base */
+    border: 1px solid alpha(@surface, 0.5);
+    border-radius: 20px; /* Mac-style Rounded corners */
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    margin: 0px 5px;
 }
 
-.modules-right {
-  padding: 8px;
-  border-radius: 12px;
-  background: @base;
-  margin: 8px;
-}
+/* -----------------------------------------------------
+ * Modules
+ * ----------------------------------------------------- */
 
-tooltip {
-  background: @base;
-  color: @text;
-}
-
-#clock:hover, #custom-notification:hover {
-  transition: all .3s ease;
-  color: @text;
-}
-
-#clock, #custom-notification {
-  color: @text;
-  transition: all .3s ease;
-  padding: 0 5px;
-}
-
+/* Niri Workspaces */
 #workspaces {
-  padding: 0 5px;
+    background: transparent;
+    margin-right: 8px;
 }
 
 #workspaces button {
-  all: unset;
-  color: @text; 
-  transition: all .2s ease;
-  padding: 0 5px;
+    padding: 0;
+    color: @text;
+    background: transparent;
+    box-shadow: none;
+    text-shadow: none;
+    border: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
 }
 
 #workspaces button:hover {
-  border: none;
-  transition: all .2s ease;
-  color: @accent;
+    background: @surface;
+    color: @accent;
 }
 
-#tray {
-  transition: all .3s ease; 
+#workspaces button.active {
+    color: @accent;
 }
 
-#tray menu * {
-  transition: all .3s ease; 
+#workspaces button.urgent {
+    color: @urgent;
 }
 
-#tray menu separator {
-  transition: all .3s ease; 
+/* Niri Window Title */
+#window {
+    color: @text;
+    opacity: 0.8;
+    margin-left: 10px;
+    font-weight: normal;
+}
+
+#clock {
+    color: @text;
+    font-size: 14px;
+}
+
+#pulseaudio, #network, #battery, #tray {
+    padding: 0 10px;
+    color: @text;
+}
+
+#pulseaudio {
+    color: @accent;
+}
+
+@keyframes blink {
+    to {
+        color: @text;
+    }
+}
+
+/* -----------------------------------------------------
+ * Tooltips
+ * ----------------------------------------------------- */
+
+tooltip {
+    background: alpha(@base, 0.95);
+    border: 1px solid @accent;
+    border-radius: 12px;
+}
+
+tooltip label {
+    color: @text;
 }

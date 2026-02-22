@@ -5,26 +5,33 @@ depends = []
 
 [default.files]
 "config/atuin" = "~/.config/atuin"
-"config/kitty" = "~/.config/kitty"
-"config/mpv" = "~/.config/mpv"
-"config/nvim" = "~/.config/nvim"
-"config/uwsm" = "~/.config/uwsm"
-"config/yazi" = "~/.config/yazi"
-"config/electron-flags.conf" = "~/.config/electron-flags.conf"
-"config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
-"config/niri" = "~/.config/niri"
-"config/quickshell" = "~/.config/quickshell"
-"config/nushell" = "~/.config/nushell"
+"config/carapace" = "~/.config/carapace"
 "config/fuzzel" = "~/.config/fuzzel"
-"config/swayidle" = "~/.config/swayidle"
+"config/kitty" = "~/.config/kitty"
+"config/Kvantum" = "~/.config/Kvantum"
+"config/mpd" = "~/.config/mpd"
+"config/mpv" = "~/.config/mpv"
+"config/niri" = "~/.config/niri"
+"config/nushell" = "~/.config/nushell"
+"config/nvim" = "~/.config/nvim"
 "config/pipewire" = "~/.config/pipewire"
+"config/rmpc" = "~/.config/rmpc"
+"config/swayidle" = "~/.config/swayidle"
+"config/swaync" = "~/.config/swaync"
+"config/uwsm" = "~/.config/uwsm"
 "config/waybar" = "~/.config/waybar"
+"config/wireplumber" = "~/.config/wireplumber"
+"config/xdg-desktop-portal" = "~/.config/xdg-desktop-portal"
+"config/yt-dlp" = "~/.config/yt-dlp"
+
+"config/electron-flags.conf" = "~/.config/electron-flags.conf"
+"config/gamemode.ini" = "~/.config/gamemode.ini"
+"config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
+"config/mimeapps.list" = "~/.config/mimeapps.list"
+"config/user-dirs.dirs" = "~/.config/user-dirs.dirs"
 
 "applications" = "~/.local/share/applications/"
-
 "autostart" = "~/.config/autostart"
-"config/user-dirs.dirs" = "~/.config/user-dirs.dirs"
-"config/mimeapps.list" = "~/.config/mimeapps.list"
 
 [default.variables]
 

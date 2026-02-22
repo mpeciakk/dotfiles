@@ -1,12 +1,10 @@
 use std/util "path add"
 
-path add "~/.bun/bin"
-
 $env.config.show_banner = false
 
 let shims_dir = (
   if ( $env | get -o ASDF_DATA_DIR | is-empty ) {
-    $env.HOME | path join '.asdf'
+    $env.XDG_DATA_HOME | path join 'toolchains/asdf'
   } else {
     $env.ASDF_DATA_DIR
   } | path join 'shims'
@@ -15,7 +13,7 @@ $env.PATH = ( $env.PATH | split row (char esep) | where { |p| $p != $shims_dir }
 
 source ~/.local/share/atuin/init.nu
 source ~/.local/share/zoxide/init.nu
-source ~/.asdf/completions/nushell.nu
+source ~/.local/share/asdf/init.nu
 source $"($nu.cache-dir)/carapace.nu"
 
 alias c = clear
