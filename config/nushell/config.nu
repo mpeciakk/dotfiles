@@ -11,6 +11,8 @@ let shims_dir = (
 )
 $env.PATH = ( $env.PATH | split row (char esep) | where { |p| $p != $shims_dir } | prepend $shims_dir )
 
+path add ~/.local/bin/
+
 source ~/.local/share/atuin/init.nu
 source ~/.local/share/zoxide/init.nu
 source ~/.local/share/asdf/init.nu

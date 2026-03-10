@@ -13,7 +13,7 @@ application/x-extension-xhtml=zen.desktop
 application/x-extension-xht=zen.desktop
 application/pdf=zen.desktop
 
-x-scheme-handler/discord=vesktop.desktop
+x-scheme-handler/discord=legcord.desktop
 
 inode/directory=org.gnome.Nautilus.desktop
 application/zip=org.gnome.FileRoller.desktop
@@ -33,6 +33,10 @@ image/webp=imv.desktop
 image/svg+xml=zen.desktop
 text/plain=dev.zed.Zed.desktop
 x-scheme-handler/discord-1216669957799018608=discord-1216669957799018608.desktop
+x-scheme-handler/clickup=ClickUp.desktop
+x-scheme-handler/ccswitch=cc-switch-handler.desktop
+x-scheme-handler/mailspring=Mailspring.desktop
+x-scheme-handler/mailto=Mailspring.desktop
 
 [Added Associations]
 x-scheme-handler/http=zen.desktop;

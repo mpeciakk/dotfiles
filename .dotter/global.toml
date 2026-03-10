@@ -23,6 +23,7 @@ depends = []
 "config/wireplumber" = "~/.config/wireplumber"
 "config/xdg-desktop-portal" = "~/.config/xdg-desktop-portal"
 "config/yt-dlp" = "~/.config/yt-dlp"
+"config/opencode" = "~/.config/opencode"
 
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
 "config/gamemode.ini" = "~/.config/gamemode.ini"
