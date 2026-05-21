@@ -19,13 +19,6 @@ layout {
     border {
         off
     }
-
-    blur {
-      on
-      passes 4
-      radius 1.0
-      noise 0.1
-    }
 }
 
 gestures {

@@ -1,0 +1,66 @@
+{
+  "position": "top",
+  "height": 36,
+  "start": [
+    {
+      "type": "workspaces",
+      "favorites": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "all_monitors": false
+    }
+  ],
+  "center": [
+    {
+          "type": "focused",
+          "show_icon": false,
+          "show_title": true,
+          "icon_size": 32,
+          "truncate": "end"
+        }
+  ],
+  "end": [
+    {
+          "type": "volume",
+          "format": "{icon} {percentage}%",
+          "max_volume": 100,
+          "truncate": "middle",
+          "icons": {
+            "volume_high": "󰕾",
+            "volume_medium": "󰖀",
+            "volume_low": "󰕿",
+            "muted": "󰝟"
+          }
+        },
+    {
+      "type": "sys_info",
+          "format": [
+            " {cpu_percent}%",
+            " {memory_percent}%"
+          ],
+          "interval": {
+            "cpu": 1,
+            "memory": 30
+          }
+        },
+        {
+              "type": "clock",
+              "format": "%d/%m/%Y %H:%M"
+            },
+            {
+                  "type": "notifications",
+                  "show_count": true,
+                  "icons": {
+                    "closed_none": "󰍥",
+                    "closed_some": "󱥂",
+                    "closed_dnd": "󱅯",
+                    "open_none": "󰍡",
+                    "open_some": "󱥁",
+                    "open_dnd": "󱅮"
+                  }
+                }
+  ]
+}

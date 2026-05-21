@@ -1,15 +1,35 @@
-workspace "browser" {
+workspace "1" {
   open-on-output "DP-1"
 }
 
-workspace "code" {
+workspace "2" {
   open-on-output "DP-1"
 }
 
-workspace "chat" {
+workspace "3" {
   open-on-output "HDMI-A-1"
 }
 
-workspace "media" {
+workspace "4" {
+  open-on-output "DP-1"
+}
+
+workspace "5" {
+  open-on-output "DP-1"
+}
+
+workspace "6" {
+  open-on-output "DP-1"
+}
+
+workspace "7" {
+  open-on-output "DP-1"
+}
+
+workspace "8" {
+  open-on-output "DP-1"
+}
+
+workspace "9" {
   open-on-output "DP-1"
 }

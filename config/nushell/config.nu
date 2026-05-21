@@ -35,3 +35,14 @@ alias ldu = ls --du
 alias ladu = ls --du -a
 
 alias cat = bat
+
+def cc [...args] {
+    with-env {
+        ANTHROPIC_BASE_URL: "https://opencode.ai/zen/v1/messages",
+        ANTHROPIC_AUTH_TOKEN: "",
+        ANTHROPIC_API_KEY: "sk-HtPWKq1554bA5ap1ulHJkHMIAIqCusDptdoCrDO3TBR8Ust3zeHa9j65oLwipBtj",
+        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1
+    } {
+        claude ...$args
+    }
+}

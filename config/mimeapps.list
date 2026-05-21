@@ -37,6 +37,7 @@ x-scheme-handler/clickup=ClickUp.desktop
 x-scheme-handler/ccswitch=cc-switch-handler.desktop
 x-scheme-handler/mailspring=Mailspring.desktop
 x-scheme-handler/mailto=Mailspring.desktop
+x-scheme-handler/claude-cli=claude-code-url-handler.desktop
 
 [Added Associations]
 x-scheme-handler/http=zen.desktop;
