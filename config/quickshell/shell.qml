@@ -18,4 +18,6 @@ ShellRoot {
     }
 
     LauncherPanel {}
+
+    NotificationPanel {}
 }

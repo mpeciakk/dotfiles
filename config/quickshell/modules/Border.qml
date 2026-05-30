@@ -8,10 +8,10 @@ import "../services"
 
 // Rounded "screen border" frame for one output (caelestia's border, reproduced
 // in pure QML instead of the C++ Blobs SDF plugin). Three thin strut windows
-// reserve `Config.border.thickness` on the left/right/bottom (the top is already
-// reserved by the bar) so tiled windows inset. A separate full-screen, click-
-// through overlay fills that border region with the surface colour and rounds
-// the inner corners — the desktop shows through a rounded-rect hole.
+// reserve `Config.border.thickness` on the top/right/bottom (the left is already
+// reserved by the vertical bar) so tiled windows inset. A separate full-screen,
+// click-through overlay fills that border region with the surface colour and
+// rounds the inner corners — the desktop shows through a rounded-rect hole.
 Scope {
     id: root
 
@@ -29,9 +29,9 @@ Scope {
 
     Strut {
         anchors {
-            left: true
             top: true
-            bottom: true
+            left: true
+            right: true
         }
     }
     Strut {
@@ -55,9 +55,9 @@ Scope {
 
         readonly property real t: Config.border.thickness
         readonly property real r: Config.border.rounding
-        readonly property real holeTop: Config.bar.height
+        readonly property real holeTop: t
         readonly property real holeBottom: height - t
-        readonly property real holeLeft: t
+        readonly property real holeLeft: Config.bar.width
         readonly property real holeRight: width - t
 
         screen: root.modelData

@@ -3,7 +3,7 @@ import "../components"
 import "../services"
 
 // Niri workspace indicators for one output. Click to focus.
-Row {
+Column {
     id: root
 
     required property string output
@@ -68,10 +68,10 @@ Row {
             readonly property bool active: Niri.activeByOutput[modelData.output] === modelData.id
             readonly property bool urgent: Niri.urgentIds[modelData.id] === true
 
-            implicitWidth: Math.max(height, label.implicitWidth + 14)
+            implicitWidth: Config.workspaces.chipHeight
             height: Config.workspaces.chipHeight
             radius: height / 2
-            anchors.verticalCenter: parent?.verticalCenter
+            anchors.horizontalCenter: parent?.horizontalCenter
             color: focused ? Colours.mauve : urgent ? Colours.red : active ? Colours.surface1 : Colours.surface0
 
             // springy "pop" when this chip becomes the focused one
@@ -86,12 +86,6 @@ Row {
                 }
             }
             Behavior on scale {
-                Anim {
-                    curve: Appearance.anim.curves.expressiveDefaultSpatial
-                    duration: Appearance.anim.durations.expressiveDefaultSpatial
-                }
-            }
-            Behavior on implicitWidth {
                 Anim {
                     curve: Appearance.anim.curves.expressiveDefaultSpatial
                     duration: Appearance.anim.durations.expressiveDefaultSpatial

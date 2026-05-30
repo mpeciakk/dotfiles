@@ -14,6 +14,8 @@ Drawer {
 
     screen: Quickshell.screens[0] ?? null
     modal: true
+    edge: "bottom"
+    barSize: Config.border.thickness     // emerges from the bottom border, not the bar
     keyboardFocus: WlrKeyboardFocus.OnDemand
     anchorX: screen ? screen.width / 2 : 0
 

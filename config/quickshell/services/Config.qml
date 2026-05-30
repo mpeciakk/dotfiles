@@ -7,8 +7,8 @@ import Quickshell
 // the shell. Colours live in Colours.qml, motion in Appearance.qml.
 Singleton {
     readonly property QtObject bar: QtObject {
-        readonly property int height: 32
-        readonly property int margin: 12
+        readonly property int width: 44       // vertical bar thickness
+        readonly property int margin: 10
     }
 
     readonly property QtObject workspaces: QtObject {
@@ -40,10 +40,10 @@ Singleton {
         readonly property int padding: 8
     }
 
-    // Rounded "screen border" frame around the desktop. The top edge is the bar;
+    // Rounded "screen border" frame around the desktop. The left edge is the bar;
     // thickness is reserved on the other three sides so tiled windows inset.
     readonly property QtObject border: QtObject {
         readonly property int thickness: 10
-        readonly property int rounding: 25
+        readonly property int rounding: 12
     }
 }

@@ -12,39 +12,60 @@ PanelWindow {
 
     anchors {
         top: true
+        bottom: true
         left: true
-        right: true
     }
 
-    implicitHeight: Config.bar.height
+    implicitWidth: Config.bar.width
     color: Colours.base
 
+    // Workspaces at the top.
     Workspaces {
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Config.bar.margin
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.topMargin: Config.bar.margin
 
         output: bar.screen.name
     }
 
-    Text {
-        anchors.centerIn: parent
+    // Tray + clock at the bottom.
+    Column {
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottomMargin: Config.bar.margin
+        spacing: 10
 
-        text: Time.timeStr
-        color: Colours.text
-        font.family: "monospace"
-        font.pixelSize: 14
-    }
+        Tray {
+            anchors.horizontalCenter: parent.horizontalCenter
 
-    Tray {
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.rightMargin: Config.bar.margin
+            onRequestMenu: (handle, y) => {
+                trayMenu.handle = handle;
+                trayDrawer.anchorY = y;
+                trayDrawer.open();
+            }
+        }
 
-        onRequestMenu: (handle, x) => {
-            trayMenu.handle = handle;
-            trayDrawer.anchorX = x;
-            trayDrawer.open();
+        // Stacked HH / MM, so it fits the narrow vertical bar.
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: -2
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: Time.timeStr.split(":")[0]
+                color: Colours.text
+                font.family: "monospace"
+                font.pixelSize: 15
+                font.bold: true
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: Time.timeStr.split(":")[1]
+                color: Colours.subtext1
+                font.family: "monospace"
+                font.pixelSize: 15
+            }
         }
     }
 
@@ -58,16 +79,5 @@ PanelWindow {
 
             onClosed: trayDrawer.close()
         }
-    }
-
-    Drawer {
-        id: notifDrawer
-
-        screen: bar.screen
-        modal: false
-        anchorX: bar.width - 200
-        shown: Notifs.count > 0
-
-        Notifications {}
     }
 }

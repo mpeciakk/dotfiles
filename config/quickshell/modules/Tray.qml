@@ -4,14 +4,14 @@ import Quickshell.Services.SystemTray
 import "../components"
 import "../services"
 
-Row {
+Column {
     id: tray
 
     spacing: Config.tray.spacing
 
     // Emitted on right-click (or left-click of a menu-only item). Bar wires this
-    // to a Drawer so the menu drops out of the bar as a notch.
-    signal requestMenu(var handle, real x)
+    // to a Drawer so the menu slides out of the bar as a notch.
+    signal requestMenu(var handle, real y)
 
     // Icons pop in as apps register and slide when one leaves.
     add: Transition {
@@ -49,15 +49,15 @@ Row {
             width: Config.tray.size
             height: Config.tray.size
             radius: 6
-            anchors.verticalCenter: parent?.verticalCenter
+            anchors.horizontalCenter: parent?.horizontalCenter
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
             onClicked: event => {
-                const x = item.mapToItem(null, item.width / 2, 0).x;
+                const y = item.mapToItem(null, 0, item.height / 2).y;
                 if (event.button === Qt.LeftButton && !item.modelData.onlyMenu)
                     item.modelData.activate();
                 else if (item.modelData.hasMenu)
-                    tray.requestMenu(item.modelData.menu, x);
+                    tray.requestMenu(item.modelData.menu, y);
             }
 
             Icon {
