@@ -24,6 +24,17 @@ depends = []
 "applications" = "~/.local/share/applications/"
 "autostart" = "~/.config/autostart"
 
+# Claude Code — only config sources (no secrets/runtime/plugins; those stay local).
+# settings.local.json is intentionally NOT mapped: it is the per-host override layer.
+".claude/settings.json" = "~/.claude/settings.json"
+".claude/CLAUDE.md" = "~/.claude/CLAUDE.md"
+".claude/AGENTIC-WORKFLOW.md" = "~/.claude/AGENTIC-WORKFLOW.md"
+".claude/statusline-command.sh" = "~/.claude/statusline-command.sh"
+".claude/.mcp.json" = "~/.claude/.mcp.json"
+".claude/agents" = "~/.claude/agents"
+".claude/skills" = "~/.claude/skills"
+".claude/hooks" = "~/.claude/hooks"
+
 [host-pc.files]
 "hosts/pc/niri-output.kdl" = "~/.config/niri/output.kdl"
 "hosts/pc/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
