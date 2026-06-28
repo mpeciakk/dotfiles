@@ -7,6 +7,7 @@ depends = []
 "config/atuin" = "~/.config/atuin"
 "config/kitty" = "~/.config/kitty"
 "config/Kvantum" = "~/.config/Kvantum"
+"config/mpv" = "~/.config/mpv"
 "config/niri" = "~/.config/niri"
 "config/nushell" = "~/.config/nushell"
 "config/nvim" = "~/.config/nvim"
