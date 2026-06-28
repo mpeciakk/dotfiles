@@ -40,6 +40,16 @@ $EDITOR .dotter/local.toml          # set packages = ["default", "host-<name>"]
 dotter deploy
 ```
 
+nushell sources tool-init files from `~/.local/share/<tool>/init.nu`; generate
+them once per host for the tools you use (a missing one degrades gracefully to an
+empty stub, so the shell still starts):
+
+```sh
+mkdir -p ~/.local/share/{atuin,zoxide}
+atuin init nu  | save -f ~/.local/share/atuin/init.nu
+zoxide init nushell | save -f ~/.local/share/zoxide/init.nu
+```
+
 ## Shared runtime config
 
 Host-agnostic personal settings live in `config/dotfiles/config.json`, deployed to

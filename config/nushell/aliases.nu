@@ -6,7 +6,7 @@ alias gs = git status -s
 alias gc = git commit -m
 alias cd = z
 
-def gfp [] { git fetch; git pull }
+def gfp [] { git fetch --all --prune; git pull }
 
 alias l = ls
 alias la = ls -a
