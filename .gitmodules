@@ -1,0 +1,9 @@
+[submodule "themes/MacTahoe-gtk-theme"]
+	path = themes/MacTahoe-gtk-theme
+	url = https://github.com/vinceliuice/MacTahoe-gtk-theme.git
+[submodule "themes/MacTahoe-icon-theme"]
+	path = themes/MacTahoe-icon-theme
+	url = https://github.com/vinceliuice/MacTahoe-icon-theme.git
+[submodule "themes/MacTahoe-kde"]
+	path = themes/MacTahoe-kde
+	url = https://github.com/vinceliuice/MacTahoe-kde.git
