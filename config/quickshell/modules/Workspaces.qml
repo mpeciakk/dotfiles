@@ -98,7 +98,7 @@ Column {
                 anchors.centerIn: parent
                 text: chip.modelData.name && chip.modelData.name !== "" ? chip.modelData.name : chip.modelData.idx
                 color: chip.focused ? Colours.base : Colours.text
-                font.pixelSize: 12
+                font.pixelSize: Config.font.sm
                 font.bold: chip.focused
 
                 Behavior on color {

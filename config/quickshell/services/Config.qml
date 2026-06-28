@@ -53,7 +53,9 @@ Singleton {
     }
 
     readonly property QtObject notifs: QtObject {
-        readonly property int width: 320
+        readonly property int width: 320            // popup card width
+        readonly property int centerWidth: 360      // notification-center panel width
+        readonly property int historyMaxHeight: 480 // notification-center scroll cap
         readonly property int defaultTimeout: 5000
     }
 
@@ -76,6 +78,18 @@ Singleton {
     readonly property QtObject rounding: QtObject {
         readonly property int small: 6
         readonly property int large: 12
+    }
+
+    // Typography scale (px). Use these instead of inline font.pixelSize literals.
+    // (The lock screen's oversized clock is a deliberate one-off and stays literal.)
+    readonly property QtObject font: QtObject {
+        readonly property int xs: 11      // captions, timestamps, app names
+        readonly property int sm: 12      // small labels, percentages
+        readonly property int md: 13      // body text
+        readonly property int lg: 14      // emphasised body / summaries
+        readonly property int xl: 15      // section titles
+        readonly property int xxl: 16     // large labels
+        readonly property int xxxl: 18    // headings
     }
 
     // Rounded "screen border" frame around the desktop. The left edge is the bar;

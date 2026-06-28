@@ -105,7 +105,7 @@ Scope {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: Time.dateStr
                             color: "white"
-                            font.pixelSize: 15
+                            font.pixelSize: Config.font.xl
                             font.bold: true
                         }
                     }
@@ -145,7 +145,7 @@ Scope {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: Config.lock.name || Quickshell.env("USER") || "user"
                             color: "white"
-                            font.pixelSize: 18
+                            font.pixelSize: Config.font.xxxl
                         }
 
                         Rectangle {
@@ -167,7 +167,7 @@ Scope {
                                 echoMode: TextInput.Password
                                 passwordCharacter: "●"
                                 color: "white"
-                                font.pixelSize: 14
+                                font.pixelSize: Config.font.lg
                                 clip: true
                                 enabled: !pam.active
                                 focus: true
@@ -199,7 +199,7 @@ Scope {
                                     anchors.centerIn: parent
                                     text: "→"
                                     color: "white"
-                                    font.pixelSize: 16
+                                    font.pixelSize: Config.font.xxl
                                 }
                             }
                         }

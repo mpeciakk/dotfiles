@@ -74,7 +74,7 @@ PanelWindow {
                     text: Time.timeStr.split(":")[0]
                     color: Colours.text
                     font.family: "monospace"
-                    font.pixelSize: 15
+                    font.pixelSize: Config.font.xl
                     font.bold: true
                 }
 
@@ -83,7 +83,7 @@ PanelWindow {
                     text: Time.timeStr.split(":")[1]
                     color: Colours.subtext1
                     font.family: "monospace"
-                    font.pixelSize: 15
+                    font.pixelSize: Config.font.xl
                 }
             }
         }

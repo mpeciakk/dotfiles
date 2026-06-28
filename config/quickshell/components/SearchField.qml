@@ -33,7 +33,7 @@ Rectangle {
         verticalAlignment: TextInput.AlignVCenter
         clip: true
         color: Colours.text
-        font.pixelSize: 15
+        font.pixelSize: Config.font.xl
         selectByMouse: true
         selectionColor: Colours.mauve
 

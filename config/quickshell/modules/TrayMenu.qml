@@ -75,7 +75,7 @@ Column {
                     anchors.verticalCenter: parent.verticalCenter
                     text: entry.modelData.text ?? ""
                     color: entry.modelData.enabled ? Colours.text : Colours.overlay0
-                    font.pixelSize: 13
+                    font.pixelSize: Config.font.md
                     elide: Text.ElideRight
                 }
 
@@ -88,7 +88,7 @@ Column {
                     visible: entry.modelData.hasChildren
                     text: "›"
                     color: Colours.text
-                    font.pixelSize: 16
+                    font.pixelSize: Config.font.xxl
                 }
             }
         }

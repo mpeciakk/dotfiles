@@ -63,7 +63,7 @@ Item {
                 width: parent.width
                 text: root.player?.trackTitle ?? ""
                 color: Colours.text
-                font.pixelSize: 14
+                font.pixelSize: Config.font.lg
                 font.bold: true
                 elide: Text.ElideRight
             }
@@ -71,7 +71,7 @@ Item {
                 width: parent.width
                 text: root.player?.trackArtist ?? ""
                 color: Colours.subtext1
-                font.pixelSize: 12
+                font.pixelSize: Config.font.sm
                 elide: Text.ElideRight
                 visible: text !== ""
             }

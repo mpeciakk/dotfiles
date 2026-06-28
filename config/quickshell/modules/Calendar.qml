@@ -61,7 +61,7 @@ Item {
                     anchors.centerIn: parent
                     text: "‹"
                     color: Colours.text
-                    font.pixelSize: 18
+                    font.pixelSize: Config.font.xxxl
                 }
             }
 
@@ -69,7 +69,7 @@ Item {
                 anchors.centerIn: parent
                 text: Qt.formatDateTime(root.cursor, "MMMM yyyy")
                 color: Colours.text
-                font.pixelSize: 14
+                font.pixelSize: Config.font.lg
                 font.bold: true
             }
 
@@ -85,7 +85,7 @@ Item {
                     anchors.centerIn: parent
                     text: "›"
                     color: Colours.text
-                    font.pixelSize: 18
+                    font.pixelSize: Config.font.xxxl
                 }
             }
         }
@@ -102,7 +102,7 @@ Item {
                     height: 22
                     text: modelData
                     color: Colours.overlay1
-                    font.pixelSize: 11
+                    font.pixelSize: Config.font.xs
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -134,7 +134,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: modelData.day
-                        font.pixelSize: 13
+                        font.pixelSize: Config.font.md
                         font.bold: modelData.today
                         color: modelData.today ? Colours.base : modelData.inMonth ? Colours.text : Colours.overlay0
                     }

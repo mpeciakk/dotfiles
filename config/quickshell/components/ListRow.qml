@@ -59,7 +59,7 @@ StateButton {
 
             width: parent.width
             color: Colours.text
-            font.pixelSize: 14
+            font.pixelSize: Config.font.lg
             elide: Text.ElideRight
         }
 
@@ -68,7 +68,7 @@ StateButton {
 
             width: parent.width
             color: Colours.overlay1
-            font.pixelSize: 12
+            font.pixelSize: Config.font.sm
             elide: Text.ElideRight
             visible: text !== ""
         }
