@@ -7,14 +7,38 @@
 # Deliberately depends only on coreutils/awk/grep/sed (no jq).
 set -o pipefail
 
+# --- shared config (single source of truth, host-agnostic) ---
+# Read VPN settings from ~/.config/dotfiles/config.json so the same script runs
+# unchanged on every host. Parsed with sed/grep (the file format is ours and
+# stable) to keep this dependency-free. Falls back to safe defaults if absent.
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/config.json"
+
+cfg_str() {  # cfg_str <key> <default> — first "key": "value" string in CONFIG
+    local v=""
+    [[ -r "$CONFIG" ]] && v=$(sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$CONFIG" | head -1)
+    printf '%s' "${v:-$2}"
+}
+
+PRIVILEGED=$(cfg_str privileged doas)            # e.g. doas / sudo
+VPN_CTL=$(cfg_str vpnCtl /usr/local/bin/vpn-ctl) # privileged OpenVPN helper
+
 emit() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4"; }
 
 # --- OpenVPN client instances (systemd) ---
 # /etc/openvpn/client is root-only, so a user-run glob can't list configs and a
-# stopped instance gets unloaded (vanishes from `systemctl list-units`). So keep
-# an explicit list of OpenVPN config names here, and union it with whatever is
-# currently loaded. State for each comes from `systemctl is-active`.
-OVPN_NAMES=(animativ)
+# stopped instance gets unloaded (vanishes from `systemctl list-units`). So read
+# the explicit list of OpenVPN config names from config.json (vpn.openvpn[]) and
+# union it with whatever is currently loaded. State comes from `systemctl is-active`.
+OVPN_NAMES=()
+if [[ -r "$CONFIG" ]]; then
+    # Flatten newlines so the openvpn array is matched whether it's on one line
+    # or several, then pull the quoted names from inside the [ ... ] brackets.
+    while IFS= read -r n; do
+        [[ -n "$n" ]] && OVPN_NAMES+=("$n")
+    done < <(tr -d '\n' < "$CONFIG" \
+                | grep -oE '"openvpn"[[:space:]]*:[[:space:]]*\[[^]]*\]' \
+                | grep -oE '\[[^]]*\]' | grep -oE '"[^"]+"' | sed 's/"//g')
+fi
 
 while read -r unit; do
     n="${unit#openvpn-client@}"
@@ -25,9 +49,9 @@ done < <(systemctl list-units --all --type=service --no-legend --plain 'openvpn-
 while IFS= read -r n; do
     [[ -z "$n" ]] && continue
     if systemctl is-active --quiet "openvpn-client@${n}"; then
-        emit 1 "$n" "OpenVPN" "doas /usr/local/bin/vpn-ctl ovpn-down '$n'"
+        emit 1 "$n" "OpenVPN" "$PRIVILEGED $VPN_CTL ovpn-down '$n'"
     else
-        emit 0 "$n" "OpenVPN" "doas /usr/local/bin/vpn-ctl ovpn-up '$n'"
+        emit 0 "$n" "OpenVPN" "$PRIVILEGED $VPN_CTL ovpn-up '$n'"
     fi
 done < <(printf '%s\n' "${OVPN_NAMES[@]}" | sort -u)
 
