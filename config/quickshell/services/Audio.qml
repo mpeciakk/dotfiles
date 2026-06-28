@@ -26,6 +26,17 @@ Singleton {
             root.sink.audio.muted = !root.sink.audio.muted;
     }
 
+    // Nerd Font volume glyph for the current level/mute state (bar + OSD).
+    function volumeGlyph(): string {
+        if (root.muted || root.volume <= 0)
+            return String.fromCodePoint(0xf0581);   // volume-off
+        if (root.volume < 0.34)
+            return String.fromCodePoint(0xf057f);   // volume-low
+        if (root.volume < 0.67)
+            return String.fromCodePoint(0xf0580);   // volume-medium
+        return String.fromCodePoint(0xf057e);       // volume-high
+    }
+
     PwObjectTracker {
         objects: [Pipewire.defaultAudioSink]
     }

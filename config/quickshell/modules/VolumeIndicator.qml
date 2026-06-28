@@ -15,20 +15,10 @@ StateButton {
 
     onClicked: Audio.toggleMute()
 
-    function volGlyph(): string {
-        if (Audio.muted || Audio.volume <= 0)
-            return String.fromCodePoint(0xf0581);   // volume-off
-        if (Audio.volume < 0.34)
-            return String.fromCodePoint(0xf057f);   // volume-low
-        if (Audio.volume < 0.67)
-            return String.fromCodePoint(0xf0580);   // volume-medium
-        return String.fromCodePoint(0xf057e);       // volume-high
-    }
-
     Glyph {
         anchors.fill: parent
         size: 22
-        text: root.volGlyph()
+        text: Audio.volumeGlyph()
         opacity: Audio.muted ? 0.5 : 1
     }
 

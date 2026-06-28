@@ -29,16 +29,6 @@ Drawer {
         hideTimer.restart();
     }
 
-    function volGlyph(): string {
-        if (Audio.muted || Audio.volume <= 0)
-            return String.fromCodePoint(0xf0581);   // volume-off
-        if (Audio.volume < 0.34)
-            return String.fromCodePoint(0xf057f);   // volume-low
-        if (Audio.volume < 0.67)
-            return String.fromCodePoint(0xf0580);   // volume-medium
-        return String.fromCodePoint(0xf057e);       // volume-high
-    }
-
     Component.onCompleted: readyTimer.start()
 
     Timer {
@@ -78,7 +68,7 @@ Drawer {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Audio.muted ? "—" : Math.round(Audio.volume * 100) + "%"
             color: Colours.text
-            font.pixelSize: 12
+            font.pixelSize: Config.font.sm
         }
 
         // Vertical level bar — fills bottom-up.
@@ -109,7 +99,7 @@ Drawer {
         Glyph {
             anchors.horizontalCenter: parent.horizontalCenter
             size: 26
-            text: root.volGlyph()
+            text: Audio.volumeGlyph()
             opacity: Audio.muted ? 0.5 : 1
         }
     }
