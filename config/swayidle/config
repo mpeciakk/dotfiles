@@ -1,1 +1,0 @@
-timeout 300 '~/dotfiles/bin/lock.sh'
