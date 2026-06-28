@@ -1,150 +1,191 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import "../components"
 import "../services"
 
-// App launcher content: a search field over a results list. Meant to live inside
-// a (modal, keyboard-focused) Drawer so it drops out of the bar as a notch.
-// Type to filter, ↑/↓ to move, Enter to launch, Esc to close.
+// Launcher content built on the reusable SearchList + ListRow.
+//   • list mode (default): registered menus (Menus) on top, then apps (Apps.query).
+//     Both filter by the search text; selecting a menu drills into it, selecting
+//     an app launches it.
+//   • menu mode: a chosen menu's items (from its `list` script); selecting one
+//     runs its command then re-lists so the active dot refreshes.
+// `startMenu` (set via IPC) opens straight into a menu. Esc backs out of a menu,
+// then closes. Meant to live inside a (modal, keyboard-focused) Drawer.
 Item {
     id: root
 
     signal close
 
-    readonly property var results: Apps.query(search.text)
+    property string startMenu: ""
 
-    implicitWidth: Config.launcher.width
-    implicitHeight: searchBox.height + 8 + list.height
+    property string menuId: ""
+    property var menuItems: []
+
+    readonly property string mode: menuId !== "" ? "menu" : "list"
+    readonly property string filterText: palette.text.trim().toLowerCase()
+
+    readonly property var results: {
+        if (root.mode === "menu")
+            return root.menuItems.filter(it => root.filterText === "" || it.label.toLowerCase().includes(root.filterText));
+        // Menus first (filtered by title), then apps.
+        const menus = Menus.list.filter(m => root.filterText === "" || m.title.toLowerCase().includes(root.filterText));
+        return menus.concat(Apps.query(palette.text));
+    }
+
+    implicitWidth: palette.implicitWidth
+    implicitHeight: palette.implicitHeight
 
     function activate(): void {
-        search.text = "";
-        search.forceActiveFocus();
+        palette.activate();
+        if (root.startMenu)
+            root.enterMenu(root.startMenu);
+        else
+            root.menuId = "";
     }
     function reset(): void {
-        search.text = "";
+        palette.reset();
+        root.menuId = "";
     }
-    function accept(): void {
-        if (root.results.length > 0) {
-            Apps.launch(root.results[Math.max(0, list.currentIndex)]);
+
+    function enterMenu(id: string): void {
+        root.menuId = id;
+        root.menuItems = [];   // drop the previous menu's rows so they don't flash
+        palette.text = "";
+        root.loadMenu();
+    }
+    function exitMenu(): void {
+        root.menuId = "";
+        palette.text = "";
+    }
+    function loadMenu(): void {
+        const m = Menus.get(root.menuId);
+        if (!m) {
+            root.menuItems = [];
+            return;
+        }
+        menuProc.running = false;
+        menuProc.command = m.argv;
+        menuProc.running = true;
+    }
+
+    // A result is a menu definition (has argv), a menu item (in menu mode), or an
+    // app (DesktopEntry) — the row shape and the activate action differ per kind.
+    function kindOf(m: var): string {
+        if (root.menuId !== "")
+            return "item";
+        return m && m.argv !== undefined ? "menu" : "app";
+    }
+
+    // Activate a row (Enter or click).
+    function run(item: var): void {
+        if (!item)
+            return;
+        const k = root.kindOf(item);
+        if (k === "menu") {
+            root.enterMenu(item.id);
+        } else if (k === "app") {
+            Apps.launch(item);
             root.close();
+        } else {
+            if (item.command)
+                Quickshell.execDetached(["sh", "-c", item.command]);
+            // Re-list a few times: the toggle command (systemctl/tailscale) often
+            // takes longer than one tick to change the reported state.
+            root.pendingRefreshes = 4;
+            refreshTimer.restart();
         }
     }
 
-    onResultsChanged: list.currentIndex = 0
+    // Row field accessors (shape differs per kind).
+    function rowLabel(m: var): string {
+        const k = root.kindOf(m);
+        return (k === "menu" ? m.title : k === "app" ? m.name : m.label) ?? "";
+    }
+    function rowSub(m: var): string {
+        const k = root.kindOf(m);
+        if (k === "menu")
+            return "Menu";
+        if (k === "app")
+            return (m.comment || m.genericName) ?? "";
+        return m.sublabel ?? "";
+    }
+    function rowIcon(m: var): string {
+        if (root.kindOf(m) === "item")
+            return Quickshell.iconPath(Menus.get(root.menuId)?.icon ?? "", "application-x-executable");
+        return Quickshell.iconPath(m.icon, "application-x-executable");   // menu def or app
+    }
+    function rowDot(m: var): int {
+        if (root.kindOf(m) !== "item")
+            return -1;
+        return m.active ? 1 : 0;
+    }
 
-    Rectangle {
-        id: searchBox
+    Process {
+        id: menuProc
 
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: 44
-        radius: height / 2
-        color: Colours.surface0
+        stdout: StdioCollector {
+            id: menuOut
 
-        TextInput {
-            id: search
-
-            anchors.fill: parent
-            anchors.leftMargin: 18
-            anchors.rightMargin: 18
-            verticalAlignment: TextInput.AlignVCenter
-            clip: true
-            color: Colours.text
-            font.pixelSize: 15
-            selectByMouse: true
-            selectionColor: Colours.mauve
-
-            Keys.onUpPressed: list.decrementCurrentIndex()
-            Keys.onDownPressed: list.incrementCurrentIndex()
-            Keys.onReturnPressed: root.accept()
-            Keys.onEnterPressed: root.accept()
-            Keys.onEscapePressed: root.close()
-
-            Text {
-                anchors.fill: parent
-                verticalAlignment: Text.AlignVCenter
-                visible: search.text === ""
-                text: "Search apps…"
-                color: Colours.overlay0
-                font: search.font
+            onStreamFinished: {
+                const lines = menuOut.text.split("\n").filter(l => l.length > 0);
+                root.menuItems = lines.map(l => {
+                    const p = l.split("\t");
+                    return {
+                        active: p[0] === "1",
+                        label: p[1] ?? "",
+                        sublabel: p[2] ?? "",
+                        command: p[3] ?? ""
+                    };
+                });
             }
         }
     }
 
-    ListView {
-        id: list
+    property int pendingRefreshes: 0
 
-        anchors.top: searchBox.bottom
-        anchors.topMargin: 8
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: Math.min(contentHeight, Config.launcher.maxVisible * Config.launcher.itemHeight)
+    Timer {
+        id: refreshTimer
 
-        clip: true
-        spacing: 2
-        currentIndex: 0
-        model: root.results
-        boundsBehavior: Flickable.StopAtBounds
-        keyNavigationEnabled: false   // keys are driven from the search field
+        interval: 700
+        repeat: true
+        onTriggered: {
+            root.loadMenu();
+            root.pendingRefreshes--;
+            if (root.pendingRefreshes <= 0)
+                refreshTimer.stop();
+        }
+    }
 
-        delegate: StateButton {
-            id: appRow
+    Component {
+        id: rowDelegate
 
+        ListRow {
             required property var modelData
 
-            width: ListView.view.width
-            height: Config.launcher.itemHeight
-            radius: 12
-            color: ListView.isCurrentItem ? Colours.surface1 : "transparent"
+            iconSource: root.rowIcon(modelData)
+            label: root.rowLabel(modelData)
+            sublabel: root.rowSub(modelData)
+            dot: root.rowDot(modelData)
 
-            onClicked: {
-                Apps.launch(appRow.modelData);
+            onClicked: root.run(modelData)
+        }
+    }
+
+    SearchList {
+        id: palette
+
+        anchors.fill: parent
+        values: root.results
+        delegate: rowDelegate
+        placeholder: root.mode === "menu" ? (Menus.get(root.menuId)?.title ?? "") + "…" : "Search apps & menus…"
+
+        onActivated: item => root.run(item)
+        onEscaped: {
+            if (root.mode === "menu")
+                root.exitMenu();
+            else
                 root.close();
-            }
-
-            Behavior on color {
-                CAnim {
-                    curve: Appearance.anim.curves.expressiveDefaultEffects
-                    duration: Appearance.anim.durations.expressiveDefaultEffects
-                }
-            }
-
-            Icon {
-                id: appIcon
-
-                anchors.left: parent.left
-                anchors.leftMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                size: parent.height - 18
-                source: Quickshell.iconPath(appRow.modelData.icon, "application-x-executable")
-            }
-
-            Column {
-                anchors.left: appIcon.right
-                anchors.leftMargin: 12
-                anchors.right: parent.right
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 1
-
-                Text {
-                    width: parent.width
-                    text: appRow.modelData.name ?? ""
-                    color: Colours.text
-                    font.pixelSize: 14
-                    elide: Text.ElideRight
-                }
-
-                Text {
-                    width: parent.width
-                    text: (appRow.modelData.comment || appRow.modelData.genericName) ?? ""
-                    color: Colours.overlay1
-                    font.pixelSize: 12
-                    elide: Text.ElideRight
-                    visible: text !== ""
-                }
-            }
         }
     }
 }

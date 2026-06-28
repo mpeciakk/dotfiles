@@ -8,6 +8,7 @@ Rectangle {
 
     property alias acceptedButtons: state.acceptedButtons
     property alias effectColor: state.effectColor
+    readonly property alias containsMouse: state.containsMouse
     property bool disabled: false
 
     signal clicked(var event)

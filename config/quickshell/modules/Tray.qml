@@ -17,10 +17,10 @@ Column {
     add: Transition {
         Anim {
             property: "scale"
-            from: 0
+            from: 0.9
             to: 1
-            curve: Appearance.anim.curves.expressiveDefaultSpatial
-            duration: Appearance.anim.durations.expressiveDefaultSpatial
+            curve: Appearance.anim.curves.emphasized
+            duration: Appearance.anim.durations.normal
         }
         Anim {
             property: "opacity"
@@ -33,8 +33,8 @@ Column {
     move: Transition {
         Anim {
             properties: "x,y"
-            curve: Appearance.anim.curves.expressiveDefaultSpatial
-            duration: Appearance.anim.durations.expressiveDefaultSpatial
+            curve: Appearance.anim.curves.emphasized
+            duration: Appearance.anim.durations.normal
         }
     }
 
@@ -48,7 +48,7 @@ Column {
 
             width: Config.tray.size
             height: Config.tray.size
-            radius: 6
+            radius: Config.rounding.small
             anchors.horizontalCenter: parent?.horizontalCenter
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 

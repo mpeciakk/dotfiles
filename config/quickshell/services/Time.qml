@@ -7,6 +7,7 @@ import Quickshell
 // displays, so there's no reason to wake up every second.
 Singleton {
     readonly property string timeStr: Qt.formatDateTime(clock.date, "hh:mm")
+    readonly property string dateStr: Qt.formatDateTime(clock.date, "dddd, MMMM d, yyyy")
 
     SystemClock {
         id: clock

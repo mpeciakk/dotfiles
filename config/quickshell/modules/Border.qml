@@ -64,7 +64,10 @@ Scope {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         mask: Region {}        // click-through; the struts do the reserving
-        WlrLayershell.layer: WlrLayer.Bottom
+        // Top (not Bottom) so the frame is static — niri slides background/bottom
+        // layer-shell surfaces with the workspace, but keeps top/overlay fixed.
+        // It's drawn under the bar (Border is instantiated before Bar in shell.qml).
+        WlrLayershell.layer: WlrLayer.Top
 
         anchors {
             top: true
@@ -88,7 +91,10 @@ Scope {
                 fillColor: Colours.base
                 fillRule: ShapePath.OddEvenFill
 
-                // outer rectangle: the whole screen
+                // outer boundary: the whole screen. The frame also fills the left
+                // strip behind the bar (incl. the top/bottom corner gaps where the
+                // bar is inset by the struts' exclusive zones); the bar draws over
+                // it because Border is instantiated before Bar in shell.qml.
                 startX: 0
                 startY: 0
                 PathLine {

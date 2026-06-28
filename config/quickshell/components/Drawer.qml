@@ -48,8 +48,14 @@ PanelWindow {
     // launcher); leave None for everything else.
     property int keyboardFocus: WlrKeyboardFocus.None
 
+    // Open/close motion — the shell-wide movement easing (emphasized, no
+    // overshoot, since the spatial bounce reads badly against the notch
+    // rounding). Overridable per popup, but every drawer uses this by default so
+    // they all open/close identically.
+    property var animCurve: Appearance.anim.curves.emphasized
+    property int animDuration: Appearance.anim.durations.normal
+
     property bool shown: false
-    readonly property bool isOpen: shown
     property real prog: shown ? 1 : 0
 
     default property alias content: contentContainer.data
@@ -62,6 +68,13 @@ PanelWindow {
     }
     function toggle(): void {
         shown = !shown;
+    }
+
+    // Cross-axis position for the side/top/bottom edges: place by anchor + align,
+    // clamped to stay on-screen (limit is the screen extent on that axis).
+    function alignedPos(anchor: real, size: real, limit: real): real {
+        const c = align === "start" ? anchor : align === "end" ? anchor - size : anchor - size / 2;
+        return Math.max(4, Math.min(c, limit - size - 4));
     }
 
     // Full-screen overlay so we can catch click-away. Ignore exclusion zones so
@@ -91,11 +104,11 @@ PanelWindow {
         item: panel
     }
 
-    // Springy drop in/out — overshoots slightly so the notch "pops".
+    // Slide in/out, easing per animCurve (springy by default).
     Behavior on prog {
         Anim {
-            curve: Appearance.anim.curves.expressiveDefaultSpatial
-            duration: Appearance.anim.durations.expressiveDefaultSpatial
+            curve: root.animCurve
+            duration: root.animDuration
         }
     }
 
@@ -106,56 +119,57 @@ PanelWindow {
         onClicked: root.close()
     }
 
+    // Clips away the strip behind the bar/border on the emergence edge, so the
+    // panel slides out from *under* the bar/edge panels instead of over them.
     Item {
-        id: panel
+        id: clipper
 
-        // Flush against the inner edge of the bar/border (offset by barSize so
-        // the concave shoulders flare past it onto the desktop and stay visible);
-        // positioned along the edge by the anchor/align.
-        x: {
-            if (root.fromLeft)
-                return root.barSize;
-            if (root.fromRight || root.fromCorner)
-                return root.width - width - root.barSize;
-            const c = root.align === "start" ? root.anchorX : root.align === "end" ? root.anchorX - width : root.anchorX - width / 2;
-            return Math.max(4, Math.min(c, root.width - width - 4));
-        }
-        y: {
-            if (root.fromTop || root.fromCorner)
-                return root.barSize;
-            if (root.fromBottom)
-                return root.height - height - root.barSize;
-            const c = root.align === "start" ? root.anchorY : root.align === "end" ? root.anchorY - height : root.anchorY - height / 2;
-            return Math.max(4, Math.min(c, root.height - height - 4));
-        }
+        x: root.fromLeft ? root.barSize : 0
+        y: root.fromTop || root.fromCorner ? root.barSize : 0
+        width: root.width - (root.fromLeft || root.fromRight || root.fromCorner ? root.barSize : 0)
+        height: root.height - (root.fromTop || root.fromBottom || root.fromCorner ? root.barSize : 0)
+        clip: true
+
+        Item {
+            id: panel
+
+            // Flush against the inner edge of the bar/border (offset by barSize
+            // so the concave shoulders flare past it onto the desktop and stay
+            // visible); positioned along the edge by the anchor/align. Coords are
+            // relative to the clipper (offset by clipper.x/y).
+            x: (root.fromLeft ? root.barSize : root.fromRight || root.fromCorner ? root.width - width - root.barSize : root.alignedPos(root.anchorX, width, root.width)) - clipper.x
+            y: (root.fromTop || root.fromCorner ? root.barSize : root.fromBottom ? root.height - height - root.barSize : root.alignedPos(root.anchorY, height, root.height)) - clipper.y
         // Corner gets one shoulder on the left and one on the bottom; side edges
         // get two shoulders on the shoulder axis; the flush axis gets none.
         width: contentContainer.implicitWidth + 2 * root.hpadding + (root.fromCorner ? root.shoulder : root.horizontalShoulders ? 2 * root.shoulder : 0)
         height: contentContainer.implicitHeight + 2 * root.vpadding + (root.fromCorner ? root.shoulder : root.horizontalShoulders ? 0 : 2 * root.shoulder)
 
+        // Pure slide + fade like caelestia's offset animation: the panel slides
+        // its full extent off the edge it emerges from (tucked behind the
+        // bar/border by `barSize`) while fading, with no scaling.
         opacity: root.prog
-        transform: [
-            Scale {
-                origin.x: root.fromRight || root.fromCorner ? panel.width : root.fromLeft ? 0 : panel.width / 2
-                origin.y: root.fromTop || root.fromCorner ? 0 : root.fromBottom ? panel.height : panel.height / 2
-                xScale: 0.9 + 0.1 * root.prog
-                yScale: 0.9 + 0.1 * root.prog
-            },
-            Translate {
-                x: root.fromLeft ? (1 - root.prog) * -16 : root.fromRight ? (1 - root.prog) * 16 : root.fromCorner ? (1 - root.prog) * 8 : 0
-                y: root.fromTop ? (1 - root.prog) * -16 : root.fromBottom ? (1 - root.prog) * 16 : root.fromCorner ? (1 - root.prog) * -8 : 0
-            }
-        ]
+        transform: Translate {
+            readonly property real off: 1 - root.prog
+
+            x: root.fromLeft ? -(panel.width + root.barSize) * off : root.fromRight ? (panel.width + root.barSize) * off : 0
+            y: root.fromTop || root.fromCorner ? -(panel.height + root.barSize) * off : root.fromBottom ? (panel.height + root.barSize) * off : 0
+        }
 
         // Smoothly resize as content grows/shrinks (e.g. notifications expiring)
         // so the notch retracts instead of snapping.
+        // Only animate content-driven resize while fully open — during the
+        // open/close slide the size snaps to its target so the panel slides in at
+        // the right size instead of growing as it appears (which looks wrong when
+        // the single card that opens the drawer also grows the panel from zero).
         Behavior on width {
+            enabled: root.prog >= 1
             Anim {
                 curve: Appearance.anim.curves.emphasized
                 duration: Appearance.anim.durations.normal
             }
         }
         Behavior on height {
+            enabled: root.prog >= 1
             Anim {
                 curve: Appearance.anim.curves.emphasized
                 duration: Appearance.anim.durations.normal
@@ -169,317 +183,277 @@ PanelWindow {
 
         // Top notch (down from the top edge): the original top-bar notch — flush
         // top edge, concave shoulders top-left/top-right, convex bottom corners.
-        Shape {
-            anchors.fill: parent
+        NotchShape {
             visible: root.fromTop
-            preferredRendererType: Shape.CurveRenderer
+            fillColor: root.surfaceColor
+            startX: 0
+            startY: 0
 
-            ShapePath {
-                strokeWidth: 0
-                strokeColor: "transparent"
-                fillColor: root.surfaceColor
-
-                startX: 0
-                startY: 0
-
-                PathLine {
-                    x: panel.width
-                    y: 0
-                }
-                PathArc {
-                    x: panel.width - root.shoulder
-                    y: root.shoulder
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Counterclockwise
-                }
-                PathLine {
-                    x: panel.width - root.shoulder
-                    y: panel.height - root.bottomRadius
-                }
-                PathArc {
-                    x: panel.width - root.shoulder - root.bottomRadius
-                    y: panel.height
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Clockwise
-                }
-                PathLine {
-                    x: root.shoulder + root.bottomRadius
-                    y: panel.height
-                }
-                PathArc {
-                    x: root.shoulder
-                    y: panel.height - root.bottomRadius
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Clockwise
-                }
-                PathLine {
-                    x: root.shoulder
-                    y: root.shoulder
-                }
-                PathArc {
-                    x: 0
-                    y: 0
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Counterclockwise
-                }
+            PathLine {
+                x: panel.width
+                y: 0
+            }
+            PathArc {
+                x: panel.width - root.shoulder
+                y: root.shoulder
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Counterclockwise
+            }
+            PathLine {
+                x: panel.width - root.shoulder
+                y: panel.height - root.bottomRadius
+            }
+            PathArc {
+                x: panel.width - root.shoulder - root.bottomRadius
+                y: panel.height
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Clockwise
+            }
+            PathLine {
+                x: root.shoulder + root.bottomRadius
+                y: panel.height
+            }
+            PathArc {
+                x: root.shoulder
+                y: panel.height - root.bottomRadius
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Clockwise
+            }
+            PathLine {
+                x: root.shoulder
+                y: root.shoulder
+            }
+            PathArc {
+                x: 0
+                y: 0
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Counterclockwise
             }
         }
 
         // Left notch (out of the vertical bar): the top-bar notch rotated 90°
         // CCW — flush left edge, concave shoulders top-left/bottom-left, convex
         // corners on the right.
-        Shape {
-            anchors.fill: parent
+        NotchShape {
             visible: root.fromLeft
-            preferredRendererType: Shape.CurveRenderer
+            fillColor: root.surfaceColor
+            startX: 0
+            startY: panel.height
 
-            ShapePath {
-                strokeWidth: 0
-                strokeColor: "transparent"
-                fillColor: root.surfaceColor
-
-                startX: 0
-                startY: panel.height
-
-                PathLine {
-                    x: 0
-                    y: 0
-                }
-                PathArc {
-                    x: root.shoulder
-                    y: root.shoulder
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Counterclockwise
-                }
-                PathLine {
-                    x: panel.width - root.bottomRadius
-                    y: root.shoulder
-                }
-                PathArc {
-                    x: panel.width
-                    y: root.shoulder + root.bottomRadius
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Clockwise
-                }
-                PathLine {
-                    x: panel.width
-                    y: panel.height - root.shoulder - root.bottomRadius
-                }
-                PathArc {
-                    x: panel.width - root.bottomRadius
-                    y: panel.height - root.shoulder
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Clockwise
-                }
-                PathLine {
-                    x: root.shoulder
-                    y: panel.height - root.shoulder
-                }
-                PathArc {
-                    x: 0
-                    y: panel.height
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Counterclockwise
-                }
+            PathLine {
+                x: 0
+                y: 0
+            }
+            PathArc {
+                x: root.shoulder
+                y: root.shoulder
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Counterclockwise
+            }
+            PathLine {
+                x: panel.width - root.bottomRadius
+                y: root.shoulder
+            }
+            PathArc {
+                x: panel.width
+                y: root.shoulder + root.bottomRadius
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Clockwise
+            }
+            PathLine {
+                x: panel.width
+                y: panel.height - root.shoulder - root.bottomRadius
+            }
+            PathArc {
+                x: panel.width - root.bottomRadius
+                y: panel.height - root.shoulder
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Clockwise
+            }
+            PathLine {
+                x: root.shoulder
+                y: panel.height - root.shoulder
+            }
+            PathArc {
+                x: 0
+                y: panel.height
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Counterclockwise
             }
         }
 
         // Right notch (out of the right edge): the left notch mirrored in X —
         // flush right edge, concave shoulders top-right/bottom-right, convex
         // corners on the left.
-        Shape {
-            anchors.fill: parent
+        NotchShape {
             visible: root.fromRight
-            preferredRendererType: Shape.CurveRenderer
+            fillColor: root.surfaceColor
+            startX: panel.width
+            startY: panel.height
 
-            ShapePath {
-                strokeWidth: 0
-                strokeColor: "transparent"
-                fillColor: root.surfaceColor
-
-                startX: panel.width
-                startY: panel.height
-
-                PathLine {
-                    x: panel.width
-                    y: 0
-                }
-                PathArc {
-                    x: panel.width - root.shoulder
-                    y: root.shoulder
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Clockwise
-                }
-                PathLine {
-                    x: root.bottomRadius
-                    y: root.shoulder
-                }
-                PathArc {
-                    x: 0
-                    y: root.shoulder + root.bottomRadius
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Counterclockwise
-                }
-                PathLine {
-                    x: 0
-                    y: panel.height - root.shoulder - root.bottomRadius
-                }
-                PathArc {
-                    x: root.bottomRadius
-                    y: panel.height - root.shoulder
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Counterclockwise
-                }
-                PathLine {
-                    x: panel.width - root.shoulder
-                    y: panel.height - root.shoulder
-                }
-                PathArc {
-                    x: panel.width
-                    y: panel.height
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Clockwise
-                }
+            PathLine {
+                x: panel.width
+                y: 0
+            }
+            PathArc {
+                x: panel.width - root.shoulder
+                y: root.shoulder
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Clockwise
+            }
+            PathLine {
+                x: root.bottomRadius
+                y: root.shoulder
+            }
+            PathArc {
+                x: 0
+                y: root.shoulder + root.bottomRadius
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Counterclockwise
+            }
+            PathLine {
+                x: 0
+                y: panel.height - root.shoulder - root.bottomRadius
+            }
+            PathArc {
+                x: root.bottomRadius
+                y: panel.height - root.shoulder
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Counterclockwise
+            }
+            PathLine {
+                x: panel.width - root.shoulder
+                y: panel.height - root.shoulder
+            }
+            PathArc {
+                x: panel.width
+                y: panel.height
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Clockwise
             }
         }
 
         // Bottom notch (up from the bottom edge): the top-bar notch mirrored in
         // Y — flush bottom edge, concave shoulders bottom-left/bottom-right,
         // convex corners on top.
-        Shape {
-            anchors.fill: parent
+        NotchShape {
             visible: root.fromBottom
-            preferredRendererType: Shape.CurveRenderer
+            fillColor: root.surfaceColor
+            startX: 0
+            startY: panel.height
 
-            ShapePath {
-                strokeWidth: 0
-                strokeColor: "transparent"
-                fillColor: root.surfaceColor
-
-                startX: 0
-                startY: panel.height
-
-                PathLine {
-                    x: panel.width
-                    y: panel.height
-                }
-                PathArc {
-                    x: panel.width - root.shoulder
-                    y: panel.height - root.shoulder
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Clockwise
-                }
-                PathLine {
-                    x: panel.width - root.shoulder
-                    y: root.bottomRadius
-                }
-                PathArc {
-                    x: panel.width - root.shoulder - root.bottomRadius
-                    y: 0
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Counterclockwise
-                }
-                PathLine {
-                    x: root.shoulder + root.bottomRadius
-                    y: 0
-                }
-                PathArc {
-                    x: root.shoulder
-                    y: root.bottomRadius
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Counterclockwise
-                }
-                PathLine {
-                    x: root.shoulder
-                    y: panel.height - root.shoulder
-                }
-                PathArc {
-                    x: 0
-                    y: panel.height
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Clockwise
-                }
+            PathLine {
+                x: panel.width
+                y: panel.height
+            }
+            PathArc {
+                x: panel.width - root.shoulder
+                y: panel.height - root.shoulder
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Clockwise
+            }
+            PathLine {
+                x: panel.width - root.shoulder
+                y: root.bottomRadius
+            }
+            PathArc {
+                x: panel.width - root.shoulder - root.bottomRadius
+                y: 0
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Counterclockwise
+            }
+            PathLine {
+                x: root.shoulder + root.bottomRadius
+                y: 0
+            }
+            PathArc {
+                x: root.shoulder
+                y: root.bottomRadius
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Counterclockwise
+            }
+            PathLine {
+                x: root.shoulder
+                y: panel.height - root.shoulder
+            }
+            PathArc {
+                x: 0
+                y: panel.height
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Clockwise
             }
         }
 
         // Top-right corner notch: flush top and right edges meeting at the screen
         // corner, concave shoulders at top-left (blends into the top border) and
         // bottom-right (blends into the right border), convex bottom-left corner.
-        Shape {
-            anchors.fill: parent
+        NotchShape {
             visible: root.fromCorner
-            preferredRendererType: Shape.CurveRenderer
+            fillColor: root.surfaceColor
+            startX: 0
+            startY: 0
 
-            ShapePath {
-                strokeWidth: 0
-                strokeColor: "transparent"
-                fillColor: root.surfaceColor
-
-                startX: 0
-                startY: 0
-
-                // top flush edge (full width, against the top border)
-                PathLine {
-                    x: panel.width
-                    y: 0
-                }
-                // right flush edge (full height, against the right border, down
-                // to the far corner)
-                PathLine {
-                    x: panel.width
-                    y: panel.height
-                }
-                // bottom-right concave shoulder: flush corner -> body corner
-                // (mirror of the top-left shoulder; same east->north sweep, CCW)
-                PathArc {
-                    x: panel.width - root.shoulder
-                    y: panel.height - root.shoulder
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Counterclockwise
-                }
-                // bottom edge (body inset up by shoulder)
-                PathLine {
-                    x: root.shoulder + root.bottomRadius
-                    y: panel.height - root.shoulder
-                }
-                // bottom-left convex corner
-                PathArc {
-                    x: root.shoulder
-                    y: panel.height - root.shoulder - root.bottomRadius
-                    radiusX: root.bottomRadius
-                    radiusY: root.bottomRadius
-                    direction: PathArc.Clockwise
-                }
-                // left wall (body inset by shoulder)
-                PathLine {
-                    x: root.shoulder
-                    y: root.shoulder
-                }
-                // top-left concave shoulder: body corner -> flush corner
-                PathArc {
-                    x: 0
-                    y: 0
-                    radiusX: root.shoulder
-                    radiusY: root.shoulder
-                    direction: PathArc.Counterclockwise
-                }
+            // top flush edge (full width, against the top border)
+            PathLine {
+                x: panel.width
+                y: 0
+            }
+            // right flush edge (full height, against the right border, down
+            // to the far corner)
+            PathLine {
+                x: panel.width
+                y: panel.height
+            }
+            // bottom-right concave shoulder: flush corner -> body corner
+            // (mirror of the top-left shoulder; same east->north sweep, CCW)
+            PathArc {
+                x: panel.width - root.shoulder
+                y: panel.height - root.shoulder
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Counterclockwise
+            }
+            // bottom edge (body inset up by shoulder)
+            PathLine {
+                x: root.shoulder + root.bottomRadius
+                y: panel.height - root.shoulder
+            }
+            // bottom-left convex corner
+            PathArc {
+                x: root.shoulder
+                y: panel.height - root.shoulder - root.bottomRadius
+                radiusX: root.bottomRadius
+                radiusY: root.bottomRadius
+                direction: PathArc.Clockwise
+            }
+            // left wall (body inset by shoulder)
+            PathLine {
+                x: root.shoulder
+                y: root.shoulder
+            }
+            // top-left concave shoulder: body corner -> flush corner
+            PathArc {
+                x: 0
+                y: 0
+                radiusX: root.shoulder
+                radiusY: root.shoulder
+                direction: PathArc.Counterclockwise
             }
         }
 
@@ -492,6 +466,7 @@ PanelWindow {
             implicitHeight: childrenRect.height
             width: implicitWidth
             height: implicitHeight
+        }
         }
     }
 }

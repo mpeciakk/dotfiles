@@ -4,16 +4,26 @@ import "../components"
 import "../services"
 
 // Stack of notification cards, meant to live inside a (non-modal) Drawer so the
-// notifications drop out of the bar as a notch. Each card auto-expires.
-Column {
+// notifications drop out of the bar as a notch. A ListView (not a positioner) so
+// removals use a proper `remove` transition: the leaving card slides out + fades
+// in place while it's taken out of layout at once, so the rest reflow up in one
+// smooth `displaced` motion (no leftover spacing to jump) and the notch
+// background follows the contentHeight step via the Drawer's own resize Behavior.
+ListView {
     id: root
 
     property int cardWidth: Config.notifs.width
 
-    width: cardWidth
+    implicitWidth: cardWidth
+    implicitHeight: contentHeight
+    width: implicitWidth
+    height: implicitHeight
     spacing: 8
+    interactive: false
+    clip: false                 // let a leaving card slide out past the bounds
+    model: Notifs.list
 
-    // Cards pop in and the stack slides to close gaps when one leaves.
+    // New cards pop in.
     add: Transition {
         Anim {
             property: "opacity"
@@ -24,80 +34,98 @@ Column {
         }
         Anim {
             property: "scale"
-            from: 0.85
+            from: 0.9
             to: 1
-            curve: Appearance.anim.curves.expressiveDefaultSpatial
-            duration: Appearance.anim.durations.expressiveDefaultSpatial
-        }
-    }
-    move: Transition {
-        Anim {
-            properties: "x,y"
             curve: Appearance.anim.curves.emphasized
             duration: Appearance.anim.durations.normal
         }
     }
 
-    Repeater {
-        model: Notifs.list
+    // Leaving card slides out to the right and fades (in place — already out of
+    // layout, so it doesn't hold a slot).
+    remove: Transition {
+        Anim {
+            property: "x"
+            to: root.cardWidth
+            curve: Appearance.anim.curves.emphasized
+            duration: Appearance.anim.durations.normal
+        }
+        Anim {
+            property: "opacity"
+            to: 0
+            curve: Appearance.anim.curves.standard
+            duration: Appearance.anim.durations.small
+        }
+    }
 
-        delegate: StateButton {
-            id: card
+    // The stack closes the gap in one smooth motion when a card is added/removed.
+    displaced: Transition {
+        Anim {
+            property: "y"
+            curve: Appearance.anim.curves.emphasized
+            duration: Appearance.anim.durations.normal
+        }
+    }
 
-            required property Notification modelData
+    delegate: StateButton {
+        id: card
 
-            width: root.cardWidth
-            implicitHeight: layout.implicitHeight + 20
-            radius: 12
-            color: Colours.mantle
+        required property Notification modelData
 
-            onClicked: card.modelData.dismiss()
+        width: root.cardWidth
+        implicitHeight: layout.implicitHeight + 20
+        radius: Config.rounding.large
+        color: Colours.mantle
 
-            Timer {
-                running: true
-                interval: card.modelData.expireTimeout > 0 ? card.modelData.expireTimeout : Config.notifs.defaultTimeout
-                onTriggered: card.modelData.expire()
+        // modelData goes null while the delegate lingers through the remove
+        // transition — guard every access. The card is out of layout by then, so
+        // a momentary blank doesn't affect sizing.
+        onClicked: card.modelData?.dismiss()
+
+        Timer {
+            running: card.modelData !== null
+            interval: (card.modelData?.expireTimeout ?? 0) > 0 ? card.modelData.expireTimeout : Config.notifs.defaultTimeout
+            onTriggered: card.modelData?.expire()
+        }
+
+        Column {
+            id: layout
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
+            spacing: 3
+
+            Text {
+                width: parent.width
+                text: card.modelData?.appName ?? ""
+                color: Colours.overlay2
+                font.pixelSize: 11
+                elide: Text.ElideRight
+                visible: text !== ""
             }
 
-            Column {
-                id: layout
+            Text {
+                width: parent.width
+                text: card.modelData?.summary ?? ""
+                color: Colours.text
+                font.pixelSize: 14
+                font.bold: true
+                elide: Text.ElideRight
+                visible: text !== ""
+            }
 
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 14
-                anchors.rightMargin: 14
-                spacing: 3
-
-                Text {
-                    width: parent.width
-                    text: card.modelData.appName
-                    color: Colours.overlay2
-                    font.pixelSize: 11
-                    elide: Text.ElideRight
-                    visible: text !== ""
-                }
-
-                Text {
-                    width: parent.width
-                    text: card.modelData.summary
-                    color: Colours.text
-                    font.pixelSize: 14
-                    font.bold: true
-                    elide: Text.ElideRight
-                    visible: text !== ""
-                }
-
-                Text {
-                    width: parent.width
-                    text: card.modelData.body
-                    color: Colours.subtext1
-                    font.pixelSize: 13
-                    wrapMode: Text.Wrap
-                    maximumLineCount: 4
-                    elide: Text.ElideRight
-                    visible: text !== ""
-                }
+            Text {
+                width: parent.width
+                text: card.modelData?.body ?? ""
+                color: Colours.subtext1
+                font.pixelSize: 13
+                wrapMode: Text.Wrap
+                maximumLineCount: 4
+                elide: Text.ElideRight
+                visible: text !== ""
             }
         }
     }

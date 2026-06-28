@@ -45,26 +45,54 @@ PanelWindow {
             }
         }
 
-        // Stacked HH / MM, so it fits the narrow vertical bar.
-        Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: -2
+        VpnIndicator {}
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: Time.timeStr.split(":")[0]
-                color: Colours.text
-                font.family: "monospace"
-                font.pixelSize: 15
-                font.bold: true
+        VolumeIndicator {}
+
+        // Stacked HH / MM, so it fits the narrow vertical bar. Click → calendar.
+        StateButton {
+            id: clockButton
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            implicitWidth: clock.implicitWidth + 8
+            implicitHeight: clock.implicitHeight + 6
+            radius: Config.rounding.small
+
+            onClicked: {
+                calendarDrawer.anchorY = clockButton.mapToItem(null, 0, clockButton.height / 2).y;
+                calendarDrawer.open();
             }
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: Time.timeStr.split(":")[1]
-                color: Colours.subtext1
-                font.family: "monospace"
-                font.pixelSize: 15
+            Column {
+                id: clock
+
+                anchors.centerIn: parent
+                spacing: -2
+
+                SwapText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Time.timeStr.split(":")[0]
+                    color: Colours.text
+                    font.family: "monospace"
+                    font.pixelSize: 15
+                    font.bold: true
+                }
+
+                SwapText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Time.timeStr.split(":")[1]
+                    color: Colours.subtext1
+                    font.family: "monospace"
+                    font.pixelSize: 15
+                }
+            }
+        }
+
+        // Notification bell — last, below the clock.
+        NotifIndicator {
+            onClicked: {
+                centerDrawer.anchorY = mapToItem(null, 0, height / 2).y;
+                centerDrawer.open();
             }
         }
     }
@@ -79,5 +107,21 @@ PanelWindow {
 
             onClosed: trayDrawer.close()
         }
+    }
+
+    Drawer {
+        id: calendarDrawer
+
+        screen: bar.screen
+
+        Calendar {}
+    }
+
+    Drawer {
+        id: centerDrawer
+
+        screen: bar.screen
+
+        NotificationCenter {}
     }
 }

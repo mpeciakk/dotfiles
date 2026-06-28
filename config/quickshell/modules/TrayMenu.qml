@@ -47,7 +47,7 @@ Column {
             StateButton {
                 anchors.fill: parent
                 visible: !entry.modelData.isSeparator
-                radius: 6
+                radius: Config.rounding.small
                 disabled: !entry.modelData.enabled
 
                 onClicked: {

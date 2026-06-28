@@ -20,6 +20,13 @@ Singleton {
     property var activeByOutput: ({})    // output name -> active workspace id
     property var urgentIds: ({})         // workspace id -> true
 
+    // The output of the focused workspace = the monitor the user is on. Used to
+    // place global popups (launcher) on the active monitor.
+    readonly property string focusedOutput: {
+        const w = root.workspaces.find(w => w.id === root.focusedId);
+        return w ? w.output : "";
+    }
+
     // Focus a workspace on its output (focus the monitor first so the per-output
     // index resolves correctly on multi-monitor setups).
     function focusWorkspace(output: string, idx: int): void {

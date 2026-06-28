@@ -51,8 +51,8 @@ Column {
     move: Transition {
         Anim {
             properties: "x,y"
-            curve: Appearance.anim.curves.expressiveDefaultSpatial
-            duration: Appearance.anim.durations.expressiveDefaultSpatial
+            curve: Appearance.anim.curves.emphasized
+            duration: Appearance.anim.durations.normal
         }
     }
 
@@ -87,8 +87,8 @@ Column {
             }
             Behavior on scale {
                 Anim {
-                    curve: Appearance.anim.curves.expressiveDefaultSpatial
-                    duration: Appearance.anim.durations.expressiveDefaultSpatial
+                    curve: Appearance.anim.curves.emphasized
+                    duration: Appearance.anim.durations.normal
                 }
             }
 
