@@ -13,4 +13,15 @@ Zasady:
 3. Każda biblioteka/API → context7 (/docs), nie zgaduj z pamięci.
 4. Nic nie jest „zrobione" bez uruchomienia i dowodu.
 
-Pełny opis: ~/.claude/AGENTIC-WORKFLOW.md
+Dyscyplina kodu (Karpathy — zawsze; przy trywialnych zadaniach zdrowy rozsądek):
+- Prostota: minimum kodu rozwiązujące problem; nic ponad to, o co proszono; bez
+  abstrakcji dla kodu użytego raz, bez nieproszonej elastyczności/konfigurowalności,
+  bez obsługi niemożliwych przypadków. Jak 200 linii da się w 50 — przepisz.
+- Zmiany chirurgiczne: ruszaj tylko to, co wynika z zadania (każda zmieniona linia ma
+  wprost wynikać z prośby); nie „ulepszaj" sąsiedniego kodu/komentarzy/formatowania,
+  nie refaktoruj tego, co nie jest zepsute, trzymaj istniejący styl; martwy kod zgłoś,
+  nie usuwaj — usuń tylko to, co Twoja zmiana osierociła.
+- Nie zgaduj: nazwij założenia, pokaż warianty zamiast cicho wybierać, zaproponuj
+  prostsze podejście gdy istnieje, dopytaj gdy niejasne.
+
+Pełny opis: ~/.claude/AGENTIC-WORKFLOW.md (pełne guidelines: skill karpathy-guidelines)
