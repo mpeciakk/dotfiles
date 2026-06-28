@@ -6,7 +6,7 @@
 #   # then edit `packages` below to this machine's host-<name>
 #
 includes = []
-packages = ["default", "host-ciek"]
+packages = ["default", "host-pc"]
 
 [files]
 

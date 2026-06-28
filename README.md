@@ -13,16 +13,15 @@ desktop shell, managed with [dotter](https://github.com/SuperCuber/dotter).
 | `config/dotfiles/config.json` | **shared runtime config** read by the shell (wallpaper, VPN, lock) + wallpapers |
 | `config/nushell/` | nushell (login shell) split into `config/aliases/completions/init` |
 | `config/uwsm/env` | host-agnostic session env (GPU env is per-host, see below) |
-| `config/{kitty,nvim,atuin,mpv,wireplumber,Kvantum,…}` | misc app configs |
+| `config/{kitty,nvim,atuin,mpv,wireplumber,…}` | misc app configs |
 | `hosts/<name>/` | per-host hardware (monitor layout, GPU env) |
-| `themes/` | MacTahoe GTK/icon/KDE themes as git submodules |
 | `applications/` | `Hidden=true` stubs that hide stock desktop entries from the launcher |
 
 ## Dependencies
 
 Core: `niri`, `uwsm`, `quickshell` (`qs`), `nushell`, `dotter`.
 Shell/session: `kitty`, `wtype`, `pipewire` + `wireplumber`, `polkit-gnome`,
-`1password` (SSH agent + autostart), `qt6ct` + `kvantum`.
+`1password` (SSH agent + autostart), `qt6ct`.
 Tools sourced by nushell: `atuin`, `zoxide`, `asdf`, `carapace`, `bat`.
 VPN (optional): `tailscale`, `openvpn`. Fonts: a JetBrainsMono Nerd Font.
 
@@ -31,7 +30,7 @@ No `jq` required — scripts parse JSON without it.
 ## Install on a new host
 
 ```sh
-git clone --recurse-submodules <repo-url> ~/dotfiles
+git clone <repo-url> ~/dotfiles
 cd ~/dotfiles
 
 # select this machine's host package (see "Per-host" below)
@@ -40,9 +39,6 @@ $EDITOR .dotter/local.toml          # set packages = ["default", "host-<name>"]
 
 dotter deploy
 ```
-
-If you cloned without `--recurse-submodules`, fetch the themes with
-`git submodule update --init`.
 
 ## Shared runtime config
 
@@ -74,9 +70,9 @@ deployed by a per-host dotter package selected in the (gitignored) `.dotter/loca
 - `hosts/<name>/uwsm-gpu-env` → `~/.config/uwsm/env.d/gpu` (GPU vars; uwsm
   auto-sources `env*.d/*`).
 
-To add a machine: copy `hosts/_template` → `hosts/<name>`, fill in the files
-(`niri msg outputs` lists connectors), add a `[host-<name>.files]` block in
-`.dotter/global.toml` (template is commented there), and select it in `local.toml`.
+To add a machine: copy an existing `hosts/<host>` dir (e.g. `hosts/mac`) to
+`hosts/<name>`, fill in the files (`niri msg outputs` lists connectors), add a
+`[host-<name>.files]` block in `.dotter/global.toml`, and select it in `local.toml`.
 
 ## Known caveats
 

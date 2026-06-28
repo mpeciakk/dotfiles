@@ -1,0 +1,5 @@
+# GPU environment for the "mac" host — deployed to ~/.config/uwsm/env.d/gpu and
+# auto-sourced by uwsm (env*.d/*). Fill in for this machine's GPU, e.g.:
+# AMD:    export LIBVA_DRIVER_NAME=radeonsi
+#         export VDPAU_DRIVER=radeonsi
+# Intel:  export LIBVA_DRIVER_NAME=iHD

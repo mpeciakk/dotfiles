@@ -1,0 +1,10 @@
+// Monitor layout for the "mac" host — deployed to ~/.config/niri/output.kdl and
+// pulled in by config.kdl's `include "output.kdl"`. Run `niri msg outputs` on
+// that machine to list connectors/modes, then fill in blocks like:
+//
+// output "eDP-1" {
+//     mode "2560x1600@60"
+//     scale 2.0
+//     position x=0 y=0
+//     focus-at-startup
+// }

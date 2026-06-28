@@ -1,4 +1,4 @@
-# Per-host GPU environment for ciek (NVIDIA).
+# Per-host GPU environment for the "pc" host (NVIDIA).
 # Deployed to ~/.config/uwsm/env.d/gpu and auto-sourced by uwsm (env*.d/*).
 export LIBVA_DRIVER_NAME=nvidia
 export __GLX_VENDOR_LIBRARY_NAME=nvidia

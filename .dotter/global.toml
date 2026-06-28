@@ -7,7 +7,6 @@ depends = []
 "config/dotfiles" = "~/.config/dotfiles"
 "config/atuin" = "~/.config/atuin"
 "config/kitty" = "~/.config/kitty"
-"config/Kvantum" = "~/.config/Kvantum"
 "config/mpv" = "~/.config/mpv"
 "config/niri" = "~/.config/niri"
 "config/nushell" = "~/.config/nushell"
@@ -18,7 +17,6 @@ depends = []
 "config/quickshell" = "~/.config/quickshell"
 
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
-"config/gamemode.ini" = "~/.config/gamemode.ini"
 "config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
 "config/mimeapps.list" = "~/.config/mimeapps.list"
 "config/user-dirs.dirs" = "~/.config/user-dirs.dirs"
@@ -26,17 +24,16 @@ depends = []
 "applications" = "~/.local/share/applications/"
 "autostart" = "~/.config/autostart"
 
-# Per-host hardware (monitors + GPU env). Each machine selects its own
-# host-<name> package in .dotter/local.toml (which is gitignored). See README.
-[host-ciek.files]
-"hosts/ciek/niri-output.kdl" = "~/.config/niri/output.kdl"
-"hosts/ciek/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
+[host-pc.files]
+"hosts/pc/niri-output.kdl" = "~/.config/niri/output.kdl"
+"hosts/pc/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
 
-# Template for a second machine — copy hosts/_template -> hosts/<name>, fill it
-# in, duplicate this block as [host-<name>.files], and select it in local.toml:
-# [host-NAME.files]
-# "hosts/NAME/niri-output.kdl" = "~/.config/niri/output.kdl"
-# "hosts/NAME/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
+[host-mac.files]
+"hosts/mac/niri-output.kdl" = "~/.config/niri/output.kdl"
+"hosts/mac/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
+
+# To add another machine: duplicate a host block above as [host-<name>.files]
+# and create hosts/<name>/ with the two files.
 
 [default.variables]
 
