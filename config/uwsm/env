@@ -1,16 +1,14 @@
-export LIBVA_DRIVER_NAME=nvidia
-export __GLX_VENDOR_LIBRARY_NAME=nvidia
+# GPU-specific vars (LIBVA_DRIVER_NAME, GBM_BACKEND, VDPAU_DRIVER, …) live per-host
+# in ~/.config/uwsm/env.d/gpu (deployed from hosts/<host>/uwsm-gpu-env) and are
+# auto-sourced by uwsm. Everything below is host-agnostic.
 export XDG_SESSION_TYPE=wayland
-export GBM_BACKEND=nvidia-drm
 export MOZ_ENABLE_WAYLAND=1
 export MOZ_DISABLE_RDD_SANDBOX=1
-export NVD_BACKEND=direct
 export QT_QPA_PLATFORM=wayland
 export SDL_VIDEODRIVER=wayland
 export ELECTRON_OZONE_PLATFORM_HINT=wayland
 export OZONE_PLATFORM=wayland
 export _JAVA_AWT_WM_NONREPARENTING=1
-export VDPAU_DRIVER=nvidia
 export QT_QPA_PLATFORMTHEME=qt6ct
 
 export GRADLE_USER_HOME="$XDG_DATA_HOME"/toolchains/gradle

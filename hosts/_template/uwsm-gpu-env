@@ -1,0 +1,16 @@
+# Per-host GPU environment — deployed to ~/.config/uwsm/env.d/gpu and auto-sourced
+# by uwsm (env*.d/*). Set the variables matching this machine's GPU vendor.
+#
+# NVIDIA (see hosts/ciek/uwsm-gpu-env):
+# export LIBVA_DRIVER_NAME=nvidia
+# export __GLX_VENDOR_LIBRARY_NAME=nvidia
+# export GBM_BACKEND=nvidia-drm
+# export NVD_BACKEND=direct
+# export VDPAU_DRIVER=nvidia
+#
+# AMD:
+# export LIBVA_DRIVER_NAME=radeonsi
+# export VDPAU_DRIVER=radeonsi
+#
+# Intel:
+# export LIBVA_DRIVER_NAME=iHD

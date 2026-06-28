@@ -26,6 +26,18 @@ depends = []
 "applications" = "~/.local/share/applications/"
 "autostart" = "~/.config/autostart"
 
+# Per-host hardware (monitors + GPU env). Each machine selects its own
+# host-<name> package in .dotter/local.toml (which is gitignored). See README.
+[host-ciek.files]
+"hosts/ciek/niri-output.kdl" = "~/.config/niri/output.kdl"
+"hosts/ciek/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
+
+# Template for a second machine — copy hosts/_template -> hosts/<name>, fill it
+# in, duplicate this block as [host-<name>.files], and select it in local.toml:
+# [host-NAME.files]
+# "hosts/NAME/niri-output.kdl" = "~/.config/niri/output.kdl"
+# "hosts/NAME/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
+
 [default.variables]
 
 [settings]

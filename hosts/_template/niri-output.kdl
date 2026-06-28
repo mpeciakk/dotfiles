@@ -1,0 +1,14 @@
+// Per-host monitor layout for niri — deployed to ~/.config/niri/output.kdl by
+// this host's dotter package, and pulled in by config.kdl's `include "output.kdl"`.
+//
+// Copy this dir to hosts/<your-hostname>/, fill in the outputs, add a
+// host-<hostname> package in .dotter/global.toml, and select it in
+// .dotter/local.toml. Run `niri msg outputs` to list connector names/modes.
+//
+// Example:
+// output "DP-1" {
+//     mode "3840x2160@143.851"
+//     scale 1.5
+//     position x=0 y=0
+//     focus-at-startup
+// }

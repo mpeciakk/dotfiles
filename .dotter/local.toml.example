@@ -1,0 +1,13 @@
+# Per-machine dotter config — NOT committed (see .gitignore).
+# Copy to .dotter/local.toml on each host and select that machine's host package
+# alongside "default":
+#
+#   cp .dotter/local.toml.example .dotter/local.toml
+#   # then edit `packages` below to this machine's host-<name>
+#
+includes = []
+packages = ["default", "host-ciek"]
+
+[files]
+
+[variables]
