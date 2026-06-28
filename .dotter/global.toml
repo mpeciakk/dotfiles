@@ -5,20 +5,15 @@ depends = []
 
 [default.files]
 "config/atuin" = "~/.config/atuin"
-"config/carapace" = "~/.config/carapace"
-"config/fuzzel" = "~/.config/fuzzel"
-"config/ironbar" = "~/.config/ironbar"
 "config/kitty" = "~/.config/kitty"
 "config/Kvantum" = "~/.config/Kvantum"
 "config/niri" = "~/.config/niri"
 "config/nushell" = "~/.config/nushell"
 "config/nvim" = "~/.config/nvim"
-"config/swayidle" = "~/.config/swayidle"
-"config/swaync" = "~/.config/swaync"
 "config/uwsm" = "~/.config/uwsm"
-"config/waybar" = "~/.config/waybar"
 "config/wireplumber" = "~/.config/wireplumber"
 "config/xdg-desktop-portal" = "~/.config/xdg-desktop-portal"
+"config/quickshell" = "~/.config/quickshell"
 
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
 "config/gamemode.ini" = "~/.config/gamemode.ini"

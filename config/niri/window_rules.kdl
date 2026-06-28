@@ -2,8 +2,6 @@ window-rule {
   geometry-corner-radius 12
 
   clip-to-geometry true
-
-  opacity 0.97
 }
 
 window-rule {
@@ -19,40 +17,13 @@ window-rule {
 }
 
 window-rule {
-    match app-id="zen"
-
-}
-
-window-rule {
-    match app-id="dev.zed.Zed$"
-
-}
-
-window-rule {
-    match app-id="vesktop"
-    match app-id="cider"
-
-}
-
-window-rule {
     match app-id="1password"
     open-floating true
     open-focused true
     block-out-from "screencast"
 }
 
-window-rule {
-    match app-id="^steam_app_"
-    open-on-workspace "media"
-}
-
-window-rule {
-    match app-id="^jetbrains-.*"
-    match title="win0"
-    open-floating true
-}
-
-window-rule {
-    match app-id=r#"^gamescope$"#
-    block-out-from "screencast"
+layer-rule {
+    match namespace="^quickshell-wallpaper$"
+    place-within-backdrop true
 }

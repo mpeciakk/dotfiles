@@ -5,9 +5,8 @@ binds {
     Mod+Return repeat=false { spawn "uwsm" "app" "--" "kitty"; }
     Mod+Q repeat=false  { close-window; }
 
-    Mod+Space repeat=false { spawn "fuzzel"; }
-
-    Mod+L { spawn "~/dotfiles/bin/lock.sh"; }
+    Mod+Space repeat=false { spawn "qs" "ipc" "call" "launcher" "toggle"; }
+    Mod+L repeat=false { spawn "qs" "ipc" "call" "lock" "lock"; }
 
     Mod+O repeat=false { toggle-overview; }
 
@@ -74,5 +73,3 @@ binds {
     Mod+N { spawn "wtype" "-M" "ctrl" "-k" "n"; }
     Mod+R { spawn "wtype" "-M" "ctrl" "-k" "r"; }
 }
-
-screenshot-path "/tmp/screenshot.png"
