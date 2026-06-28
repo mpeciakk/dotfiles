@@ -11,10 +11,6 @@ prefer-no-csd
 
 screenshot-path "~/pictures/screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
-animations {
-
-}
-
 debug {
   honor-xdg-activation-with-invalid-serial
 }
