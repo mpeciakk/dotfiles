@@ -9,7 +9,7 @@ import "../services"
 Item {
     id: root
 
-    implicitWidth: 360
+    implicitWidth: Config.notifs.centerWidth
     implicitHeight: col.implicitHeight
 
     Column {
@@ -28,7 +28,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Notifications"
                 color: Colours.text
-                font.pixelSize: 15
+                font.pixelSize: Config.font.xl
                 font.bold: true
             }
 
@@ -50,7 +50,7 @@ Item {
                         anchors.centerIn: parent
                         text: "DND"
                         color: Notifs.dnd ? Colours.base : Colours.subtext1
-                        font.pixelSize: 12
+                        font.pixelSize: Config.font.sm
                         font.bold: true
                     }
                 }
@@ -69,7 +69,7 @@ Item {
                         anchors.centerIn: parent
                         text: "Clear"
                         color: Colours.subtext1
-                        font.pixelSize: 12
+                        font.pixelSize: Config.font.sm
                     }
                 }
             }
@@ -81,7 +81,7 @@ Item {
             visible: Notifs.history.length === 0
             text: "No notifications"
             color: Colours.overlay1
-            font.pixelSize: 13
+            font.pixelSize: Config.font.md
             horizontalAlignment: Text.AlignHCenter
             topPadding: 24
             bottomPadding: 24
@@ -90,7 +90,7 @@ Item {
         // History list.
         ListView {
             width: parent.width
-            height: Math.min(contentHeight, 480)
+            height: Math.min(contentHeight, Config.notifs.historyMaxHeight)
             visible: Notifs.history.length > 0
             clip: true
             spacing: 8
@@ -106,64 +106,25 @@ Item {
                 required property var modelData
 
                 width: ListView.view.width
-                implicitHeight: cardCol.implicitHeight + 20
+                implicitHeight: content.implicitHeight + 20
                 radius: Config.rounding.large
                 color: Colours.mantle
 
                 onClicked: Notifs.removeItem(card.modelData)
 
-                Column {
-                    id: cardCol
+                NotificationCard {
+                    id: content
 
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.leftMargin: 14
                     anchors.rightMargin: 14
-                    spacing: 3
 
-                    Item {
-                        width: parent.width
-                        height: appText.implicitHeight
-
-                        Text {
-                            id: appText
-
-                            anchors.left: parent.left
-                            text: card.modelData.appName
-                            color: Colours.overlay2
-                            font.pixelSize: 11
-                            elide: Text.ElideRight
-                            visible: text !== ""
-                        }
-                        Text {
-                            anchors.right: parent.right
-                            text: Qt.formatDateTime(card.modelData.time, "hh:mm")
-                            color: Colours.overlay1
-                            font.pixelSize: 11
-                        }
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: card.modelData.summary
-                        color: Colours.text
-                        font.pixelSize: 14
-                        font.bold: true
-                        elide: Text.ElideRight
-                        visible: text !== ""
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: card.modelData.body
-                        color: Colours.subtext1
-                        font.pixelSize: 13
-                        wrapMode: Text.Wrap
-                        maximumLineCount: 4
-                        elide: Text.ElideRight
-                        visible: text !== ""
-                    }
+                    appName: card.modelData.appName
+                    summary: card.modelData.summary
+                    body: card.modelData.body
+                    time: card.modelData.time
                 }
             }
         }

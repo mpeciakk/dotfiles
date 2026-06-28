@@ -73,7 +73,7 @@ ListView {
         required property Notification modelData
 
         width: root.cardWidth
-        implicitHeight: layout.implicitHeight + 20
+        implicitHeight: content.implicitHeight + 20
         radius: Config.rounding.large
         color: Colours.mantle
 
@@ -88,45 +88,18 @@ ListView {
             onTriggered: card.modelData?.expire()
         }
 
-        Column {
-            id: layout
+        NotificationCard {
+            id: content
 
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: 14
             anchors.rightMargin: 14
-            spacing: 3
 
-            Text {
-                width: parent.width
-                text: card.modelData?.appName ?? ""
-                color: Colours.overlay2
-                font.pixelSize: 11
-                elide: Text.ElideRight
-                visible: text !== ""
-            }
-
-            Text {
-                width: parent.width
-                text: card.modelData?.summary ?? ""
-                color: Colours.text
-                font.pixelSize: 14
-                font.bold: true
-                elide: Text.ElideRight
-                visible: text !== ""
-            }
-
-            Text {
-                width: parent.width
-                text: card.modelData?.body ?? ""
-                color: Colours.subtext1
-                font.pixelSize: 13
-                wrapMode: Text.Wrap
-                maximumLineCount: 4
-                elide: Text.ElideRight
-                visible: text !== ""
-            }
+            appName: card.modelData?.appName ?? ""
+            summary: card.modelData?.summary ?? ""
+            body: card.modelData?.body ?? ""
         }
     }
 }
