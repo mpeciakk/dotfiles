@@ -1,0 +1,14 @@
+{
+  "wallpaper": "~/.config/dotfiles/wp2.jpg",
+  "vpn": {
+    "backend": "tailscale",
+    "privileged": "doas",
+    "vpnCtl": "/usr/local/bin/vpn-ctl",
+    "openvpn": ["animativ"]
+  },
+  "lock": {
+    "name": "",
+    "avatar": "",
+    "timeout": 300
+  }
+}

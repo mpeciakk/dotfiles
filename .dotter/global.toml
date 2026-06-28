@@ -4,6 +4,7 @@
 depends = []
 
 [default.files]
+"config/dotfiles" = "~/.config/dotfiles"
 "config/atuin" = "~/.config/atuin"
 "config/kitty" = "~/.config/kitty"
 "config/Kvantum" = "~/.config/Kvantum"

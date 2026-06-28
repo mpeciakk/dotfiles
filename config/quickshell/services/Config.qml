@@ -2,11 +2,38 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 // Layout, sizing and behaviour tunables — the knobs you'd reach for to retheme
 // the shell. Colours live in Colours.qml, motion in Appearance.qml.
+//
+// Per-user / per-host values (wallpaper, lock, vpn) live in the shared
+// ~/.config/dotfiles/config.json (deployed by dotter) so the same shell runs
+// unchanged on multiple machines. Missing/invalid file → built-in defaults.
 Singleton {
-    readonly property string wallpaper: "/home/m/dotfiles/wp2.jpg"
+    id: root
+
+    property var data: ({})
+
+    function expandUser(p: string): string {
+        return p && p.startsWith("~") ? Quickshell.env("HOME") + p.slice(1) : p;
+    }
+
+    FileView {
+        path: `${Quickshell.env("HOME")}/.config/dotfiles/config.json`
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                root.data = JSON.parse(text());
+            } catch (e) {
+                root.data = ({});
+            }
+        }
+        onLoadFailed: root.data = ({})
+    }
+
+    readonly property string wallpaper: root.expandUser(root.data.wallpaper ?? "~/.config/dotfiles/wp2.jpg")
 
     readonly property QtObject bar: QtObject {
         readonly property int width: 44       // vertical bar thickness
@@ -59,8 +86,8 @@ Singleton {
     }
 
     readonly property QtObject lock: QtObject {
-        readonly property string avatar: ""                              // avatar image path; empty → initial letter
-        readonly property string name: ""                                // display name; empty → $USER
-        readonly property int timeout: 300                               // auto-lock after this many seconds idle (0 = off)
+        readonly property string avatar: root.expandUser((root.data.lock && root.data.lock.avatar) || "")  // avatar image path; empty → initial letter
+        readonly property string name: (root.data.lock && root.data.lock.name) || ""                       // display name; empty → $USER
+        readonly property int timeout: (root.data.lock && root.data.lock.timeout) ?? 300                    // auto-lock after this many seconds idle (0 = off)
     }
 }
