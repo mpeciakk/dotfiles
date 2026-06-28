@@ -13,7 +13,7 @@ This directory is the source for `~/.config/quickshell`. The `dotter` setup in t
 - `qs` (alias for `quickshell`) runs the `default` config, `~/.config/quickshell/shell.qml`.
 - `qs -p .` runs by path from this directory without the symlink.
 - `shell.qml` sets `settings.watchFiles: true`, so a running instance hot-reloads on save. There is no build step.
-- For LSP, `qmlls` reads this tree via `.qmlls.ini`. The empty `.qmlls.ini` marks the project root.
+- For LSP, `qmlls` finds this tree via `.qmlls.ini` as a project-root marker. Quickshell **generates** `.qmlls.ini` at runtime (a symlink into its VFS), so it's gitignored, not committed — before the first `qs` run on a fresh host it's absent and `qmlls` falls back to the `.git` root marker (see `nvim/lsp/qmlls.lua`).
 
 ## Structure
 
