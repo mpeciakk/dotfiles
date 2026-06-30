@@ -4,6 +4,7 @@ include "layout.kdl"
 include "workspace.kdl"
 include "window_rules.kdl"
 include "bindings.kdl"
+include "animations.kdl"
 
 spawn-at-startup "uwsm" "app" "--" "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 
