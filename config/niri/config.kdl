@@ -8,6 +8,10 @@ include "animations.kdl"
 
 spawn-at-startup "uwsm" "app" "--" "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 
+// Clipboard history daemon (cliphist): records every clipboard copy so the
+// launcher's clipboard menu (Mod+Shift+V) can restore past entries.
+spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
+
 prefer-no-csd
 
 screenshot-path "~/pictures/screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"

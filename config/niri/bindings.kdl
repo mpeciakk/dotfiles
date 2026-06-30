@@ -9,6 +9,7 @@ binds {
     Mod+Q repeat=false  { close-window; }
 
     Mod+Space repeat=false { spawn "qs" "ipc" "call" "launcher" "toggle"; }
+    Mod+Shift+V repeat=false { spawn "qs" "ipc" "call" "launcher" "menu" "clipboard"; }
     Mod+L repeat=false { spawn "qs" "ipc" "call" "lock" "lock"; }
 
     Mod+O repeat=false { toggle-overview; }

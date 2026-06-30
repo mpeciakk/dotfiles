@@ -21,6 +21,12 @@ Singleton {
             title: "VPN",
             icon: "network-vpn",
             argv: ["bash", root.dir + "vpn.sh", "list"]
+        },
+        {
+            id: "clipboard",
+            title: "Clipboard",
+            icon: "edit-paste",
+            argv: ["bash", root.dir + "cliphist.sh", "list"]
         }
     ]
 
