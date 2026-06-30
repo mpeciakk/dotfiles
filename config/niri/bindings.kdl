@@ -63,6 +63,19 @@ binds {
 
     Mod+Shift+E { spawn-sh "rm -f /tmp/screenshot.png && niri msg action screenshot --show-pointer=false"; }
 
+    // Hardware media keys. Volume goes through wpctl: the quickshell Audio service
+    // tracks the default sink, so these drive the existing volume OSD. Media keys
+    // use playerctl (MPRIS). allow-when-locked so they work on the lock screen.
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "-l" "1.0" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+    XF86AudioMute        allow-when-locked=true repeat=false { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+    XF86AudioMicMute     allow-when-locked=true repeat=false { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
+    XF86AudioPlay        allow-when-locked=true repeat=false { spawn "playerctl" "play-pause"; }
+    XF86AudioPause       allow-when-locked=true repeat=false { spawn "playerctl" "play-pause"; }
+    XF86AudioNext        allow-when-locked=true repeat=false { spawn "playerctl" "next"; }
+    XF86AudioPrev        allow-when-locked=true repeat=false { spawn "playerctl" "previous"; }
+    XF86AudioStop        allow-when-locked=true repeat=false { spawn "playerctl" "stop"; }
+
     Mod+C { spawn "wtype" "-M" "ctrl" "-k" "Insert"; }
     Mod+V { spawn "wtype" "-M" "shift" "-k" "Insert"; }
     Mod+X { spawn "wtype" "-M" "ctrl" "-k" "x"; }
