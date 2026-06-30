@@ -23,12 +23,6 @@ window-rule {
     block-out-from "screencast"
 }
 
-// VRR only for games (output uses on-demand=true). niri has NO fullscreen matcher,
-// and on-demand enables VRR whenever a matching window is merely *present* on the
-// output — so we must match each game explicitly by app-id/title, never "all except".
-// mpv and the browser are deliberately never matched here, so video never triggers
-// VRR (this panel black-flashes on VRR refresh changes; 24/30fps video resyncs
-// continuously). Add a game: run `niri msg windows` while it's open, add its app-id.
 window-rule {
     match title=".*Minecraft.*"
     variable-refresh-rate true

@@ -48,11 +48,6 @@ PanelWindow {
     // launcher); leave None for everything else.
     property int keyboardFocus: WlrKeyboardFocus.None
 
-    // Open/close motion — direction-aware easing so it's natural both ways: a
-    // decelerate ease on open (fast onset, settles into place) and an accelerate
-    // ease on close (slow onset, speeds away) so closing slides out instead of
-    // jumping. No overshoot (the spatial bounce reads badly against the notch
-    // rounding). Every drawer uses these by default so they open/close identically.
     property var animCurveOpen: Appearance.anim.curves.emphasizedDecel
     property var animCurveClose: Appearance.anim.curves.emphasizedAccel
     property int animDuration: Appearance.anim.durations.expressiveSlowEffects
@@ -106,12 +101,6 @@ PanelWindow {
         item: panel
     }
 
-    // Slide in/out with direction-aware easing: decelerate into place on open,
-    // accelerate away on close, so closing slides out instead of jumping. The
-    // state machine lives on a child Item because PanelWindow (the root) has no
-    // states/transitions; `prog` mirrors its animated value. Robust against binding
-    // order, and works whether `shown` is set via open()/close() or bound directly
-    // (e.g. NotificationPanel).
     Item {
         id: progDriver
 
@@ -179,13 +168,9 @@ PanelWindow {
         width: contentContainer.implicitWidth + 2 * root.hpadding + (root.fromCorner ? root.shoulder : root.horizontalShoulders ? 2 * root.shoulder : 0)
         height: contentContainer.implicitHeight + 2 * root.vpadding + (root.fromCorner ? root.shoulder : root.horizontalShoulders ? 0 : 2 * root.shoulder)
 
-        // Pure slide + fade like caelestia's offset animation: the panel slides
-        // its full extent off the edge it emerges from (tucked behind the
-        // bar/border by `barSize`) while fading, with no scaling.
-        // Fully opaque the whole time it's sliding (transparent only when closed),
-        // so it reads as a real slide instead of fading in as it arrives. The slow
-        // onset of the emphasized curve otherwise kept it near-invisible for most
-        // of the slide. Position still tracks the full prog via the Translate.
+        // Pure slide like caelestia's offset animation: the panel slides its full
+        // extent off the edge it emerges from (tucked behind the bar/border by
+        // `barSize`), with no scaling.
         opacity: root.prog > 0 ? 1 : 0
         transform: Translate {
             readonly property real off: 1 - root.prog

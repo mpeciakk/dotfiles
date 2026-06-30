@@ -2,9 +2,6 @@ binds {
     Mod+WheelScrollRight cooldown-ms=200 { focus-column-right; }
     Mod+WheelScrollLeft cooldown-ms=200 { focus-column-left; }
 
-    // Fast spawn: open a window in the running kitty via the Go `kitten` client
-    // (~35ms); if no instance is running yet, fall back to a fresh kitty (~270ms,
-    // once) which becomes the remote-control server for subsequent windows.
     Mod+Return repeat=false { spawn-sh "kitten @ --to unix:@kitty launch --type=os-window 2>/dev/null || kitty --single-instance"; }
     Mod+Q repeat=false  { close-window; }
 
@@ -64,9 +61,6 @@ binds {
 
     Mod+Shift+E { spawn-sh "rm -f /tmp/screenshot.png && niri msg action screenshot --show-pointer=false"; }
 
-    // Hardware media keys. Volume goes through wpctl: the quickshell Audio service
-    // tracks the default sink, so these drive the existing volume OSD. Media keys
-    // use playerctl (MPRIS). allow-when-locked so they work on the lock screen.
     XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "-l" "1.0" "@DEFAULT_AUDIO_SINK@" "5%+"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
     XF86AudioMute        allow-when-locked=true repeat=false { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
@@ -76,11 +70,6 @@ binds {
     XF86AudioNext        allow-when-locked=true repeat=false { spawn "playerctl" "next"; }
     XF86AudioPrev        allow-when-locked=true repeat=false { spawn "playerctl" "previous"; }
     XF86AudioStop        allow-when-locked=true repeat=false { spawn "playerctl" "stop"; }
-
-    // Super+C/V/X/S/A/F/Z/T/W/N/R (and Super+Shift+Z) are remapped to the matching
-    // Ctrl shortcut by keyd (config/keyd/default.conf) at the evdev layer — robust
-    // across terminals/GUI/browser, unlike the old wtype binds. keyd intercepts
-    // Super+<key> before niri, so there are deliberately no binds for them here.
 
     // edexplore: plot the next Spansh waypoint in the galaxy map (hands-free macro)
     Mod+M repeat=false { spawn "/home/m/projects/edcompanion/.venv/bin/edexplore-ctl" "macro"; }

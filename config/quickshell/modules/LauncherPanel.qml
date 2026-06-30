@@ -34,10 +34,6 @@ Drawer {
             panel.closedByUser();
     }
 
-    // Preloaded: the launcher UI is instantiated once and kept alive, so opening
-    // is instant. Re-instantiating the whole tree (SearchList + app list) on each
-    // open was a visible delay. While closed it renders nothing, so the only cost
-    // is a little idle memory per monitor.
     Loader {
         id: content
 
