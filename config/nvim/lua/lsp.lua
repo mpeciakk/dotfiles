@@ -1,3 +1,9 @@
+-- broadcast blink.cmp completion capabilities to every server
+local ok, blink = pcall(require, "blink.cmp")
+if ok then
+  vim.lsp.config("*", { capabilities = blink.get_lsp_capabilities() })
+end
+
 vim.lsp.enable({
   "lua_ls",
   -- "c3_lsp",
@@ -10,13 +16,17 @@ vim.lsp.enable({
   "hyprls",
   "biome",
   "css_ls",
+  "qmlls",
 })
+
+-- inline type/parameter hints (toggle with <leader>th)
+vim.lsp.inlay_hint.enable(true)
 
 vim.diagnostic.config({
   virtual_lines = false,
   -- virtual_text = true,
   underline = true,
-  update_in_insert = true,
+  update_in_insert = false,
   severity_sort = true,
   float = {
     border = "rounded",

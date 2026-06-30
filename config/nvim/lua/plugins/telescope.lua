@@ -17,22 +17,28 @@ return {
 
       local builtin = require('telescope.builtin')
 
-      vim.keymap.set("n", "<leader>fg", builtin.git_files, { desc = "Find git files" })
-      vim.keymap.set("n", "<leader>fr", builtin.live_grep, { desc = "Live grep" })
-      vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
-      vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "Search buffers" })
-      vim.keymap.set("n", "<leader>fh", ":Telescope find_files hidden=true <CR>", { desc = "Search hidden files" })
-  
-      vim.keymap.set('n', '<leader>pws', function()
-          local word = vim.fn.expand("<cword>")
-          builtin.grep_string({ search = word })
-      end)
-      vim.keymap.set('n', '<leader>pWs', function()
-          local word = vim.fn.expand("<cWORD>")
-          builtin.grep_string({ search = word })
-      end)
-      vim.keymap.set('n', '<leader>ps', function()
-          builtin.grep_string({ search = vim.fn.input("Grep > ") })
-      end)
+      -- find: files
+      vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Files" })
+      vim.keymap.set("n", "<leader>fg", builtin.git_files, { desc = "Git files" })
+      vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "Buffers" })
+      vim.keymap.set("n", "<leader>fh", ":Telescope find_files hidden=true<CR>", { desc = "Hidden files" })
+
+      -- search: content & symbols
+      vim.keymap.set("n", "<leader>sg", builtin.live_grep, { desc = "Live grep" })
+      vim.keymap.set("n", "<leader>sd", builtin.diagnostics, { desc = "Diagnostics" })
+      vim.keymap.set("n", "<leader>ss", builtin.lsp_document_symbols, { desc = "Document symbols" })
+      vim.keymap.set("n", "<leader>sS", builtin.lsp_dynamic_workspace_symbols, { desc = "Workspace symbols" })
+      vim.keymap.set("n", "<leader>sw", function()
+        builtin.grep_string({ search = vim.fn.expand("<cword>") })
+      end, { desc = "Grep word under cursor" })
+      vim.keymap.set("n", "<leader>sW", function()
+        builtin.grep_string({ search = vim.fn.expand("<cWORD>") })
+      end, { desc = "Grep WORD under cursor" })
+      vim.keymap.set("n", "<leader>s/", function()
+        builtin.grep_string({ search = vim.fn.input("Grep > ") })
+      end, { desc = "Grep by input" })
+
+      -- LSP references (telescope picker)
+      vim.keymap.set("n", "gr", builtin.lsp_references, { desc = "LSP references" })
   end
 }

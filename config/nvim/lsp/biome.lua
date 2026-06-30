@@ -23,7 +23,6 @@ return {
   end,
   filetypes = {
     "astro",
-    "css",
     "graphql",
     "html",
     "javascript",
