@@ -15,6 +15,7 @@ depends = []
 "config/wireplumber" = "~/.config/wireplumber"
 "config/xdg-desktop-portal" = "~/.config/xdg-desktop-portal"
 "config/quickshell" = "~/.config/quickshell"
+"config/systemd/user/quickshell.service" = "~/.config/systemd/user/quickshell.service"
 
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
 "config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }

@@ -1,0 +1,12 @@
+[Unit]
+Description=Quickshell
+After=graphical-session.target
+
+[Service]
+Type=simple
+Environment=QSG_RENDER_LOOP=threaded
+ExecStart=quickshell
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

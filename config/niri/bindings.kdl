@@ -2,7 +2,10 @@ binds {
     Mod+WheelScrollRight cooldown-ms=200 { focus-column-right; }
     Mod+WheelScrollLeft cooldown-ms=200 { focus-column-left; }
 
-    Mod+Return repeat=false { spawn "uwsm" "app" "--" "kitty"; }
+    // Fast spawn: open a window in the running kitty via the Go `kitten` client
+    // (~35ms); if no instance is running yet, fall back to a fresh kitty (~270ms,
+    // once) which becomes the remote-control server for subsequent windows.
+    Mod+Return repeat=false { spawn-sh "kitten @ --to unix:@kitty launch --type=os-window 2>/dev/null || kitty --single-instance"; }
     Mod+Q repeat=false  { close-window; }
 
     Mod+Space repeat=false { spawn "qs" "ipc" "call" "launcher" "toggle"; }
@@ -72,4 +75,7 @@ binds {
     Mod+W { spawn "wtype" "-M" "ctrl" "-k" "w"; }
     Mod+N { spawn "wtype" "-M" "ctrl" "-k" "n"; }
     Mod+R { spawn "wtype" "-M" "ctrl" "-k" "r"; }
+
+    // edexplore: plot the next Spansh waypoint in the galaxy map (hands-free macro)
+    Mod+M repeat=false { spawn "/home/m/projects/edcompanion/.venv/bin/edexplore-ctl" "macro"; }
 }
