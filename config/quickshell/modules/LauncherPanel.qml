@@ -21,6 +21,10 @@ Drawer {
     modal: true
     edge: "bottom"
     barSize: Config.border.thickness     // emerges from the bottom border, not the bar
+    // Snappier than the default 400ms emphasized — opened constantly. Decel curve
+    // starts fast (no slow onset), so the launcher feels responsive immediately.
+    animDuration: Appearance.anim.durations.small
+    animCurve: Appearance.anim.curves.emphasizedDecel
     keyboardFocus: WlrKeyboardFocus.OnDemand
     anchorX: screen ? screen.width / 2 : 0
 
@@ -34,13 +38,14 @@ Drawer {
             panel.closedByUser();
     }
 
-    // Lazy: the launcher UI (and its app-list ListView) only exists while this
-    // monitor's launcher is open/animating, so the hidden per-monitor instances
-    // cost nothing. Stays loaded through the close animation (active || visible).
+    // Preloaded: the launcher UI is instantiated once and kept alive, so opening
+    // is instant. Re-instantiating the whole tree (SearchList + app list) on each
+    // open was a visible delay. While closed it renders nothing, so the only cost
+    // is a little idle memory per monitor.
     Loader {
         id: content
 
-        active: panel.active || panel.visible
+        active: true
         sourceComponent: Launcher {
             startMenu: panel.startMenu
             onClose: panel.close()
