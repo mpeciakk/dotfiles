@@ -77,18 +77,10 @@ binds {
     XF86AudioPrev        allow-when-locked=true repeat=false { spawn "playerctl" "previous"; }
     XF86AudioStop        allow-when-locked=true repeat=false { spawn "playerctl" "stop"; }
 
-    Mod+C { spawn "wtype" "-M" "ctrl" "-k" "Insert"; }
-    Mod+V { spawn "wtype" "-M" "shift" "-k" "Insert"; }
-    Mod+X { spawn "wtype" "-M" "ctrl" "-k" "x"; }
-    Mod+S { spawn "wtype" "-M" "ctrl" "-k" "s"; }
-    Mod+A { spawn "wtype" "-M" "ctrl" "-k" "a"; }
-    Mod+F { spawn "wtype" "-M" "ctrl" "-k" "f"; }
-    Mod+Z { spawn "wtype" "-M" "ctrl" "-k" "z"; }
-    Mod+Shift+Z { spawn "wtype" "-M" "ctrl" "-M" "shift" "-k" "z"; }
-    Mod+T { spawn "wtype" "-M" "ctrl" "-k" "t"; }
-    Mod+W { spawn "wtype" "-M" "ctrl" "-k" "w"; }
-    Mod+N { spawn "wtype" "-M" "ctrl" "-k" "n"; }
-    Mod+R { spawn "wtype" "-M" "ctrl" "-k" "r"; }
+    // Super+C/V/X/S/A/F/Z/T/W/N/R (and Super+Shift+Z) are remapped to the matching
+    // Ctrl shortcut by keyd (config/keyd/default.conf) at the evdev layer — robust
+    // across terminals/GUI/browser, unlike the old wtype binds. keyd intercepts
+    // Super+<key> before niri, so there are deliberately no binds for them here.
 
     // edexplore: plot the next Spansh waypoint in the galaxy map (hands-free macro)
     Mod+M repeat=false { spawn "/home/m/projects/edcompanion/.venv/bin/edexplore-ctl" "macro"; }

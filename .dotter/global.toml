@@ -19,6 +19,7 @@ depends = []
 
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
 "config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
+"config/keyd/default.conf" = { target = "/etc/keyd/default.conf", type = "symbolic", owner = "root" }
 "config/mimeapps.list" = "~/.config/mimeapps.list"
 "config/user-dirs.dirs" = "~/.config/user-dirs.dirs"
 
