@@ -48,15 +48,17 @@ PanelWindow {
     // launcher); leave None for everything else.
     property int keyboardFocus: WlrKeyboardFocus.None
 
-    // Open/close motion — the shell-wide movement easing (emphasized, no
-    // overshoot, since the spatial bounce reads badly against the notch
-    // rounding). Overridable per popup, but every drawer uses this by default so
-    // they all open/close identically.
-    property var animCurve: Appearance.anim.curves.emphasized
-    property int animDuration: Appearance.anim.durations.normal
+    // Open/close motion — direction-aware easing so it's natural both ways: a
+    // decelerate ease on open (fast onset, settles into place) and an accelerate
+    // ease on close (slow onset, speeds away) so closing slides out instead of
+    // jumping. No overshoot (the spatial bounce reads badly against the notch
+    // rounding). Every drawer uses these by default so they open/close identically.
+    property var animCurveOpen: Appearance.anim.curves.emphasizedDecel
+    property var animCurveClose: Appearance.anim.curves.emphasizedAccel
+    property int animDuration: Appearance.anim.durations.expressiveSlowEffects
 
     property bool shown: false
-    property real prog: shown ? 1 : 0
+    property real prog: progDriver.p
 
     default property alias content: contentContainer.data
 
@@ -104,12 +106,45 @@ PanelWindow {
         item: panel
     }
 
-    // Slide in/out, easing per animCurve (springy by default).
-    Behavior on prog {
-        Anim {
-            curve: root.animCurve
-            duration: root.animDuration
+    // Slide in/out with direction-aware easing: decelerate into place on open,
+    // accelerate away on close, so closing slides out instead of jumping. The
+    // state machine lives on a child Item because PanelWindow (the root) has no
+    // states/transitions; `prog` mirrors its animated value. Robust against binding
+    // order, and works whether `shown` is set via open()/close() or bound directly
+    // (e.g. NotificationPanel).
+    Item {
+        id: progDriver
+
+        property real p: 0
+
+        states: State {
+            name: "open"
+            when: root.shown
+            PropertyChanges {
+                target: progDriver
+                p: 1
+            }
         }
+        transitions: [
+            Transition {
+                to: "open"
+                Anim {
+                    target: progDriver
+                    property: "p"
+                    curve: root.animCurveOpen
+                    duration: root.animDuration
+                }
+            },
+            Transition {
+                from: "open"
+                Anim {
+                    target: progDriver
+                    property: "p"
+                    curve: root.animCurveClose
+                    duration: root.animDuration
+                }
+            }
+        ]
     }
 
     // Click-away catcher (behind the panel), only when modal.
@@ -147,7 +182,11 @@ PanelWindow {
         // Pure slide + fade like caelestia's offset animation: the panel slides
         // its full extent off the edge it emerges from (tucked behind the
         // bar/border by `barSize`) while fading, with no scaling.
-        opacity: root.prog
+        // Fully opaque the whole time it's sliding (transparent only when closed),
+        // so it reads as a real slide instead of fading in as it arrives. The slow
+        // onset of the emphasized curve otherwise kept it near-invisible for most
+        // of the slide. Position still tracks the full prog via the Translate.
+        opacity: root.prog > 0 ? 1 : 0
         transform: Translate {
             readonly property real off: 1 - root.prog
 

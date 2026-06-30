@@ -21,10 +21,6 @@ Drawer {
     modal: true
     edge: "bottom"
     barSize: Config.border.thickness     // emerges from the bottom border, not the bar
-    // Snappier than the default 400ms emphasized — opened constantly. Decel curve
-    // starts fast (no slow onset), so the launcher feels responsive immediately.
-    animDuration: Appearance.anim.durations.small
-    animCurve: Appearance.anim.curves.emphasizedDecel
     keyboardFocus: WlrKeyboardFocus.OnDemand
     anchorX: screen ? screen.width / 2 : 0
 
