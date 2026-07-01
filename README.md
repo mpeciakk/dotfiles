@@ -20,8 +20,9 @@ desktop shell, managed with [dotter](https://github.com/SuperCuber/dotter).
 ## Dependencies
 
 Core: `niri`, `uwsm`, `quickshell` (`qs`), `nushell`, `dotter`.
-Shell/session: `kitty`, `wtype`, `pipewire` + `wireplumber`, `polkit-gnome`,
-`1password` (SSH agent + autostart), `qt6ct`.
+Shell/session: `kitty`, `keyd` (Super→Ctrl remaps), `pipewire` + `wireplumber`,
+`polkit-gnome`, `1password` (SSH agent + autostart), `qt6ct`.
+Clipboard/media: `cliphist` + `wl-clipboard` (clipboard history), `playerctl` (media keys).
 Tools sourced by nushell: `atuin`, `zoxide`, `asdf`, `carapace`, `bat`.
 VPN (optional): `tailscale`, `openvpn`. Fonts: a JetBrainsMono Nerd Font.
 
@@ -86,9 +87,11 @@ To add a machine: copy an existing `hosts/<host>` dir (e.g. `hosts/mac`) to
 
 ## Known caveats
 
-- **niri Ctrl shortcuts via `wtype`** (`config/niri/bindings.kdl`): `Mod+C/V/X/…`
-  synthesize `Ctrl+key` by spawning `wtype`. This is fragile (timing/focus
-  dependent); a system-level remapper (`keyd`/`xremap`) would be more robust.
+- **Super shortcuts via `keyd`** (`config/keyd/default.conf`): `Mod+C/V/X/…` are
+  remapped to the matching `Ctrl+key` at the evdev layer by `keyd` (a root systemd
+  service), not by niri — so they're deliberately absent from `bindings.kdl`.
+  Copy/paste use `Ctrl/Shift+Insert` so terminals copy while `Ctrl+C` stays SIGINT.
+  Needs `keyd` installed and `keyd.service` enabled on a fresh host.
 - **Lock `unlock` IPC** (`config/quickshell/modules/Lock.qml`): `qs ipc call lock
   unlock` clears the lock without authentication — a deliberate recovery hatch,
   reachable only by processes already running as you.

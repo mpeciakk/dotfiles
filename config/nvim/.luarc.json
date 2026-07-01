@@ -1,9 +1,6 @@
 {
     "diagnostics.globals": [
-        "vim",
-        "get_python_path",
-        "listDiagnostics",
-        "leave_snippet"
+        "vim"
     ],
     "diagnostics.disable": [
         "undefined-field",

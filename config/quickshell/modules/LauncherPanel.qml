@@ -34,13 +34,10 @@ Drawer {
             panel.closedByUser();
     }
 
-    // Lazy: the launcher UI (and its app-list ListView) only exists while this
-    // monitor's launcher is open/animating, so the hidden per-monitor instances
-    // cost nothing. Stays loaded through the close animation (active || visible).
     Loader {
         id: content
 
-        active: panel.active || panel.visible
+        active: true
         sourceComponent: Launcher {
             startMenu: panel.startMenu
             onClose: panel.close()

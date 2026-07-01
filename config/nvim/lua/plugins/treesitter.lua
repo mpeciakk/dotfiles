@@ -1,39 +1,34 @@
 return {
   {
     "nvim-treesitter/nvim-treesitter",
-    build = ":TSUpdate",
     branch = "main",
-    lazy = vim.fn.argc(-1) == 0,
-    event = { "BufReadPost", "BufNewFile", "BufWritePre", "VeryLazy" },
-    cmd = { "TSUpdate", "TSInstall", "TSLog", "TSUninstall" },
-    opts_extend = { "ensure_installed" },
-    opts = {
-      indent = { enable = true },
-      highlight = { enable = true },
-      folds = { enable = true },
-      ensure_installed = {
+    lazy = false, -- the main branch does not support lazy-loading
+    build = ":TSUpdate",
+    config = function()
+      require("nvim-treesitter").install({
         "c",
         "cpp",
         "lua",
         "vim",
-        "markdown_inline",
+        "vimdoc",
+        "query",
         "markdown",
+        "markdown_inline",
         "dockerfile",
         "yaml",
         "bash",
         "regex",
-      },
-    },
-    config = function(_, opts)
-      local TS = require("nvim-treesitter")
-
-      TS.setup(opts)
+      })
 
       vim.api.nvim_create_autocmd("FileType", {
-        callback = function()
-          if vim.tbl_get(opts, "highlight", "enable") ~= false then
-            pcall(vim.treesitter.start)
+        callback = function(args)
+          local lang = vim.treesitter.language.get_lang(vim.bo[args.buf].filetype)
+          -- only enable features for filetypes with an installed parser
+          if not lang or not pcall(vim.treesitter.start, args.buf) then
+            return
           end
+          -- indentation, provided by nvim-treesitter (folds are handled by nvim-ufo)
+          vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
         end,
       })
     end,

@@ -23,6 +23,11 @@ window-rule {
     block-out-from "screencast"
 }
 
+window-rule {
+    match title=".*Minecraft.*"
+    variable-refresh-rate true
+}
+
 layer-rule {
     match namespace="^quickshell-wallpaper$"
     place-within-backdrop true
