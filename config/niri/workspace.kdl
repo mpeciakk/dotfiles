@@ -7,7 +7,7 @@ workspace "2" {
 }
 
 workspace "3" {
-  open-on-output "HDMI-A-1"
+  open-on-output "DP-1"
 }
 
 workspace "4" {

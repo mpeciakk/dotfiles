@@ -3,8 +3,8 @@
 // that machine to list connectors/modes, then fill in blocks like:
 
 output "DP-1" {
-    mode "3840x2160@60"
-    scale 1.5
+    mode "2560x1440@74.924"
+    scale 1
     position x=0 y=0
     focus-at-startup
 }

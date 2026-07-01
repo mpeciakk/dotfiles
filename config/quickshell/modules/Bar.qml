@@ -49,6 +49,18 @@ PanelWindow {
 
         VolumeIndicator {}
 
+        // Optional status widgets — each hides itself when unsupported
+        // (no battery / no NetworkManager). Click the network icon for the
+        // Wi-Fi + Bluetooth management drawer.
+        NetworkIndicator {
+            onClicked: {
+                networkDrawer.anchorY = mapToItem(null, 0, height / 2).y;
+                networkDrawer.open();
+            }
+        }
+
+        BatteryIndicator {}
+
         // Stacked HH / MM, so it fits the narrow vertical bar. Click → calendar.
         StateButton {
             id: clockButton
@@ -123,5 +135,15 @@ PanelWindow {
         screen: bar.screen
 
         NotificationCenter {}
+    }
+
+    Drawer {
+        id: networkDrawer
+
+        screen: bar.screen
+
+        NetworkMenu {
+            active: networkDrawer.shown
+        }
     }
 }
