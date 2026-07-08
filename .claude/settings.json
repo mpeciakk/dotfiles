@@ -74,7 +74,8 @@
     "andrej-karpathy-skills@karpathy-skills": true,
     "context7@context7-marketplace": true,
     "github@claude-plugins-official": false,
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": true,
+    "claude-code-wakatime@wakatime": true
   },
   "extraKnownMarketplaces": {
     "context7-marketplace": {
@@ -88,9 +89,15 @@
         "source": "github",
         "repo": "forrestchang/andrej-karpathy-skills"
       }
+    },
+    "wakatime": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/wakatime/claude-code-wakatime.git"
+      }
     }
   },
   "effortLevel": "high",
-  "theme": "dark",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark"
 }
