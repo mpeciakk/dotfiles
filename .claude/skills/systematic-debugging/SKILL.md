@@ -47,7 +47,7 @@ Use for ANY technical issue:
 
 The four phases below run **per bug**. When you face several *independent* failures at once — different test files, different subsystems, unrelated root causes — don't investigate them one after another. Dispatch one subagent per independent failure in a single message so they run concurrently; each runs the four phases on its own failure, then you integrate the fixes.
 
-**REQUIRED SUB-SKILL:** superpowers:dispatching-parallel-agents — for scoping each agent, avoiding shared-state conflicts, and integrating results.
+**REQUIRED SUB-SKILL:** dispatching-parallel-agents — for scoping each agent, avoiding shared-state conflicts, and integrating results.
 
 Only parallelize genuinely independent failures: if fixing one might fix or affect another, or they touch the same code, investigate together first (parallel agents editing overlapping code conflict). Within a single bug, stay sequential — one hypothesis at a time (Phase 3).
 
@@ -184,7 +184,7 @@ You MUST complete each phase before proceeding to the next.
    - Automated test if possible
    - One-off test script if no framework
    - MUST have before fixing
-   - Use the `superpowers:test-driven-development` skill for writing proper failing tests
+   - Use the `test-driven-development` skill for writing proper failing tests
 
 2. **Implement Single Fix**
    - Address the root cause identified
@@ -292,8 +292,8 @@ These techniques are part of systematic debugging and available in this director
 - **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
 
 **Related skills:**
-- **superpowers:test-driven-development** - For creating failing test case (Phase 4, Step 1)
-- **superpowers:verification-before-completion** - Verify fix worked before claiming success
+- **test-driven-development** - For creating failing test case (Phase 4, Step 1)
+- **verification-before-completion** - Verify fix worked before claiming success
 
 ## Real-World Impact
 

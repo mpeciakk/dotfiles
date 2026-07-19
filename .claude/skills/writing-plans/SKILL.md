@@ -13,7 +13,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** If working in an isolated worktree, it should have been created via the `superpowers:using-git-worktrees` skill at execution time.
+**Context:** If working in an isolated worktree, it should have been created via the `using-git-worktrees` skill at execution time.
 
 **Save plans to:** `.flow/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
@@ -60,7 +60,7 @@ independently testable deliverable.
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -166,7 +166,7 @@ After saving the plan and running the red-team pass, present a short summary (pl
 Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] Say 'go' to execute."
 
 **Once the user approves, unless they ask otherwise:**
-- **REQUIRED SUB-SKILL (first):** Use superpowers:using-git-worktrees to create/verify an isolated workspace and confirm a clean test baseline before any task runs.
-- **THEN REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development — fresh subagent per task, a per-task review (one reviewer, two verdicts: spec compliance + code quality), and a broad whole-branch review at the end.
+- **REQUIRED SUB-SKILL (first):** Use using-git-worktrees to create/verify an isolated workspace and confirm a clean test baseline before any task runs.
+- **THEN REQUIRED SUB-SKILL:** Use subagent-driven-development — fresh subagent per task, a per-task review (one reviewer, two verdicts: spec compliance + code quality), and a broad whole-branch review at the end.
 
-**If the user explicitly asks for inline execution instead:** execute the tasks yourself in this session — follow each task's bite-sized steps in order, run the verifications each step specifies, pause at natural checkpoints for review. Still create the worktree first (superpowers:using-git-worktrees) and finish via superpowers:finishing-a-development-branch.
+**If the user explicitly asks for inline execution instead:** execute the tasks yourself in this session — follow each task's bite-sized steps in order, run the verifications each step specifies, pause at natural checkpoints for review. Still create the worktree first (using-git-worktrees) and finish via finishing-a-development-branch.

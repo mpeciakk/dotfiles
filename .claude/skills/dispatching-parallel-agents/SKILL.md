@@ -7,7 +7,7 @@ description: Use when facing 2+ independent tasks that can be worked on without 
 
 ## Overview
 
-Dispatch subagents with isolated, precisely-crafted context (see superpowers:subagent-driven-development for why isolated context matters). When you have multiple unrelated failures — different test files, subsystems, or bugs — investigating them sequentially wastes time; each investigation is independent and can run in parallel.
+Dispatch subagents with isolated, precisely-crafted context (see subagent-driven-development for why isolated context matters). When you have multiple unrelated failures — different test files, subsystems, or bugs — investigating them sequentially wastes time; each investigation is independent and can run in parallel.
 
 **Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently.
 

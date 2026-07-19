@@ -10,24 +10,24 @@ invokes its own skill; read that skill when you reach the stage, don't
 reimplement it here. Run continuously between the marked user gates (✋);
 never pause to ask "should I continue?".
 
-**REQUIRED BACKGROUND:** superpowers:using-superpowers — the rule that you
+**REQUIRED BACKGROUND:** using-superpowers — the rule that you
 invoke a relevant skill before acting, including before clarifying questions.
 
 ## The Pipeline
 
 | # | Stage | Skill | Output | User gate |
 |---|-------|-------|--------|-----------|
-| 1 | Understand + design | superpowers:brainstorming (grill-gate is embedded) | spec → `.flow/specs/` + commit | ✋ approve design, then review written spec |
-| 2 | Plan | superpowers:writing-plans (red-team pre-mortem on non-trivial plans) | plan of 2-5 min tasks with TDD steps → `.flow/plans/` | ✋ approve plan ("go") |
-| 3 | Isolate | superpowers:using-git-worktrees | worktree + clean test baseline | — |
-| 4 | Implement | superpowers:subagent-driven-development | fresh implementer per task (strict TDD), per-task review (spec + quality), fix loop, then broad whole-branch review | — |
-| 5 | Finish | superpowers:finishing-a-development-branch | full suite green, then merge / PR / cleanup | ✋ pick integration option |
+| 1 | Understand + design | brainstorming (grill-gate is embedded) | spec → `.flow/specs/` + commit | ✋ approve design, then review written spec |
+| 2 | Plan | writing-plans (red-team pre-mortem on non-trivial plans) | plan of 2-5 min tasks with TDD steps → `.flow/plans/` | ✋ approve plan ("go") |
+| 3 | Isolate | using-git-worktrees | worktree + clean test baseline | — |
+| 4 | Implement | subagent-driven-development | fresh implementer per task (strict TDD), per-task review (spec + quality), fix loop, then broad whole-branch review | — |
+| 5 | Finish | finishing-a-development-branch | full suite green, then merge / PR / cleanup | ✋ pick integration option |
 
 **Always-on discipline skills** — fire whenever their trigger matches, at any stage:
-- superpowers:test-driven-development — before any implementation code
-- superpowers:systematic-debugging — any bug, test failure, or unexpected behavior
-- superpowers:verification-before-completion — before any "done / passing / fixed" claim
-- superpowers:receiving-code-review — when acting on review feedback
+- test-driven-development — before any implementation code
+- systematic-debugging — any bug, test failure, or unexpected behavior
+- verification-before-completion — before any "done / passing / fixed" claim
+- receiving-code-review — when acting on review feedback
 
 ## Model & effort per stage
 
@@ -63,7 +63,7 @@ Not every change earns the pipeline. Before stage 1, classify the request:
 
 **When in doubt, it's not trivial — enter the pipeline.** The bypass is for changes whose correctness is self-evident, not for work you'd rather not process.
 
-The always-on discipline still applies to a triaged-out change: candor, and superpowers:verification-before-completion (verify the edit did what was asked before claiming done).
+The always-on discipline still applies to a triaged-out change: candor, and verification-before-completion (verify the edit did what was asked before claiming done).
 
 ## Scale to the work (inside the pipeline)
 
