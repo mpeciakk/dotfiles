@@ -1,7 +1,7 @@
 {
     "mcpServers": {
         "codebase-memory-mcp": {
-            "command": "/usr/bin/codebase-memory-mcp"
+            "command": "/home/m/.local/bin/codebase-memory-mcp"
         }
     }
 }
