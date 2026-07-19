@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work — creating features, building components, adding functionality, or modifying behavior."
+description: "You MUST use this before any creative work — creating features, building components, adding functionality, modifying behavior, or implementing from a provided spec."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -16,6 +16,19 @@ Do NOT invoke any implementation skill, write any code, scaffold any project, or
 ## Anti-Pattern: "This Is Too Simple To Need A Design"
 
 Every project that reaches this skill goes through the design step — a todo list, a single-function utility, a small feature, all of them. The one exception is a genuinely trivial *mechanical* change (no design choice, one obviously-correct outcome), which development-workflow's triage handles directly and never routes here. But anything with a real design decision — however small it looks — is exactly where unexamined assumptions cause the most wasted work. The design can be short (a few sentences), but you MUST present it and get approval. Don't reach for "too simple" to skip a decision that actually has options.
+
+## Entry: idea vs provided spec
+
+Check one observable thing first: **did the user hand you a written spec / requirements doc to implement** (e.g. "implement @spec.md", an attached requirements file)?
+
+- **No — starting from an idea** → run the full Checklist below (dialogue → approaches → design doc).
+- **Yes — a spec was provided** → run the **spec-intake path**: their document IS the design. Do NOT generate approaches or author a new design doc — **skip Checklist steps 4–6**. Instead:
+  1. Read the spec and explore project context (step 1).
+  2. Run the **grill gate against their spec** (step 3): scan it for open decision points, ambiguities, contradictions, missing requirements, and undefined edge cases. If the spec is complete and unambiguous, the grill stays silent — proceed straight on. If it has real gaps, grill them one question at a time (each with a recommended default), and fold the resolved decisions back into the spec.
+  3. Spec self-review (step 7): placeholders, internal consistency, scope, ambiguity — fix inline.
+  4. Get the user's sign-off on the spec (step 8), then invoke writing-plans pointed at their spec file (step 9).
+
+The HARD-GATE holds on both paths: no implementation until the spec is validated and the user has approved. With a provided spec you *validate their document* instead of authoring one — you never silently start coding just because a spec was attached. When the spec is solid, this path is nearly frictionless: grill stays quiet, self-review passes, sign-off, plan.
 
 ## Checklist
 
