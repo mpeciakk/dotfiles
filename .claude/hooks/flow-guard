@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""PreToolUse guard for the development-workflow pipeline.
+
+Enforces two things prose demonstrably failed to enforce:
+
+  1. **The controller does not write code.** Edit/Write/MultiEdit/NotebookEdit
+     from the main thread are denied once a run has a workspace. Subagents pass
+     — they are the ones meant to write. Files under `.flow/` pass (briefs,
+     reports, spec, plan) except the run state itself, which governs this guard.
+
+  2. **One workspace per run.** A new `EnterWorktree`, `worktree add`, and an
+     `Agent` dispatched with `isolation: "worktree"` are denied once a worktree
+     is recorded; re-entering the recorded one by `path` is allowed. A second
+     workspace is how a run loses track of where its work went.
+
+Commit location is NOT enforced here: deciding which tree a `git commit` targets
+means parsing arbitrary shell, which produced eleven bypasses and false denials
+on documentation. Instead the workspace contract travels with every subagent
+(hooks/flow-context), the implementer verifies its tree, and `review-package`
+refuses an empty commit range so a misplaced commit surfaces at review.
+
+Not a sandbox: writing code through Bash (`cat > f`, `sed -i`) is not blocked.
+Hardening that against yourself is an arms race with no winner.
+
+Fails open by design — malformed state, an unreadable file, any exception: allow.
+A guard must never break a session it cannot judge. The one exception is a
+missing `agent_id`, which would make an implementer's edits deny; if every
+implementer suddenly reports being blocked, suspect that field first.
+"""
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import shlex
+import sys
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+WORKSPACE_TOOLS = {"EnterWorktree", "Agent", "Bash"}
+STOOD_DOWN = {"inline", "finish"}
+# A "fork" subagent inherits the controller's context and model, so letting it
+# write is the controller writing through a proxy.
+PROXY_AGENT_TYPES = {"fork"}
+
+
+def allow():
+    sys.exit(0)
+
+
+def deny(reason):
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
+        }
+    }))
+    sys.exit(0)
+
+
+def flow_state():
+    """The one authority on where run state lives — shared with flow-context."""
+    sys.dont_write_bytecode = True
+    path = os.path.join(HERE, "flow-state")
+    loader = importlib.machinery.SourceFileLoader("flow_state", path)
+    spec = importlib.util.spec_from_loader("flow_state", loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def target_file(payload):
+    tool_input = payload.get("tool_input") or {}
+    path = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
+    if not isinstance(path, str) or not path:
+        return ""
+    if not os.path.isabs(path):
+        path = os.path.join(payload.get("cwd") or os.getcwd(), path)
+    return os.path.realpath(path)
+
+
+def check_edit(payload, module, state, root, worktree, task, target):
+    # Before the subagent exemption: nobody edits the run state by hand.
+    run_dir = os.path.join(root, ".flow", "run") + os.sep
+    if target.startswith(run_dir):
+        deny(
+            "That file is this run's state — what this guard reads. Editing it by "
+            "hand switches enforcement off silently. Only the user decides to move "
+            f"a run inline or end it; if you believe one applies, say so. [{task}]"
+        )
+
+    if payload.get("agent_id") and (payload.get("agent_type") or "") not in PROXY_AGENT_TYPES:
+        allow()  # a real subagent: writing code is its job
+    if not any(target.startswith(base + os.sep) for base in {root, worktree}):
+        # Could still be another worktree of this same project — those are this
+        # run's code too, wherever they live on disk.
+        if module.repo_root(os.path.dirname(target)) != root:
+            allow()  # not this project's code
+    # Bookkeeping in either tree: briefs, reports, review packages, spec, plan.
+    for base in {root, worktree}:
+        if target.startswith(os.path.join(base, ".flow") + os.sep):
+            allow()
+    deny(
+        "This run's code is written by dispatched implementer subagents, not by "
+        "the controller — an implementer starting fresh from a task brief beats a "
+        "controller carrying six tasks of history, and your context is for "
+        "coordination (subagent-driven-development). Dispatch an implementer. Do "
+        "not route around this through Bash: that trades a visible handoff for an "
+        "invisible one. This is not yours to override — only the user moves a run "
+        f"inline or ends it, so if you believe one applies, say so first. [{task}]"
+    )
+
+
+def creates_worktree(command):
+    """True for a real `git … worktree add`, not a mention of one.
+
+    Tokenising respects quotes, so `echo "run git worktree add"` is one token
+    and reads as prose, while `git worktree add x` reads as three. A command
+    hidden inside `bash -c '…'` is invisible here — same class of limit as the
+    removed commit check, and acceptable for a tripwire.
+    """
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        tokens = command.split()
+    if "--help" in tokens or "-h" in tokens:
+        return False  # reading the docs creates nothing
+    for i, token in enumerate(tokens[:-2]):
+        if os.path.basename(token) != "git":
+            continue
+        rest = tokens[i + 1:]
+        j = 0
+        while j < len(rest) - 1 and rest[j].startswith("-"):
+            j += 2 if rest[j] in ("-C", "-c") else 1
+        if rest[j:j + 2] == ["worktree", "add"]:
+            return True
+    return False
+
+
+def check_workspace(payload, state, worktree, task):
+    tool = payload.get("tool_name")
+    tool_input = payload.get("tool_input") or {}
+    if tool == "EnterWorktree":
+        path = tool_input.get("path")
+        if isinstance(path, str) and path and os.path.realpath(path) == os.path.realpath(worktree):
+            allow()  # re-entering the recorded workspace: the way back in
+    elif tool == "Agent":
+        if tool_input.get("isolation") != "worktree":
+            allow()
+    else:  # Bash
+        command = tool_input.get("command")
+        if not isinstance(command, str) or "worktree" not in command:
+            allow()
+        if not creates_worktree(command):
+            allow()
+    deny(
+        f"This run already has a workspace: {worktree}. A second one is how a run "
+        "loses track of where its work went — an isolated agent's commits never "
+        "reach this branch. Use the recorded workspace: `EnterWorktree` with "
+        f"`path: \"{worktree}\"` to move this session into it, or `git -C` to act "
+        f"on it. If it is genuinely gone, say so — do not relabel the run. [{task}]"
+    )
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+    except ValueError:
+        allow()
+    cwd = payload.get("cwd")
+    cwd = cwd if isinstance(cwd, str) and cwd else os.getcwd()
+
+    module = flow_state()
+    tool = payload.get("tool_name")
+    target = target_file(payload) if tool in EDIT_TOOLS else ""
+
+    root = module.repo_root(cwd)
+    state = module.load_at(root) if root else None
+    if not state and target:
+        # A session whose cwd sits outside the repository (multi-root workspace,
+        # --add-dir, launched from a parent) still edits files inside it.
+        root = module.repo_root(os.path.dirname(target))
+        state = module.load_at(root) if root else None
+    if not state:
+        allow()
+    worktree = state.get("worktree")
+    if not worktree:
+        allow()  # no workspace recorded yet — nothing to enforce against
+    if state.get("stage") in STOOD_DOWN:
+        allow()
+
+    worktree = os.path.realpath(worktree)
+    task = f"run '{state.get('task') or 'unnamed'}': {module.state_file(root)}"
+    if tool in EDIT_TOOLS:
+        if not target:
+            allow()
+        check_edit(payload, module, state, root, worktree, task, target)
+    elif tool in WORKSPACE_TOOLS:
+        check_workspace(payload, state, worktree, task)
+    allow()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception:  # a guard that crashes must not break the tool call
+        allow()

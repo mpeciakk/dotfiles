@@ -6,65 +6,152 @@ description: Use at the very start of any feature, bugfix, refactor, or other co
 # Development Workflow
 
 The end-to-end pipeline for every code change. This is the map — each stage
-invokes its own skill; read that skill when you reach the stage, don't
-reimplement it here. Run continuously between the marked user gates (✋);
-never pause to ask "should I continue?".
+invokes its own skill; read that skill when you reach the stage. Run
+continuously between the user gates (✋); never pause to ask "should I
+continue?".
 
-**REQUIRED BACKGROUND:** using-superpowers — the rule that you
-invoke a relevant skill before acting, including before clarifying questions.
+## Four rules that decide whether a run succeeds
+
+**1. Triage first — not every change earns the pipeline.** Trivial → just do
+it: edit, verify, done. Trivial means ALL of: one obviously-correct outcome,
+mechanical, low blast radius, reversible, no behavior change you would want a
+test for — a config value, a style token, a typo, a `.gitignore` entry, a
+version bump, a mechanical rename. Anything else → stage 1, with the ceremony
+scaled down. When in doubt it is not trivial. (Details under Triage below.)
+
+**2. The run's state lives in a file, not in your memory.** Conversation
+memory does not survive compaction, and a worktree path you merely remember
+is a worktree you will lose. `~/.claude/hooks/flow-state` owns it:
+
+```bash
+~/.claude/hooks/flow-state init <task-slug>     # entering the pipeline
+~/.claude/hooks/flow-state set stage=plan spec=.flow/specs/<file>.md
+~/.claude/hooks/flow-state show                 # after compaction: where am I?
+~/.claude/hooks/flow-state clear                # run finished
+```
+
+Fields: `task stage spec plan worktree branch base`, plus a per-task ledger.
+One file per repository (`<main-checkout>/.flow/run/state.json`), shared by the
+main checkout and every worktree, git-ignored.
+
+**3. Once the run has a workspace, you do not write code — you dispatch
+implementers.** Your context is for coordination: the plan, cross-task
+interfaces, review adjudication. An implementer that starts fresh from a task
+brief outperforms a controller carrying six tasks of history, and a controller
+that spends its context on edits has none left for the decisions only it can
+make. A PreToolUse hook enforces this — Edit/Write from the main thread is
+denied from the moment `worktree` is recorded until the run reaches `finish` —
+and writing code through Bash instead is defeating the mechanism, not passing
+it. If a run genuinely should be inline, record it (`flow-state set
+stage=inline`) and say so.
+
+**4. One writer per working tree, ever** — parallel dispatch is for read-only
+agents; see dispatching-parallel-agents. Nothing enforces this one, so it is on
+you.
 
 ## The Pipeline
 
-| # | Stage | Skill | Output | User gate |
-|---|-------|-------|--------|-----------|
-| 1 | Understand + design | brainstorming (grill-gate is embedded) | spec → `.flow/specs/` + commit | ✋ approve design, then review written spec |
-| 2 | Plan | writing-plans (red-team pre-mortem on non-trivial plans) | plan of 2-5 min tasks with TDD steps → `.flow/plans/` | ✋ approve plan ("go") |
-| 3 | Isolate | using-git-worktrees | worktree + clean test baseline | — |
-| 4 | Implement | subagent-driven-development | fresh implementer per task (strict TDD), per-task review (spec + quality), fix loop, then broad whole-branch review | — |
-| 5 | Finish | finishing-a-development-branch | full suite green, then merge / PR / cleanup | ✋ pick integration option |
+| # | Stage | Skill | State when the stage completes | Output | User gate |
+|---|-------|-------|----------------|--------|-----------|
+| 1 | Understand + design | brainstorming (grill-gate embedded) | `stage=design` | spec → `.flow/specs/` + commit | ✋ approve design, then review written spec |
+| 2 | Plan | writing-plans (red-team on non-trivial plans) | `stage=plan plan=<path>` | plan of 2-5 min tasks with TDD steps → `.flow/plans/` | ✋ approve plan ("go") |
+| 3 | Isolate | using-git-worktrees | `stage=isolate worktree= branch= base=` | worktree + clean test baseline | — |
+| 4 | Implement | subagent-driven-development | `stage=implement`, plus a ledger entry per task | fresh implementer per task (strict TDD), per-task review, fix loop, final whole-branch review | — |
+| 5 | Finish | finishing-a-development-branch | `stage=finish` | full suite green, then merge / PR / cleanup | ✋ pick integration option |
 
-**Always-on discipline skills** — fire whenever their trigger matches, at any stage:
-- test-driven-development — before any implementation code
-- systematic-debugging — any bug, test failure, or unexpected behavior
-- verification-before-completion — before any "done / passing / fixed" claim
-- receiving-code-review — when acting on review feedback
+**Always-on discipline** — fires whenever its trigger matches, at any stage:
+test-driven-development (before implementation code), systematic-debugging
+(any bug or unexpected behavior), verification-before-completion (before any
+"done / passing / fixed" claim), receiving-code-review (acting on feedback).
 
 ## Model & effort per stage
 
-Session default is **Sonnet 5**. Two different levers: the thinking stages you run **inline** (brainstorm, planning, debugging) use your **manual** session model+effort switch — bump the session to Opus 4.8 / xhigh for them. **Dispatched subagents** (implementer, reviewer, fix) get their model set explicitly in the dispatch (omitting it inherits the session default).
+Session default is **Opus 5**. A dispatch takes `model` only — there is no
+effort parameter, so thinking depth for dispatched roles is whatever the session
+is set to; `effortLevel` is your lever for the stages you run inline (xhigh for
+design, planning and debugging). Omit `model` on a dispatch and the subagent
+inherits the session model.
 
-| Stage / role | Model | Effort |
-|---|---|---|
-| Brainstorm / grill / planning | Opus 4.8 | xhigh |
-| Debugging (systematic-debugging) | Opus 4.8 | xhigh |
-| Read-only code exploration (Explore agent) | Haiku 4.5 | — |
-| Implementer subagent (per task, TDD) | Sonnet 5 · Haiku if the task text is complete code · Opus for one genuinely hard task | high |
-| Task reviewer subagent (spec + quality, one agent) | Sonnet 5 for small/mechanical diffs · Opus 4.8 for non-trivial / security / concurrency | high |
-| Fix subagent | Sonnet 5 · escalate to Opus 4.8 if a fix keeps failing | high |
-| Final whole-branch review | Opus 4.8 | high |
-| Finish (tests, git, diff summary) | Haiku 4.5 | — |
+| Stage / role | Model |
+|---|---|
+| Brainstorm / grill / planning / debugging (inline) | Opus 5 |
+| Read-only code exploration (Explore agent) | Haiku 4.5 |
+| Implementer subagent (per task, TDD) | Sonnet 5 · Haiku 4.5 if the task text is complete code · Opus 5 for one genuinely hard task |
+| Task reviewer subagent (spec + quality) | Sonnet 5 for small/mechanical diffs · Opus 5 for non-trivial / security / concurrency |
+| Fix subagent | Sonnet 5 · Opus 5 if a fix keeps failing |
+| Final whole-branch review | Opus 5 |
+| Finish (tests, git, diff summary) | Haiku 4.5 |
 
-**Why:** reasoning-heavy stages (design, debugging, final/critical review) earn Opus — errors there cascade. Implementation and fixes are the Sonnet workhorse. Mechanical / discovery work goes to Haiku. The reviewer should be at least as strong as the implementer, so a non-trivial diff pushes the reviewer to Opus.
+Keep the reviewer at least as strong as the implementer — a reviewer weaker
+than the code it judges rubber-stamps it.
 
 ## Rules
 
-- **Run continuously between gates.** The approved plan is the instruction — don't check in between tasks. Stop only on: a user gate, a BLOCKED task you can't resolve, or ambiguity the spec doesn't settle.
-- **Escalation contract.** Ambiguity outside the spec → STOP and ask the user. A fact you can look up (test runner, existing pattern, API shape) → look it up, never ask.
-- **Model & effort.** See the table above — inline thinking stages are your manual session lever (Opus 4.8 / xhigh); subagents get their model at dispatch.
-- **Code discipline.** Simplicity, surgical changes, no guessing — see CLAUDE.md and the karpathy-guidelines skill.
+- **Run continuously between gates.** The approved plan is the instruction.
+  Stop only on: a user gate, a BLOCKED task you cannot resolve, or ambiguity
+  the spec does not settle.
+- **Escalation contract.** Ambiguity outside the spec → stop and ask. A fact
+  you can look up (test runner, existing pattern, API shape) → look it up.
+- **Code discipline.** Simplicity, surgical changes, no guessing — CLAUDE.md
+  and the karpathy-guidelines skill.
 
-## Triage first — does this even need the pipeline?
+## Triage — does this even need the pipeline?
 
-Not every change earns the pipeline. Before stage 1, classify the request:
+**Small, with one decision → the small lane.** ALL of: one or two files, a
+single real decision you can state in one sentence, one test covers it,
+reversible, no new abstraction, nothing security- or data-sensitive. A different
+error message, a changed default timeout, one flag on an existing command. See
+The Small Lane below.
 
-**Trivial → just do it.** Make the edit directly, verify it, done — no brainstorming, spec, plan, worktree, or subagent. Trivial means ALL of: one obviously-correct outcome (no design choice), mechanical, low blast-radius, reversible, and no behavior/logic change you'd want a test for. Examples: a config value or toggle, a style token / color, a typo or copy fix, a `.gitignore` or dependency-manifest entry, a version bump, a mechanical rename.
+**Everything else → stage 1.** Several decisions, an unclear shape, a contract
+other code depends on, anything security- or data-sensitive, or a bundle of
+"trivial" edits that together shift behavior. A small feature with a contract
+(say, a `--json` flag with output guarantees) belongs here, scaled down.
 
-**Everything else → enter the pipeline at stage 1.** Any design choice, any behavior or logic change, anything ambiguous, anything security- or data-sensitive, anything you'd want a test for, or a bundle of "trivial" edits that together shift behavior. A small feature (e.g. adding a `--json` flag) is NOT trivial — it has choices and a contract; it takes the pipeline, scaled down.
+The bypass is for changes whose correctness is self-evident, not for work you
+would rather not process. A triaged-out change still gets candor and
+verification-before-completion.
 
-**When in doubt, it's not trivial — enter the pipeline.** The bypass is for changes whose correctness is self-evident, not for work you'd rather not process.
+**A trivial change that arrives mid-run is not a bypass.** With a run open at
+`stage=implement`, the guard denies your edit — correctly, because the run owns
+the tree. Either park it until the run finishes, or dispatch a one-line
+implementer for it. Never `flow-state set stage=inline`: that switches
+enforcement off for the *real* run to squeeze in an unrelated edit.
 
-The always-on discipline still applies to a triaged-out change: candor, and verification-before-completion (verify the edit did what was asked before claiming done).
+A change that enters at stage 1 but is small scales each stage *down*: the
+design is a sentence, the grill stays silent, the plan may be one task,
+red-team is skipped. Scale the ceremony, not the gates — once in the pipeline,
+the ✋ gates stay.
 
-## Scale to the work (inside the pipeline)
+## The Small Lane
 
-A change that enters the pipeline but is small scales each stage *down* — design is a sentence, the grill stays silent (see brainstorming/grill-gate.md), the plan may be one task, red-team is skipped. Scale the ceremony, not the gates: once in the pipeline, the ✋ gates stay.
+For a change with exactly one decision in it, the full pipeline costs two
+committed documents, three dispatches and three gates — more process than the
+change. This lane keeps what catches mistakes (an approved decision, a test
+first, one independent review, a green suite) and drops what only documents
+them.
+
+1. **State the decision in one sentence and get one ✋ approval.** "Default
+   timeout goes 30s → 10s; callers that relied on 30 get it explicitly." No
+   spec document, no approaches — if you cannot put the decision in a sentence,
+   this is not the small lane.
+2. **Open the run with a `small/` slug**, so the lane is visible after
+   compaction and in every guard message:
+   `~/.claude/hooks/flow-state init small/<slug>`.
+3. **Write the approved decision as a one-task brief** to
+   `.flow/plans/YYYY-MM-DD-<slug>-small.md`, using writing-plans' task shape
+   (`## Global Constraints` if the project has any, then `### Task 1: <name>`
+   with the files, the failing test, and the change). Commit it and record it as
+   the plan. One artifact instead of two, and the normal `task-brief` works
+   unchanged.
+4. **Isolate** (using-git-worktrees) — but the baseline is the tests covering
+   what you are touching, not the whole suite. The full suite runs at finish,
+   which is where it decides anything.
+5. **One implementer, one review** (subagent-driven-development, single task).
+   Skip the whole-branch review: with one task, the task review already saw the
+   whole branch.
+6. **Finish** (finishing-a-development-branch) — full suite, then the options.
+
+Two dispatches, two gates, one artifact. If the work turns out to have a second
+decision in it, stop and go to stage 1 — that is the signal, not an
+inconvenience.

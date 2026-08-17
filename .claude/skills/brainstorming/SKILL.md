@@ -13,20 +13,26 @@ Start by understanding the current project context, then ask questions one at a 
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to every project that reaches this skill. (Genuinely trivial, mechanical changes — a config value, a style token, a typo, a `.gitignore` line — are triaged out upstream by development-workflow and never reach brainstorming. If you are here, the change is non-trivial: do not wave it away as "too simple.")
 </HARD-GATE>
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
-
-Every project that reaches this skill goes through the design step — a todo list, a single-function utility, a small feature, all of them. The one exception is a genuinely trivial *mechanical* change (no design choice, one obviously-correct outcome), which development-workflow's triage handles directly and never routes here. But anything with a real design decision — however small it looks — is exactly where unexamined assumptions cause the most wasted work. The design can be short (a few sentences), but you MUST present it and get approval. Don't reach for "too simple" to skip a decision that actually has options.
+**One carve-out, and it is upstream of you:** development-workflow's small lane
+handles a change with exactly one statable decision. There the approved sentence
+*is* the design — no spec document, no approaches — and the run's slug starts
+with `small/`. That decision still gets a ✋ approval before any code; what the
+lane drops is the paperwork, not the gate. Do not invoke this skill to
+retro-document a small-lane change, and do not use "it's basically small" to
+skip the design for work that has more than one decision in it.
 
 ## Entry: idea vs provided spec
 
 Check one observable thing first: **did the user hand you a written spec / requirements doc to implement** (e.g. "implement @spec.md", an attached requirements file)?
 
 - **No — starting from an idea** → run the full Checklist below (dialogue → approaches → design doc).
-- **Yes — a spec was provided** → run the **spec-intake path**: their document IS the design. Do NOT generate approaches or author a new design doc — **skip Checklist steps 4–6**. Instead:
+- **Yes — a spec was provided** → run the **spec-intake path**: their document IS the design. Do NOT generate approaches or author a new design doc — **skip Checklist steps 4–5**. Instead:
+  0. Open the run (step 0) — a spec handed to you still needs run state, or every later stage and guard has nothing to read.
   1. Read the spec and explore project context (step 1).
   2. Run the **grill gate against their spec** (step 3): scan it for open decision points, ambiguities, contradictions, missing requirements, and undefined edge cases. If the spec is complete and unambiguous, the grill stays silent — proceed straight on. If it has real gaps, grill them one question at a time (each with a recommended default), and fold the resolved decisions back into the spec.
   3. Spec self-review (step 7): placeholders, internal consistency, scope, ambiguity — fix inline.
-  4. Get the user's sign-off on the spec (step 8), then invoke writing-plans pointed at their spec file (step 9).
+  4. Commit their spec into the repository and record it (step 6's tail). If the spec lives outside the repo (an attachment, `/tmp/spec.md`), copy it into `.flow/specs/` first — `git add` refuses a path outside the working tree. Then `git commit` and `~/.claude/hooks/flow-state set spec="$(git rev-parse --show-toplevel)/.flow/specs/<file>.md"` (absolute, so it still resolves from a subdirectory). The worktree branches from HEAD, so an uncommitted spec is absent from the workspace every implementer works in.
+  5. Get the user's sign-off on the spec (step 8), then invoke writing-plans pointed at their spec file (step 9).
 
 The HARD-GATE holds on both paths: no implementation until the spec is validated and the user has approved. With a provided spec you *validate their document* instead of authoring one — you never silently start coding just because a spec was attached. When the spec is solid, this path is nearly frictionless: grill stays quiet, self-review passes, sign-off, plan.
 
@@ -34,45 +40,20 @@ The HARD-GATE holds on both paths: no implementation until the spec is validated
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — use cbm first (`get_architecture` for structure, `search_graph`/`semantic_query` to find relevant code), then check docs and recent commits; Grep/Read only for non-code
+0. **Open the run** — `~/.claude/hooks/flow-state init <task-slug>` (if development-workflow's triage has not already) and `set stage=design`. The run state is what later stages and the pipeline's guards read; a run nobody opened is a run that loses its worktree.
+1. **Explore project context** — use cbm first (`get_architecture` for structure, `search_graph`/`search_code` to find relevant code), then check docs and recent commits; Grep/Read only for non-code
 2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-3. **Grill gate** — scan for open decision points; if any remain, grill one question at a time until none do; if none, stay silent and move on. See `skills/brainstorming/grill-gate.md`
+3. **Grill gate** — scan for open decision points; if any remain, grill one question at a time until none do; if none, stay silent and move on. See `~/.claude/skills/brainstorming/grill-gate.md`
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Write design doc** — save to `.flow/specs/YYYY-MM-DD-<topic>-design.md` and commit
+5. **Present design** — one message, sections scaled to complexity, then ask for approval once. Pause mid-design only when a section's answer changes the sections after it (that is a grill-gate dependency, not a checkpoint)
+6. **Write design doc** — save to `.flow/specs/YYYY-MM-DD-<topic>-design.md`, commit, and record it: `~/.claude/hooks/flow-state set spec="$(git rev-parse --show-toplevel)/.flow/specs/<file>.md"` (absolute — a relative path breaks from any subdirectory)
 7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 8. **User reviews written spec** — ask user to review the spec file before proceeding
 9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
-## Process Flow
-
-```dot
-digraph brainstorming {
-    "Explore project context" [shape=box];
-    "Ask clarifying questions" [shape=box];
-    "Grill gate\n(open decisions?)" [shape=diamond];
-    "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
-    "Write design doc" [shape=box];
-    "Spec self-review\n(fix inline)" [shape=box];
-    "User reviews spec?" [shape=diamond];
-    "Invoke writing-plans skill" [shape=doublecircle];
-
-    "Explore project context" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Grill gate\n(open decisions?)";
-    "Grill gate\n(open decisions?)" -> "Ask clarifying questions" [label="open decision → resolve"];
-    "Grill gate\n(open decisions?)" -> "Propose 2-3 approaches" [label="all clear"];
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc" [label="yes"];
-    "Write design doc" -> "Spec self-review\n(fix inline)";
-    "Spec self-review\n(fix inline)" -> "User reviews spec?";
-    "User reviews spec?" -> "Write design doc" [label="changes requested"];
-    "User reviews spec?" -> "Invoke writing-plans skill" [label="approved"];
-}
-```
+Two loops inside that order: the grill gate sends you back to questions while
+open decisions remain, and a design section the user rejects gets revised
+before you move on. Everything else runs straight through.
 
 **The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
 
@@ -98,7 +79,7 @@ digraph brainstorming {
 
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
+- Present it in one message and ask for approval once; paragraph-by-paragraph sign-off is what makes a small feature feel like a heavy process
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
 
@@ -115,16 +96,8 @@ digraph brainstorming {
 - Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
 - Don't propose unrelated refactoring. Stay focused on what serves the current goal.
 
-## After the Design
+## Spec self-review (Checklist step 7)
 
-**Documentation:**
-
-- Write the validated design (spec) to `.flow/specs/YYYY-MM-DD-<topic>-design.md`
-  - (User preferences for spec location override this default)
-- Use writing-clearly-and-concisely skill if available
-- Commit the design document to git
-
-**Spec Self-Review:**
 After writing the spec document, look at it with fresh eyes:
 
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
@@ -132,22 +105,6 @@ After writing the spec document, look at it with fresh eyes:
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
 
-Fix any issues inline. No need to re-review — just fix and move on.
-
-**User Review Gate:**
-After the spec review loop passes, ask the user to review the written spec before proceeding (unless told to auto accept it).
-Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
-
-**Implementation:**
-
-- Invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other skill. writing-plans is the next step.
-
-## Key Principles
-
-- **One question at a time** - Don't overwhelm with multiple questions
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - Remove unnecessary features from all designs
-- **Explore alternatives** - Always propose 2-3 approaches before settling
-- **Incremental validation** - Present design, get approval before moving on
-- **Be flexible** - Go back and clarify when something doesn't make sense
+Fix any issues inline. No need to re-review — just fix and move on. Then ask the
+user to review the written spec (unless told to auto-accept); if they request
+changes, make them and re-run this review. Only then invoke writing-plans.

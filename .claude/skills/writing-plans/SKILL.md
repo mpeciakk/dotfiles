@@ -7,13 +7,20 @@ description: Use when you have a spec or requirements for a multi-step task, bef
 
 ## Overview
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+A plan is complete when an implementer with no session history can execute each task from the task text alone. Complete, not comprehensive — nothing in it that a task does not need. Write it assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
 
 Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** If working in an isolated worktree, it should have been created via the `using-git-worktrees` skill at execution time.
+**Three things the next stage depends on — do them, don't just read them:**
+1. **Commit the plan file** before any worktree exists. The worktree branches
+   from HEAD, so an uncommitted plan is absent from the branch the implementers
+   build on and from its history.
+2. **Record it absolute:** `flow-state set stage=plan plan="$(git rev-parse
+   --show-toplevel)/.flow/plans/<file>.md"`. A relative path breaks from any
+   subdirectory.
+3. **Wait for the user's "go"** before execution. Details in Execution Handoff.
 
 **Save plans to:** `.flow/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
@@ -72,8 +79,9 @@ independently testable deliverable.
 
 [The spec's project-wide requirements — version floors, dependency limits,
 naming and copy rules, platform requirements — one line each, with exact
-values copied verbatim from the spec. Every task's requirements implicitly
-include this section.]
+values copied verbatim from the spec. If the spec has none, write `None.` and
+keep the heading: `task-brief` prepends this section to every task's brief, and
+the reviewer is handed it verbatim.]
 
 ---
 ```
@@ -137,12 +145,6 @@ Every step must contain the actual content an engineer needs. These are **plan f
 - Steps that describe what to do without showing how (code blocks required for code steps)
 - References to types, functions, or methods not defined in any task
 
-## Remember
-- Exact file paths always
-- Complete code in every step — if a step changes code, show the code
-- Exact commands with expected output
-- DRY, YAGNI, TDD, frequent commits
-
 ## Self-Review
 
 After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
@@ -157,16 +159,40 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Red-Team Pass
 
-After self-review, before offering execution, dispatch a fresh adversarial subagent (Opus 4.8) to make the strongest case that the plan is wrong — a plan-level pre-mortem, run **once per plan, never per task or per decision**. A fresh subagent has no investment in the plan and won't rubber-stamp it the way you (the author) are tempted to. Surface its ranked objections to the user, add your own honest take on each, and resolve any blocking objections — by amending the plan or an explicit user decision — before execution. If it returns no blocking objections, say so in one line and move on; don't stage a debate the plan doesn't need. **Skip it entirely for trivial plans** (single task, pure-transcription, or mechanical changes). See [red-team.md](red-team.md).
+After self-review, before offering execution, dispatch a fresh adversarial subagent to argue the plan is wrong — see [red-team.md](red-team.md) for when to run it, when to skip it, and the dispatch. Surface its ranked objections with your own honest take on each, and resolve the blocking ones — by amending the plan or an explicit user decision — before execution starts.
 
 ## Execution Handoff
 
-After saving the plan and running the red-team pass, present a short summary (plan location, task count, red-team verdict) and **wait for the user's "go"**. This is a gate — do not start execution on your own.
+Save the plan, record it, run the red-team pass, then present a short summary
+(plan location, task count, red-team verdict) and **wait for the user's "go"**.
+This is a gate — do not start execution on your own.
+
+```bash
+git add .flow/plans/<filename>.md && git commit -m "plan: <feature>"
+~/.claude/hooks/flow-state set stage=plan plan="$(git rev-parse --show-toplevel)/.flow/plans/<filename>.md"
+```
+
+**Commit the plan before execution starts.** The worktree branches from HEAD, so
+an uncommitted plan is absent from the workspace the implementers work in, and
+the first `task-brief` call fails with "no such plan file". Record the path
+absolute — a repo-relative one breaks the moment a command runs from a
+subdirectory.
+
+Note for the user in your summary: this commit and the spec commit land on the
+branch they are on now (often `main`), before any worktree exists. That is
+deliberate — the worktree branches from HEAD and needs them — but say it rather
+than leaving them to discover two commits on main.
 
 Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] Say 'go' to execute."
 
 **Once the user approves, unless they ask otherwise:**
-- **REQUIRED SUB-SKILL (first):** Use using-git-worktrees to create/verify an isolated workspace and confirm a clean test baseline before any task runs.
-- **THEN REQUIRED SUB-SKILL:** Use subagent-driven-development — fresh subagent per task, a per-task review (one reviewer, two verdicts: spec compliance + code quality), and a broad whole-branch review at the end.
+- **REQUIRED SUB-SKILL (first):** using-git-worktrees — isolated workspace, recorded in the run state, clean test baseline, before any task runs.
+- **THEN REQUIRED SUB-SKILL:** subagent-driven-development — a fresh implementer subagent per task, a per-task review (one reviewer, two verdicts: spec compliance + code quality), and a whole-branch review at the end. You coordinate; you do not write the code.
 
-**If the user explicitly asks for inline execution instead:** execute the tasks yourself in this session — follow each task's bite-sized steps in order, run the verifications each step specifies, pause at natural checkpoints for review. Still create the worktree first (using-git-worktrees) and finish via finishing-a-development-branch.
+**Inline execution** — only when the user explicitly asks for it in this turn,
+never as your own shortcut past dispatching. Record the decision so the
+guards stand down and it stays visible: `~/.claude/hooks/flow-state set
+stage=inline`. Then work each task's bite-sized steps in order, run the
+verifications each step specifies, pause at natural checkpoints — still in a
+worktree (using-git-worktrees), still finishing via
+finishing-a-development-branch.

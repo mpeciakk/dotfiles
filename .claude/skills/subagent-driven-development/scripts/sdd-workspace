@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # Resolve and ensure the working-tree directory SDD uses for its short-lived
-# artifacts: task briefs, implementer reports, review packages, and the
-# progress ledger. Print the directory's absolute path.
+# artifacts: task briefs, implementer reports, and review packages. Print the
+# directory's absolute path. (Run progress lives elsewhere, in the run state
+# file that ~/.claude/hooks/flow-state owns — it has to survive this directory
+# being wiped, and it is shared with the main checkout.)
 #
-# The workspace lives in the working tree (not under .git/) because Claude Code
-# treats .git/ as a protected path and denies agent writes there — which blocks
-# an implementer subagent from writing its report file. A self-ignoring
-# .gitignore keeps the workspace out of `git status` and out of accidental
-# commits without modifying any tracked file.
-#
-# Single source of truth for the workspace location, so task-brief and
-# review-package cannot drift to different directories.
+# In the working tree rather than under .git/, because agent writes to .git/ are
+# denied — which would block an implementer from writing its report. A
+# self-ignoring .gitignore keeps it out of `git status` without touching any
+# tracked file. Single source of truth, so task-brief and review-package cannot
+# drift apart.
 #
 # Usage: sdd-workspace
 set -euo pipefail

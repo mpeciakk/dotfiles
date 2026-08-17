@@ -1,36 +1,145 @@
 {
-  "effortLevel": "high",
-  "model": "sonnet",
-  "enabledPlugins": {
-    "claude-code-wakatime@wakatime": true,
-    "andrej-karpathy-skills@karpathy-skills": true,
-    "claude-hud@claude-hud": true,
-    "context7@context7-marketplace": true,
-    "github@claude-plugins-official": false
-  },
   "env": {
     "CBM_ALLOWED_ROOT": "/home/m",
     "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
   },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cbm-code-discovery-gate",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|EnterWorktree|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/flow-guard",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/flow-guard",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cbm-session-reminder"
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cbm-session-reminder"
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cbm-session-reminder"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cbm-session-reminder"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/m/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/flow-context",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/flow-context",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cbm-subagent-reminder"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash -c 'cols=${COLUMNS:-}; case \"$cols\" in \"\"|*[!0-9]*) cols=$(stty size </dev/tty 2>/dev/null | awk '\"'\"'{print $2}'\"'\"');; esac; case \"$cols\" in \"\"|*[!0-9]*) cols=120;; esac; export COLUMNS=$(( cols > 4 ? cols - 4 : 1 )); plugin_dir=$(ls -d \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/*/claude-hud/*/ 2>/dev/null | awk -F/ '\"'\"'{ print $(NF-1) \"\\t\" $(0) }'\"'\"' | grep -E '\"'\"'^[0-9]+\\.[0-9]+\\.[0-9]+[[:space:]]'\"'\"' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -1 | cut -f2-); exec \"/home/m/.local/share/toolchains/asdf/shims/bun\" --env-file /dev/null \"${plugin_dir}src/index.ts\"'"
+  },
+  "enabledPlugins": {
+    "claude-code-wakatime@wakatime": true,
+    "andrej-karpathy-skills@karpathy-skills": true,
+    "claude-hud@claude-hud": true,
+    "context7@context7-marketplace": true,
+    "github@claude-plugins-official": false,
+    "document-skills@anthropic-agent-skills": true,
+    "frontend-design@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "cloudflare@cloudflare": true
+  },
   "extraKnownMarketplaces": {
     "claude-hud": {
       "source": {
-        "repo": "jarrodwatts/claude-hud",
-        "source": "github"
+        "source": "github",
+        "repo": "jarrodwatts/claude-hud"
       }
     },
     "context7-marketplace": {
       "source": {
-        "repo": "upstash/context7",
-        "source": "github"
+        "source": "github",
+        "repo": "upstash/context7"
       }
     },
     "karpathy-skills": {
       "source": {
-        "repo": "forrestchang/andrej-karpathy-skills",
-        "source": "github"
+        "source": "github",
+        "repo": "forrestchang/andrej-karpathy-skills"
       }
     },
     "wakatime": {
@@ -38,85 +147,32 @@
         "source": "git",
         "url": "https://github.com/wakatime/claude-code-wakatime.git"
       }
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
+    },
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      }
     }
   },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/hooks/cbm-code-discovery-gate",
-            "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "Grep|Glob"
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/hooks/cbm-session-reminder",
-            "type": "command"
-          }
-        ],
-        "matcher": "startup"
-      },
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/hooks/cbm-session-reminder",
-            "type": "command"
-          }
-        ],
-        "matcher": "resume"
-      },
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/hooks/cbm-session-reminder",
-            "type": "command"
-          }
-        ],
-        "matcher": "clear"
-      },
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/hooks/cbm-session-reminder",
-            "type": "command"
-          }
-        ],
-        "matcher": "compact"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bash '/home/m/.claude/hooks/herdr-agent-state.sh' session",
-            "timeout": 10,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/hooks/cbm-subagent-reminder",
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
+  "permissions": {
+    "allow": [
+      "Bash(~/.claude/hooks/flow-state:*)",
+      "Bash(~/.claude/skills/subagent-driven-development/scripts/task-brief:*)",
+      "Bash(~/.claude/skills/subagent-driven-development/scripts/review-package:*)",
+      "Bash(~/.claude/skills/subagent-driven-development/scripts/sdd-workspace:*)"
     ]
   },
-  "skipDangerousModePermissionPrompt": true,
-  "statusLine": {
-    "command": "bash -c 'cols=${COLUMNS:-}; case \"$cols\" in \"\"|*[!0-9]*) cols=$(stty size </dev/tty 2>/dev/null | awk '\"'\"'{print $2}'\"'\"');; esac; case \"$cols\" in \"\"|*[!0-9]*) cols=120;; esac; export COLUMNS=$(( cols > 4 ? cols - 4 : 1 )); plugin_dir=$(ls -d \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/*/claude-hud/*/ 2>/dev/null | awk -F/ '\"'\"'{ print $(NF-1) \"\\t\" $(0) }'\"'\"' | grep -E '\"'\"'^[0-9]+\\.[0-9]+\\.[0-9]+[[:space:]]'\"'\"' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -1 | cut -f2-); exec \"/home/m/.local/share/toolchains/asdf/shims/bun\" --env-file /dev/null \"${plugin_dir}src/index.ts\"'",
-    "type": "command"
+  "worktree": {
+    "baseRef": "head"
   },
+  "effortLevel": "xhigh",
+  "skipDangerousModePermissionPrompt": true,
   "theme": "dark"
 }

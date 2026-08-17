@@ -57,6 +57,9 @@ later — under a short **Decisions** heading (decision → chosen option → on
 rationale). This keeps the "why" next to the "what" for the next session and for
 the plan.
 
+A decision point where both branches lead to materially the same
+implementation is not open: pick one, record it under Decisions, and move on.
+
 ## Anti-patterns
 
 - **Grilling to look thorough.** If the scan is genuinely empty, asking anyway is

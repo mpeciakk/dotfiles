@@ -1,0 +1,222 @@
+#!/usr/bin/env bash
+# Regression net for the flow-* hooks. Runs the real hooks against synthetic
+# PreToolUse / SubagentStart / SessionStart payloads in throwaway repos.
+#
+# Lives beside the hooks on purpose: an enforcement layer whose tests sit in
+# /tmp has no regression net at all.
+#
+# Fixtures are VERIFIED before any assertion runs. An earlier version passed
+# 34/34 while `git commit` was silently failing (global commit signing, no
+# agent), so "$WT" was an empty directory and every worktree assertion proved
+# nothing. GIT_CONFIG_GLOBAL=/dev/null keeps the user's config out.
+#
+# Usage: flow-guard-test        (exit 0 = all green)
+set -u
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+GUARD=$HERE/flow-guard
+STATE=$HERE/flow-state
+CONTEXT=$HERE/flow-context
+SETTINGS=$(cd "$HERE/.." && pwd)/settings.json
+ROOT=${TMPDIR:-/tmp}/flow-hooks-test
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+pass=0; fail=0
+trap 'chmod -R u+w "$ROOT" 2>/dev/null' EXIT
+
+report() { if [ "$1" = ok ]; then printf 'PASS  %-60s %s\n' "$2" "${3:-}"; pass=$((pass+1))
+  else printf 'FAIL  %-60s %s\n' "$2" "${3:-}"; fail=$((fail+1)); fi; }
+fixture_fail() { printf 'FIXTURE FAILED: %s\n' "$1" >&2; exit 1; }
+
+decide() { local out; out=$(printf '%s' "$1" | "$GUARD" 2>/dev/null)
+  if [ -z "$out" ]; then echo allow
+  else printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "malformed"'; fi; }
+check() { local got; got=$(decide "$3")
+  [ "$got" = "$2" ] && report ok "$1" "$got" || report no "$1" "got=$got want=$2"; }
+
+edit_payload() { # cwd file [agent_id] [agent_type] [tool]
+  jq -n --arg cwd "$1" --arg f "$2" --arg id "${3:-}" --arg t "${4:-}" --arg tool "${5:-Edit}" \
+    '{hook_event_name:"PreToolUse",tool_name:$tool,cwd:$cwd,tool_input:{file_path:$f}}
+     + (if $id == "" then {} else {agent_id:$id} end)
+     + (if $t == "" then {} else {agent_type:$t} end)'; }
+bash_payload() { jq -n --arg cwd "$1" --arg c "$2" \
+  '{hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$cwd,tool_input:{command:$c}}'; }
+enter_payload() { jq -n --arg cwd "$1" --arg p "${2:-}" \
+  '{hook_event_name:"PreToolUse",tool_name:"EnterWorktree",cwd:$cwd,
+    tool_input:(if $p == "" then {name:"feat"} else {path:$p} end)}'; }
+agent_payload() { jq -n --arg cwd "$1" --arg iso "${2:-}" \
+  '{hook_event_name:"PreToolUse",tool_name:"Agent",cwd:$cwd,
+    tool_input:({prompt:"do a thing"} + (if $iso == "" then {} else {isolation:$iso} end))}'; }
+mkrepo() { mkdir -p "$1" && git -C "$1" init -q -b main \
+    && git -C "$1" config user.email t@t.t && git -C "$1" config user.name t \
+    && echo hello > "$1/app.py" && git -C "$1" add -A \
+    && git -C "$1" commit -q --no-gpg-sign -m init; }
+
+# ------------------------------------------------------------------ fixtures
+rm -rf "$ROOT"; mkdir -p "$ROOT"
+REPO=$ROOT/repo; WT=$REPO/.claude/worktrees/feat; EXT=$ROOT/external-wt
+mkrepo "$REPO" || fixture_fail "could not build $REPO (commit failed?)"
+git -C "$REPO" worktree add -q "$WT" -b feat/x || fixture_fail "worktree add"
+git -C "$REPO" worktree add -q "$EXT" -b ext/x || fixture_fail "external worktree"
+[ -f "$WT/.git" ] || fixture_fail "$WT is not a linked worktree"
+[ -f "$EXT/.git" ] || fixture_fail "$EXT is not a linked worktree"
+[ "$(git -C "$REPO" rev-list --count HEAD)" = 1 ] || fixture_fail "no commit in fixture"
+mkdir -p "$REPO/.flow/plans" "$WT/.flow/sdd" "$REPO/src/.flow/run" "$ROOT/outside"
+report ok "fixtures verified (repo + linked + external worktree + a commit)"
+
+"$STATE" --cwd "$REPO" init demo >/dev/null || fixture_fail "flow-state init"
+"$STATE" --cwd "$REPO" set plan=.flow/plans/p.md worktree="$WT" branch=feat/x \
+  base="$(git -C "$REPO" rev-parse HEAD)" stage=implement >/dev/null \
+  || fixture_fail "one-call set (plan+worktree+stage ordering scope)"
+report ok "set stage=implement with plan+worktree in one call"
+
+echo "=== controller must not write code ==="
+check "controller edits code in the worktree" deny "$(edit_payload "$WT" "$WT/app.py")"
+check "controller edits code in the main checkout" deny "$(edit_payload "$REPO" "$REPO/app.py")"
+check "controller edits with a relative path" deny "$(edit_payload "$REPO" app.py)"
+check "Write, not just Edit" deny "$(edit_payload "$REPO" "$REPO/app.py" "" "" Write)"
+check "subagent edits code" allow "$(edit_payload "$WT" "$WT/app.py" sub-1 general-purpose)"
+check "fork subagent (controller by proxy)" deny "$(edit_payload "$WT" "$WT/app.py" sub-2 fork)"
+check "controller edits .flow/ in the main checkout" allow "$(edit_payload "$REPO" "$REPO/.flow/plans/p.md")"
+check "controller edits .flow/sdd/ INSIDE the worktree" allow "$(edit_payload "$WT" "$WT/.flow/sdd/task-1-brief.md")"
+check "controller edits outside the repo" allow "$(edit_payload "$REPO" "$ROOT/outside/x.md")"
+check "cwd outside the repo, target inside it" deny "$(edit_payload "$ROOT/outside" "$REPO/app.py")"
+check "controller edits in an EXTERNAL worktree of this repo" deny "$(edit_payload "$EXT" "$EXT/app.py")"
+
+echo "=== the state file is not hand-editable ==="
+check "controller writes state.json" deny "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" "" "" Write)"
+check "subagent writes state.json" deny "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" sub-3 general-purpose Write)"
+echo '{"stage":"inline"}' > "$REPO/src/.flow/run/state.json"
+check "decoy state.json deeper in the tree is ignored" deny "$(edit_payload "$REPO/src" "$REPO/src/app.py")"
+rm -rf "$REPO/src/.flow"
+
+echo "=== one workspace per run ==="
+check "git worktree add" deny "$(bash_payload "$WT" 'git worktree add ../other -b y')"
+check "git worktree  add (double space)" deny "$(bash_payload "$WT" 'git worktree  add ../other -b y')"
+check "git worktree add --help (reading docs)" allow "$(bash_payload "$WT" 'git worktree add --help')"
+check "echo mentioning worktree add" allow "$(bash_payload "$WT" 'echo "run git worktree add" >> README.md')"
+check "EnterWorktree for a NEW worktree" deny "$(enter_payload "$WT")"
+check "EnterWorktree re-entering the recorded path" allow "$(enter_payload "$REPO" "$WT")"
+check "EnterWorktree re-entering via a ../ path" allow "$(enter_payload "$REPO" "$WT/../feat")"
+check "EnterWorktree pointing elsewhere" deny "$(enter_payload "$REPO" "$EXT")"
+check "Agent with isolation=worktree" deny "$(agent_payload "$WT" worktree)"
+check "Agent without isolation" allow "$(agent_payload "$WT")"
+check "unrelated bash command" allow "$(bash_payload "$WT" 'npm test')"
+check "git commit (not enforced, by design)" allow "$(bash_payload "$REPO" 'git commit -m x')"
+
+echo "=== deliberate stand-downs ==="
+for stage in inline finish; do
+  "$STATE" --cwd "$REPO" set stage=$stage >/dev/null
+  check "stage=$stage: controller may edit" allow "$(edit_payload "$WT" "$WT/app.py")"
+  check "stage=$stage: worktree add allowed" allow "$(bash_payload "$WT" 'git worktree add ../o')"
+done
+"$STATE" --cwd "$REPO" set stage=implement >/dev/null
+
+echo "=== never breaks a call it cannot judge ==="
+SP=$REPO/.flow/run/state.json; cp "$SP" "$ROOT/state.bak"
+for junk in '[1,2]' '{"stage":"impleme' '{"stage":"implement","worktree":5}'; do
+  printf '%s' "$junk" > "$SP"
+  check "malformed state: $junk" allow "$(edit_payload "$REPO" "$REPO/app.py")"
+done
+cp "$ROOT/state.bak" "$SP"
+check "empty stdin" allow ""
+check "non-JSON stdin" allow "not json at all"
+check "wrong-typed payload fields" allow '{"tool_name":"Edit","cwd":5,"tool_input":{"file_path":["a"]}}'
+check "guard still denies after all that" deny "$(edit_payload "$REPO" "$REPO/app.py")"
+
+echo "=== state file semantics ==="
+[ "$("$STATE" --cwd "$WT" get stage)" = implement ] \
+  && report ok "worktree and checkout share one state file" || report no "shared state file"
+[ "$("$STATE" --cwd "$EXT" path)" = "$SP" ] \
+  && report ok "external worktree resolves to the same state file" || report no "external worktree state path"
+[ -z "$(git -C "$REPO" status --porcelain -- .flow/run)" ] \
+  && report ok "run state is self-ignoring" || report no "run state shows in git status"
+out=$("$STATE" --cwd "$REPO" init other 2>&1)
+case "$out" in *"already open"*) report ok "init refuses to wipe a run with a workspace";; *) report no "init wiped a live run" "$out";; esac
+"$STATE" --cwd "$REPO" set base=deadbeef >/dev/null \
+  && report ok "unrelated set is not blocked by an ordering rule" || report no "ordering rule over-reaches"
+printf 'garbage' > "$SP"
+out=$("$STATE" --cwd "$REPO" init fresh 2>&1)
+case "$out" in *cannot?be?read*) report ok "init refuses over an unreadable state file";; *) report no "init overwrote junk state" "$out";; esac
+cp "$ROOT/state.bak" "$SP"
+out=$("$STATE" --cwd "$REPO" set worktree=rel/path 2>&1)
+case "$out" in *absolute*) report ok "relative worktree rejected";; *) report no "relative worktree accepted";; esac
+
+SGD=$ROOT/sgd; mkdir -p "$ROOT/gitdir"
+git init -q --separate-git-dir="$ROOT/gitdir/repo.git" "$SGD" 2>/dev/null
+[ "$("$STATE" --cwd "$SGD" path)" = "$SGD/.flow/run/state.json" ] \
+  && report ok "separate-git-dir keeps state inside the working tree" \
+  || report no "separate-git-dir state path" "$("$STATE" --cwd "$SGD" path)"
+git -C "$ROOT" init -q --bare bare.git 2>/dev/null
+out=$("$STATE" --cwd "$ROOT/bare.git" path 2>&1)
+case "$out" in *"$ROOT/.flow"*) report no "bare repo leaked state into the parent";; *) report ok "bare repo refused";; esac
+mkdir -p "$ROOT/plain"
+out=$("$STATE" --cwd "$ROOT/plain" init x 2>&1)
+case "$out" in *Traceback*) report no "no git repo: traceback";; *) report ok "no git repo: clean error";; esac
+RO=$ROOT/readonly; mkrepo "$RO" >/dev/null || fixture_fail "readonly repo"; chmod -R a-w "$RO"
+out=$("$STATE" --cwd "$RO" init x 2>&1)
+case "$out" in *Traceback*) report no "read-only repo: traceback";; *) report ok "read-only repo: clean error";; esac
+chmod -R u+w "$RO"
+
+echo "=== ordering and lifecycle ==="
+ORD=$ROOT/ord; mkrepo "$ORD" >/dev/null || fixture_fail "ord repo"
+"$STATE" --cwd "$ORD" init o >/dev/null
+out=$("$STATE" --cwd "$ORD" set stage=implement 2>&1)
+case "$out" in *plan*) report ok "implement without a plan is refused";; *) report no "implement accepted with no plan";; esac
+out=$("$STATE" --cwd "$ORD" set plan=p.md stage=implement 2>&1)
+case "$out" in *workspace*) report ok "implement without a workspace is refused";; *) report no "implement accepted with no workspace";; esac
+out=$("$STATE" --cwd "$ORD" set stage=finish 2>&1)
+case "$out" in *"nothing has been built"*|*"no workspace"*) report ok "finish without a workspace is refused";; *) report no "finish accepted bare" "$out";; esac
+"$STATE" --cwd "$ORD" set stage=inline >/dev/null
+"$STATE" --cwd "$ORD" set stage=finish >/dev/null \
+  && report ok "inline run may reach finish" || report no "inline run cannot finish"
+"$STATE" --cwd "$ORD" set stage=finish >/dev/null \
+  && report ok "finish is idempotent (re-running the finish skill)" || report no "second finish wedges"
+"$STATE" --cwd "$ORD" task 1 complete "aaa..bbb" >/dev/null
+out=$("$STATE" --cwd "$ORD" init again 2>&1)
+case "$out" in *"already open"*) report ok "init refuses over a run with only a ledger";; *) report no "init wiped a ledgered run" "$out";; esac
+"$STATE" --cwd "$ORD" clear >/dev/null
+"$STATE" --cwd "$ORD" clear >/dev/null && report ok "clear is idempotent" || report no "second clear failed"
+
+echo "=== cost and process hygiene ==="
+SHIM=$ROOT/shim; mkdir -p "$SHIM"
+printf '#!/bin/sh\necho "$@" >> %s/git.log\nexec /usr/bin/git "$@"\n' "$ROOT" > "$SHIM/git"
+chmod +x "$SHIM/git"; : > "$ROOT/git.log"
+PATH="$SHIM:$PATH" decide "$(edit_payload "$REPO" "$REPO/app.py")" >/dev/null
+n=$(wc -l < "$ROOT/git.log")
+[ "$n" -le 2 ] && report ok "guard uses at most 2 git calls per invocation" "${n}" \
+  || report no "guard git calls" "$n"
+COLD=$ROOT/cold; mkrepo "$COLD" >/dev/null || fixture_fail "cold repo"
+P=$(bash_payload "$COLD" ls)
+s=$(date +%s%N); for _ in $(seq 10); do printf '%s' "$P" | "$GUARD" >/dev/null 2>&1; done; e=$(date +%s%N)
+avg=$(( (e-s)/10000000 ))
+[ "$avg" -le 120 ] && report ok "no-run guard latency" "${avg}ms/call" \
+  || report no "no-run guard latency" "${avg}ms/call — investigate before raising this bound"
+
+echo "=== context injection ==="
+ctx() { jq -n --arg cwd "$1" --arg ev "$2" '{hook_event_name:$ev,cwd:$cwd,agent_id:"a1",agent_type:"general-purpose"}' \
+  | "$CONTEXT" | jq -r '.hookSpecificOutput.additionalContext // ""'; }
+c=$(ctx "$WT" SubagentStart)
+case "$c" in *"$WT"*feat/x*) report ok "SubagentStart names workspace and branch";; *) report no "SubagentStart: $c";; esac
+"$STATE" --cwd "$REPO" set branch= >/dev/null
+c=$(ctx "$WT" SubagentStart)
+case "$c" in *detached*) report ok "detached run: verifies the tree, no phantom branch";; *) report no "detached contract: $c";; esac
+"$STATE" --cwd "$REPO" set branch=feat/x >/dev/null
+"$STATE" --cwd "$REPO" task 1 complete "aaa..bbb" >/dev/null
+c=$(ctx "$REPO" SessionStart)
+case "$c" in *"complete: 1"*) report ok "SessionStart re-injects the ledger";; *) report no "SessionStart: $c";; esac
+case "$c" in *"re-enter it"*) report ok "SessionStart tells a resumed run to re-enter the worktree";; *) report no "no re-entry hint";; esac
+[ -z "$(ctx "$ROOT/plain" SessionStart)" ] && report ok "silent with no run" || report no "context with no run"
+
+echo "=== settings.json wiring ==="
+w() { jq -e "$1" "$SETTINGS" >/dev/null 2>&1 && report ok "$2" || report no "$2"; }
+for tool in Edit Write EnterWorktree Agent; do
+  w ".hooks.PreToolUse[] | select(.matcher | test(\"$tool\")) | .hooks[] | select(.command | test(\"flow-guard\"))" "$tool wired to flow-guard"
+done
+w '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("flow-guard"))' "Bash wired to flow-guard"
+w '.hooks.SubagentStart[] | .hooks[] | select(.command | test("flow-context"))' "SubagentStart wired to flow-context"
+w '.hooks.SessionStart[] | .hooks[] | select(.command | test("flow-context"))' "SessionStart wired to flow-context"
+w '.permissions.allow | length >= 4' "flow-state and the SDD scripts are permission-allowed"
+w '.worktree.baseRef == "head"' "worktree.baseRef = head"
+
+printf '\n%d passed, %d failed\n' "$pass" "$fail"
+[ "$fail" -eq 0 ]

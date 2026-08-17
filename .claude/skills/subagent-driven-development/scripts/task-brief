@@ -3,9 +3,25 @@
 # implementer reads in one call, so the task text never has to be pasted
 # through the controller's context.
 #
+# The plan's "## Global Constraints" section is prepended to every brief. The
+# plan states that every task's requirements implicitly include it, and the
+# reviewer is handed those constraints verbatim — an implementer that cannot
+# see them is being graded on requirements it was never shown.
+#
+# Section boundaries are heading-LEVEL aware: a task ends at the next heading
+# of the same or shallower level, so `#### Implementation notes` inside a task
+# stays part of it while the next `### Task N+1` or a trailing `## Verification`
+# does not. Getting this wrong truncates a brief silently, which is worse than
+# failing — the implementer invents the missing steps and the reviewer grades
+# the same truncated text.
+#
 # Usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
-# Default OUTFILE: <repo-root>/.flow/sdd/task-<N>-brief.md
-# (per worktree; concurrent runs in the same working tree share it).
+# Default OUTFILE: <repo-root>/.flow/sdd/<plan-basename>/task-<N>-brief.md
+# (namespaced per plan, so two plans in one working tree cannot overwrite
+# each other's briefs).
+#
+# stdout is the brief's path and nothing else, so `brief=$(task-brief ...)`
+# is safe; notes and warnings go to stderr.
 set -euo pipefail
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
@@ -20,14 +36,19 @@ n=$2
 if [ $# -eq 3 ]; then
   out=$3
 else
-  dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")
+  base=$(basename "$plan"); base=${base%.md}
+  dir="$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")/$base"
+  mkdir -p "$dir"
   out="$dir/task-${n}-brief.md"
 fi
 
+# `Task 1` must not match `Task 10` or `Task 1.5`.
 awk -v n="$n" '
-  /^```/ { infence = !infence }
-  !infence && /^#+[ \t]+Task[ \t]+[0-9]+/ {
-    intask = ($0 ~ ("^#+[ \t]+Task[ \t]+" n "([^0-9]|$)"))
+  /^```/ { infence = !infence; if (intask) print; next }
+  !infence && /^#+[ \t]/ {
+    match($0, /^#+/); lvl = RLENGTH
+    if ($0 ~ ("^#+[ \t]+Task[ \t]+" n "([^0-9.]|$)")) { intask = 1; tasklvl = lvl }
+    else if (intask && lvl <= tasklvl) { exit }
   }
   intask { print }
 ' "$plan" > "$out"
@@ -37,4 +58,25 @@ if [ ! -s "$out" ]; then
   exit 3
 fi
 
-echo "wrote ${out}: $(wc -l < "$out" | tr -d ' ') lines"
+# Constraints are a flat list, so this block ends at the NEXT heading of any
+# level — level-awareness here would swallow every task that follows, since
+# tasks nest one level deeper than the `## Global Constraints` heading.
+constraints=$(awk '
+  /^```/ { infence = !infence; if (inblock) print; next }
+  !infence && /^#+[ \t]/ {
+    if (tolower($0) ~ /^#+[ \t]+global[ \t]+constraints/) { inblock = 1; print; next }
+    else if (inblock) { exit }
+  }
+  inblock { print }
+' "$plan")
+
+if [ -n "$constraints" ]; then
+  printf '%s\n\n---\n\n%s\n' "$constraints" "$(cat "$out")" > "$out.tmp"
+  mv "$out.tmp" "$out"
+else
+  echo "note: ${plan} has no '## Global Constraints' section — if its project-wide
+requirements live under another heading, paste them into the dispatch yourself" >&2
+fi
+
+echo "wrote ${out}: $(wc -l < "$out" | tr -d ' ') lines" >&2
+echo "$out"

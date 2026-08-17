@@ -1,154 +1,143 @@
 # Implementer Subagent Prompt Template
 
-Use this template when dispatching an implementer subagent.
+## Filling this template
+
+- `[WORKTREE]` — `~/.claude/hooks/flow-state get worktree` (absolute). Never
+  `pwd`: on a resumed session your cwd may be the main checkout. If that command
+  prints nothing the run has no workspace — stop and run using-git-worktrees
+  instead of dispatching.
+- `[BRANCH]` — `~/.claude/hooks/flow-state get branch`.
+- `[MODEL]` — required. Per development-workflow's table; an omitted model
+  inherits the session model, which may not fit the role.
+- `[BRIEF_FILE]` — the path `task-brief "$PLAN" N` printed on stdout.
+- `[REPORT_FILE]` — the brief path with `-brief.md` → `-report.md`.
+- `[Context]` — interfaces and decisions from earlier tasks that the brief
+  cannot know, plus your resolution of any ambiguity you noticed in it.
+
+Do **not** pass `isolation: "worktree"` on this dispatch. That gives the subagent
+a *different* working tree, and its commits never reach the branch you are
+building. (The guard denies it, but the dispatch is yours to get right.)
 
 ```
 Subagent (general-purpose):
   description: "Implement Task N: [task name]"
-  model: [MODEL — REQUIRED: choose per SKILL.md Model Selection; an omitted
-         model silently inherits the session default (Sonnet 5), which may not fit the role]
+  model: [MODEL]
   prompt: |
     You are implementing Task N: [task name]
 
-    ## Task Description
+    ## Workspace — verify before anything else
 
-    Read your task brief first: [BRIEF_FILE]
-    It contains the full task text from the plan.
+        git rev-parse --show-toplevel     # must be [WORKTREE]
+        git branch --show-current         # must be [BRANCH]
+
+    If either differs, stop and report BLOCKED with what you found — do not
+    switch branches and do not create a worktree of your own. Everything you run
+    and every file you edit lives under [WORKTREE], and your commits land on
+    [BRANCH]. The only downstream check is `review-package` refusing an empty
+    commit range: it catches *all* your commits going elsewhere, not some of
+    them, so this verification is the real one.
+
+    You are the only writer in this tree. Changes in `git status` you did not
+    make mean you stop and report BLOCKED, not commit someone else's work.
+
+    ## Your requirements
+
+    Read your task brief first: [BRIEF_FILE]. It is the task's full text from
+    the plan plus the plan's global constraints, and its exact values (names,
+    numbers, signatures, test cases) are to be used verbatim. Do not edit the
+    brief or the plan — if the brief is wrong, report NEEDS_CONTEXT quoting the
+    line.
 
     ## Context
 
-    [Scene-setting: where this fits, dependencies, architectural context]
+    [Context]
 
-    ## Before You Begin
+    ## If something is unclear
 
-    If you have questions about:
-    - The requirements or acceptance criteria
-    - The approach or implementation strategy
-    - Dependencies or assumptions
-    - Anything unclear in the task description
+    Stop before writing code and report NEEDS_CONTEXT with the specific question
+    and your best guess at the answer. You have no channel to ask mid-task — the
+    report is the channel. A returned question costs one dispatch; a wrong guess
+    costs the task plus a review cycle.
 
-    **Ask them now.** Raise any concerns before starting work.
+    ## Your job
 
-    ## Your Job
+    1. Implement exactly what the brief specifies — nothing more.
+    2. Follow the test-driven-development skill: a failing test first, then the
+       code that passes it. If the brief's steps do not spell out RED before
+       GREEN, write the failing test anyway — a test written after the code has
+       never proven it can fail.
+    3. Verify it works.
+    4. Commit. Re-run `git rev-parse --show-toplevel` first; it must still print
+       [WORKTREE].
+    5. Self-review, fix what you find.
+    6. Report.
 
-    Once you're clear on requirements:
-    1. Implement exactly what the task specifies
-    2. Write tests (following TDD if task says to)
-    3. Verify implementation works
-    4. Commit your work
-    5. Self-review (see below)
-    6. Report back
-
-    Work from: [directory]
-
-    **While you work:** If you encounter something unexpected or unclear, **ask questions**.
-    It's always OK to pause and clarify. Don't guess or make assumptions.
-
-    While iterating, run the focused test for what you're changing; run the
+    While iterating, run the focused test for what you are changing; run the
     full suite once before committing, not after every edit.
 
-    ## Navigating the Code
+    ## Navigating the code
 
-    To understand the codebase, use the codebase-memory (cbm) tools BEFORE
-    Grep/Read — they are graph-indexed and far cheaper on context:
-    - find a symbol / function / class / route → `search_graph`
-    - who calls what / call chains → `trace_path`
-    - exact source of a symbol → `get_code_snippet`
-    - project structure / hotspots → `get_architecture`
+    Use codebase-memory (cbm) tools before Grep/Read — `search_graph`,
+    `trace_path`, `get_code_snippet`, `get_architecture`. One caveat that the
+    tooling cannot tell you: cbm indexes the main checkout, not your worktree, so
+    code written by earlier tasks on this branch may be missing from the graph.
+    Use cbm for base code and caller impact; Read branch-new code directly.
 
-    Use Grep/Glob/Read only for text, configs, and non-code files — and always
-    Read a file before editing it. cbm indexes the main checkout, not your
-    worktree: code written by earlier tasks on this branch may not be in the
-    graph. Use cbm for existing / base code and caller impact; Read the code
-    changed in this branch directly (you Read before editing anyway).
+    ## Code organization
 
-    ## Code Organization
+    Follow the file structure the plan defines; each file keeps one clear
+    responsibility. If a file you are creating grows beyond the plan's intent,
+    report DONE_WITH_CONCERNS rather than splitting it on your own.
 
-    You reason best about code you can hold in context at once, and your edits are more
-    reliable when files are focused. Keep this in mind:
-    - Follow the file structure defined in the plan
-    - Each file should have one clear responsibility with a well-defined interface
-    - If a file you're creating is growing beyond the plan's intent, stop and report
-      it as DONE_WITH_CONCERNS — don't split files on your own without plan guidance
-    - If an existing file you're modifying is already large or tangled, work carefully
-      and note it as a concern in your report
-    - In existing codebases, follow established patterns. Improve code you're touching
-      the way a good developer would, but don't restructure things outside your task.
+    Follow the established patterns in existing code, and do not improve,
+    reformat or refactor anything your task does not require you to change —
+    every changed line must trace to a requirement in the brief. If you see
+    something adjacent that is wrong, name it under Concerns and leave it.
 
-    ## When You're in Over Your Head
+    ## When you are in over your head
 
-    It is always OK to stop and say "this is too hard for me." Bad work is worse than
-    no work. You will not be penalized for escalating.
+    It is always OK to say "this is too hard for me" — bad work is worse than no
+    work, and escalating costs you nothing. Report BLOCKED (cannot complete) or
+    NEEDS_CONTEXT (information was missing) with what you are stuck on, what you
+    tried, and what would help. The controller can add context, re-dispatch with
+    a stronger model, or split the task.
 
-    **STOP and escalate when:**
-    - The task requires architectural decisions with multiple valid approaches
-    - You need to understand code beyond what was provided and can't find clarity
-    - You feel uncertain about whether your approach is correct
-    - The task involves restructuring existing code in ways the plan didn't anticipate
-    - You've been reading file after file trying to understand the system without progress
+    ## Self-review before reporting
 
-    **How to escalate:** Report back with status BLOCKED or NEEDS_CONTEXT. Describe
-    specifically what you're stuck on, what you've tried, and what kind of help you need.
-    The controller can provide more context, re-dispatch with a more capable model,
-    or break the task into smaller pieces.
+    Fresh eyes on your own work:
+    - **Complete?** Every requirement in the brief, edge cases handled.
+    - **Clean?** Names say what things do; code you would want to maintain.
+    - **Disciplined?** Only what was asked — no speculative features, no
+      unrequested refactoring (YAGNI).
+    - **Tested?** Tests verify real behavior rather than mocks, and the output is
+      pristine — no stray warnings or noise.
 
-    ## Before Reporting Back: Self-Review
+    Fix what you find before reporting.
 
-    Review your work with fresh eyes. Ask yourself:
+    ## Report
 
-    **Completeness:**
-    - Did I fully implement everything in the spec?
-    - Did I miss any requirements?
-    - Are there edge cases I didn't handle?
-
-    **Quality:**
-    - Is this my best work?
-    - Are names clear and accurate (match what things do, not how they work)?
-    - Is the code clean and maintainable?
-
-    **Discipline:**
-    - Did I avoid overbuilding (YAGNI)?
-    - Did I only build what was requested?
-    - Did I follow existing patterns in the codebase?
-
-    **Testing:**
-    - Do tests actually verify behavior (not just mock behavior)?
-    - Did I follow TDD if required?
-    - Are tests comprehensive?
-    - Is the test output pristine (no stray warnings or noise)?
-
-    If you find issues during self-review, fix them now before reporting.
-
-    ## After Review Findings
-
-    If a reviewer finds issues and you fix them, re-run the tests that cover
-    the amended code and append the results to your report file. Reviewers
-    will not re-run tests for you — your report is the test evidence.
-
-    ## Report Format
-
-    Write your full report to [REPORT_FILE]:
-    - What you implemented (or what you attempted, if blocked)
-    - What you tested and test results
-    - **TDD Evidence** (if TDD was required for this task):
-      - RED: command run, relevant failing output before implementation, and why the failure was expected
-      - GREEN: command run and relevant passing output after implementation
+    Write the full report to [REPORT_FILE]:
+    - What you implemented (or attempted, if blocked)
+    - What you tested, with results
+    - **TDD evidence:** the RED command with its failing output and why that
+      failure was expected, then the GREEN command with passing output. The
+      reviewer checks this exists and is sound; missing or unsound evidence is a
+      finding against the task.
     - Files changed
-    - Self-review findings (if any)
-    - Any issues or concerns
+    - Self-review findings
+    - Concerns
 
-    Then report back with ONLY (under 15 lines — the detail lives in the
-    report file):
+    Then reply with ONLY (under 15 lines — detail lives in the report file):
     - **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
-    - Commits created (short SHA + subject)
-    - One-line test summary (e.g. "14/14 passing, output pristine")
-    - Your concerns, if any
+    - Commits (short SHA + subject)
+    - One-line test summary ("14/14 passing, output pristine")
+    - Concerns, if any
     - The report file path
 
-    If BLOCKED or NEEDS_CONTEXT, put the specifics in the final message
-    itself — the controller acts on it directly.
+    Use DONE_WITH_CONCERNS when the work is complete but you have doubts about
+    correctness. Never silently produce work you are unsure about.
 
-    Use DONE_WITH_CONCERNS if you completed the work but have doubts about correctness.
-    Use BLOCKED if you cannot complete the task. Use NEEDS_CONTEXT if you need
-    information that wasn't provided. Never silently produce work you're unsure about.
+    If a reviewer later sends findings back, re-run the tests covering the
+    amended code and append the results to the report file — reviewers do not
+    re-run tests for you; your report is the evidence.
 ```

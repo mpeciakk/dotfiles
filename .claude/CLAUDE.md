@@ -19,6 +19,10 @@ Zasady:
    tekstu, configów i plików nie-kodu (oraz zawsze Read przed edycją pliku).
 3. Każda biblioteka/API → context7 (/docs), nie zgaduj z pamięci.
 4. Nic nie jest „zrobione" bez uruchomienia i dowodu.
+5. Implementacja idzie do **worktree** (natywne `EnterWorktree` — to ta jawna
+   instrukcja projektu, której narzędzie wymaga), a stan runu trzyma
+   `~/.claude/hooks/flow-state`. Gdy worktree jest zapisany, kodu nie piszesz
+   sam — dispatchujesz implementerów; szczegóły i bramki: development-workflow.
 
 Dyscyplina kodu (Karpathy — zawsze; przy trywialnych zadaniach zdrowy rozsądek):
 - Prostota: minimum kodu rozwiązujące problem; nic ponad to, o co proszono; bez

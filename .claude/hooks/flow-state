@@ -1,0 +1,291 @@
+#!/usr/bin/env python3
+"""Pipeline run state — one file per repository, read by skills and hooks.
+
+Conversation memory does not survive compaction, and a worktree path you merely
+remember is a worktree you will lose. The hooks read this file, which is what
+makes the pipeline's gates mechanical rather than aspirational.
+
+Location: `<main-worktree>/.flow/run/state.json`, resolved from `git worktree
+list` so the main checkout and every linked worktree — including one created
+outside the repository — read and write the SAME file. The directory
+self-ignores, so run state never shows up in `git status`.
+
+Usage:
+  flow-state [--cwd DIR] init <task-slug>       start a run (stage=triage)
+  flow-state [--cwd DIR] set KEY=VALUE ...      merge fields (empty value clears)
+  flow-state [--cwd DIR] get KEY                print one field
+  flow-state [--cwd DIR] show                   print the whole state
+  flow-state [--cwd DIR] task N STATUS [NOTE]   record a ledger entry
+  flow-state [--cwd DIR] clear                  end the run (delete the file)
+  flow-state [--cwd DIR] path                   print the state file path
+
+Fields: task stage spec plan worktree branch base
+Stages: triage design plan isolate implement inline finish
+
+Three orderings are enforced, because a stage that accepts any predecessor
+tracks nothing: `implement` needs a recorded `plan` and `worktree`, and
+`finish` needs a `worktree` or an `inline` run. Ordering rules are the cheap
+lever against skipped steps; prose is not.
+"""
+
+import json
+import os
+import subprocess
+import sys
+
+FIELDS = ("task", "stage", "spec", "plan", "worktree", "branch", "base")
+STAGES = ("triage", "design", "plan", "isolate", "implement", "inline", "finish")
+LIVE_KEYS = ("worktree", "plan", "spec", "tasks")
+
+
+def git(cwd, *args):
+    try:
+        result = subprocess.run(
+            ["git", "-C", cwd, *args], capture_output=True, text=True, timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def repo_root(cwd):
+    """The project's main working tree, or None if there is none.
+
+    One `git rev-parse` in the common case. `--show-toplevel` fails in a bare
+    repository, which is how bare repos get refused — there is no working tree
+    to run a pipeline in, and deriving a root from the git dir would put run
+    state outside the project (that is what `--separate-git-dir` looks like).
+
+    Inside a linked worktree the differing git-dir tells us to look up the main
+    worktree, so every worktree of a repo — including one created outside it —
+    shares one state file. `git worktree list` can name the git dir instead of a
+    working tree in edge cases, hence the sanity check on its answer.
+    """
+    out = git(cwd, "rev-parse", "--git-dir", "--git-common-dir", "--show-toplevel")
+    if not out:
+        return None
+    lines = out.splitlines()
+    if len(lines) < 3:
+        return None
+    absolute = lambda p: p if os.path.isabs(p) else os.path.join(cwd, p)
+    git_dir, common_dir, toplevel = (os.path.realpath(absolute(p)) for p in lines[:3])
+    if git_dir == common_dir:
+        return toplevel
+    listing = git(cwd, "worktree", "list", "--porcelain")
+    if listing:
+        first = listing.splitlines()[0]
+        if first.startswith("worktree "):
+            main = os.path.realpath(first[len("worktree "):])
+            if main != common_dir and os.path.isdir(os.path.join(main, ".git")):
+                return main
+    return os.path.dirname(common_dir)
+
+
+def state_file(root):
+    return os.path.join(root, ".flow", "run", "state.json")
+
+
+def load_at(root):
+    """Validated state for a root already resolved — no git call."""
+    path = state_file(root)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as fh:
+            state = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(state, dict):
+        return None
+    # A field of the wrong type means this is not the contract the hooks
+    # enforce against; treating it as absent beats guessing what it meant.
+    for key in ("stage", "worktree", "branch", "task"):
+        if key in state and not isinstance(state[key], str):
+            return None
+    return state
+
+
+def state_path(cwd, create=False):
+    root = repo_root(cwd)
+    if root is None:
+        return None
+    directory = os.path.join(root, ".flow", "run")
+    if create:
+        try:
+            os.makedirs(directory, exist_ok=True)
+            with open(os.path.join(directory, ".gitignore"), "w") as fh:
+                fh.write("*\n")
+        except OSError as err:
+            die(f"cannot write run state under {directory}: {err}")
+    return os.path.join(directory, "state.json")
+
+
+def load(cwd):
+    """The run state, or None when there is none or it is unusable."""
+    root = repo_root(cwd)
+    return load_at(root) if root else None
+
+
+def unreadable(cwd):
+    """True when a state file exists but cannot be used — the one case where
+    silence would be dangerous, since enforcement stops without a word."""
+    path = state_path(cwd)
+    return bool(path) and os.path.exists(path) and load(cwd) is None
+
+
+def save(cwd, state):
+    path = state_path(cwd, create=True)
+    if path is None:
+        die("not a git repository, or a bare one — run state needs a working tree")
+    # Atomic: an interrupted write would leave junk that silently voids every
+    # guard, and nothing would report that enforcement had stopped.
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w") as fh:
+            json.dump(state, fh, indent=2, sort_keys=True)
+            fh.write("\n")
+        os.replace(tmp, path)
+    except OSError as err:
+        die(f"cannot write {path}: {err}")
+    return path
+
+
+def die(message):
+    print(message, file=sys.stderr)
+    sys.exit(2)
+
+
+def check_order(state, touched, previous_stage):
+    """Guard the orderings that matter, for the keys this call touched.
+
+    Scoped to `touched` so an odd state can still record unrelated fields
+    instead of wedging on a complaint about something nobody mentioned.
+    """
+    if "stage" not in touched:
+        return
+    stage = state.get("stage")
+    if stage == "implement":
+        if not state.get("plan"):
+            die("stage=implement needs a recorded plan — pass it in the same call "
+                "(`set stage=implement plan=<path>`); a plan the user handed you "
+                "was never recorded.")
+        if not state.get("worktree"):
+            die("stage=implement needs a recorded workspace — using-git-worktrees "
+                "records it, including when you work in place.")
+    if stage == "finish" and not state.get("worktree") and previous_stage not in ("inline", "finish"):
+        die("stage=finish wraps up a branch, but nothing has been built in this "
+            "run: no workspace recorded and the run was not inline.")
+
+
+def main(argv):
+    cwd = os.getcwd()
+    if argv and argv[0] == "--cwd":
+        if len(argv) < 2:
+            die("--cwd needs a directory")
+        cwd, argv = argv[1], argv[2:]
+    if not argv:
+        die(__doc__)
+
+    command, args = argv[0], argv[1:]
+
+    if command == "path":
+        path = state_path(cwd)
+        if not path:
+            die("not a git repository, or a bare one")
+        print(path)
+        return
+
+    if command == "clear":
+        # Before the no-state check: every deny message advertises clear, so it
+        # has to work on a corrupt or already-cleared run too.
+        path = state_path(cwd)
+        if path and os.path.exists(path):
+            os.remove(path)
+            print("run state cleared")
+        else:
+            print("no run state to clear")
+        return
+
+    if command == "init":
+        if len(args) != 1:
+            die("usage: flow-state init <task-slug>")
+        if unreadable(cwd):
+            die("a state file exists here but cannot be read — enforcement is off "
+                "until it is dealt with. Inspect it (`flow-state path`), then "
+                "`flow-state clear` to start over.")
+        existing = load(cwd)
+        if existing and any(existing.get(k) for k in LIVE_KEYS):
+            die("a run is already open here: task="
+                f"{existing.get('task') or 'unnamed'}, stage="
+                f"{existing.get('stage') or 'unknown'}. Re-initialising would erase "
+                "its paths and task ledger. Read it (`flow-state show`); end it "
+                "deliberately with `flow-state clear`.")
+        print(f"run started: {args[0]} -> {save(cwd, {'task': args[0], 'stage': 'triage', 'tasks': []})}")
+        return
+
+    state = load(cwd)
+
+    if command == "show":
+        print(json.dumps(state, indent=2, sort_keys=True) if state else "{}")
+        return
+
+    if command == "get":
+        if len(args) != 1:
+            die("usage: flow-state get KEY")
+        value = state.get(args[0], "") if state else ""
+        print(value if isinstance(value, str) else json.dumps(value))
+        return
+
+    if state is None:
+        die("no run state — `flow-state init <task-slug>` first")
+
+    if command == "set":
+        if not args:
+            die("usage: flow-state set KEY=VALUE ...")
+        previous_stage = state.get("stage")
+        touched = set()
+        for pair in args:
+            if "=" not in pair:
+                die(f"expected KEY=VALUE, got: {pair}")
+            key, value = pair.split("=", 1)
+            if key not in FIELDS:
+                die(f"unknown key: {key} (known: {' '.join(FIELDS)})")
+            if key == "stage" and value and value not in STAGES:
+                die(f"unknown stage: {value} (known: {' '.join(STAGES)})")
+            if key == "worktree" and value and not os.path.isabs(value):
+                die("worktree must be absolute — the hooks compare realpaths: "
+                    'use `worktree="$(git rev-parse --show-toplevel)"`')
+            touched.add(key)
+            if value:
+                state[key] = value
+            else:
+                state.pop(key, None)
+        check_order(state, touched, previous_stage)
+        save(cwd, state)
+        print(json.dumps({k: state.get(k, "") for k in FIELDS}, sort_keys=True))
+        return
+
+    if command == "task":
+        if len(args) < 2:
+            die("usage: flow-state task N STATUS [NOTE]")
+        entry = {"n": args[0], "status": args[1]}
+        if len(args) > 2:
+            entry["note"] = " ".join(args[2:])
+        existing = state.get("tasks")
+        existing = existing if isinstance(existing, list) else []
+        tasks = [t for t in existing if isinstance(t, dict) and t.get("n") != entry["n"]]
+        tasks.append(entry)
+        # Numbered tasks in order, named gates (e.g. branch-review) after them.
+        state["tasks"] = sorted(
+            tasks,
+            key=lambda t: (0, int(t["n"]), "") if str(t["n"]).isdigit() else (1, 0, str(t["n"])),
+        )
+        save(cwd, state)
+        print(f"task {entry['n']}: {entry['status']}")
+        return
+
+    die(f"unknown command: {command}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

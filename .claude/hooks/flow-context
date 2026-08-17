@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Carry the run's context to the places that lose it.
+
+  **SubagentStart** — a subagent inherits a working directory but no reason.
+  The workspace contract arrives with it instead of depending on the dispatch
+  prompt having spelled it out.
+
+  **SessionStart** — including after compaction. The state file exists because
+  conversation memory does not survive compaction; re-injecting it here closes
+  that loop rather than trusting the agent to consult a file whose instructions
+  were themselves compacted away.
+
+Silent when there is no run. State resolution comes from flow-state, the one
+authority on where the file lives.
+"""
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import sys
+
+FLOW_STATE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "flow-state")
+
+
+def load_state(cwd):
+    # Importing would otherwise drop a __pycache__ beside it — in the dotfiles
+    # repo, on every subagent start.
+    sys.dont_write_bytecode = True
+    loader = importlib.machinery.SourceFileLoader("flow_state", FLOW_STATE)
+    spec = importlib.util.spec_from_loader("flow_state", loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module.load(cwd)
+
+
+def emit(event, context):
+    print(json.dumps({
+        "hookSpecificOutput": {"hookEventName": event, "additionalContext": context}
+    }))
+
+
+def subagent_context(state):
+    worktree = state.get("worktree")
+    if not worktree:
+        return None
+    branch = state.get("branch")
+    where = f"{worktree} on branch {branch}" if branch else f"{worktree} (detached HEAD)"
+    checks = "`git rev-parse --show-toplevel`" + (
+        " and `git branch --show-current`" if branch else "")
+    return (
+        f"Workspace contract for this run: work in {where}. Verify with {checks} "
+        "before your first edit; if it differs, stop and report BLOCKED with what "
+        "you found rather than switching branches or creating a worktree of your "
+        "own. If you write here you are the only writer: changes in `git status` "
+        "that you did not make mean you stop and report BLOCKED, not commit "
+        "someone else's work."
+    )
+
+
+def session_context(state):
+    tasks = state.get("tasks")
+    tasks = [t for t in tasks if isinstance(t, dict)] if isinstance(tasks, list) else []
+    done = [str(t.get("n")) for t in tasks if t.get("status") == "complete"]
+    open_tasks = [str(t.get("n")) for t in tasks if t.get("status") != "complete"]
+    lines = [
+        "An open pipeline run exists in this repository (development-workflow).",
+        f"  task: {state.get('task') or 'unnamed'}",
+        f"  stage: {state.get('stage') or 'unknown'}",
+    ]
+    for field in ("spec", "plan", "worktree", "branch"):
+        if state.get(field):
+            lines.append(f"  {field}: {state[field]}")
+    if done:
+        lines.append(f"  complete: {', '.join(done)} — do NOT re-dispatch these")
+    if open_tasks:
+        lines.append(f"  in flight: {', '.join(open_tasks)}")
+    lines.append(
+        "Trust this and `git log` over recollection: resume at the first task not "
+        "marked complete, and if your cwd is not the recorded worktree, re-enter it "
+        "first (`EnterWorktree` with `path`). Full state: `~/.claude/hooks/flow-state "
+        "show`. If the run is over, close it: `flow-state clear`."
+    )
+    return "\n".join(lines)
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+    except ValueError:
+        return
+    if not isinstance(payload, dict):
+        return
+    cwd = payload.get("cwd") or os.getcwd()
+    state = load_state(cwd)
+    if not state:
+        return
+    event = payload.get("hook_event_name") or "SessionStart"
+    context = subagent_context(state) if event == "SubagentStart" else session_context(state)
+    if context:
+        emit(event, context)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass  # context injection is a convenience; never fail a session over it

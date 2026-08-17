@@ -1,104 +1,53 @@
 ---
 name: requesting-code-review
-description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+description: Use when you want a fresh reviewer on completed work — "review my changes", "code review this", "review the branch", before merging to main, or for the whole-branch review at the end of subagent-driven-development. Per-task review inside a plan run uses subagent-driven-development's own reviewer template.
 ---
 
 # Requesting Code Review
 
-Dispatch a code reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
+Dispatch a reviewer subagent to catch issues before they cascade. It gets
+precisely crafted context — never your session history — so it judges the work
+product rather than your thought process, and your own context stays free for
+the work.
 
-**Core principle:** Review early, review often.
+This template is for the **whole-branch review** at the end of
+subagent-driven-development, and for ad-hoc reviews. Per-*task* review has its
+own template (`../subagent-driven-development/task-reviewer-prompt.md`).
 
-## When to Request Review
+Request one after a major feature, before merging to main, and when a fresh
+perspective would help: stuck on something, about to refactor, just fixed a
+subtle bug.
 
-**Mandatory:**
-- After completing a major feature
-- Before merge to main
-- The final whole-branch review in subagent-driven-development
+## How
 
-(Per-*task* review under subagent-driven-development uses its own `task-reviewer-prompt.md` — not this template. This one is for the final whole-branch review and ad-hoc reviews.)
+**1. Bound the diff.** BASE is where the work under review began — the branch
+fork point, or the commit you recorded before starting. Never `HEAD~1`: it
+silently drops all but the last commit of multi-commit work.
 
-**Optional but valuable:**
-- When stuck (fresh perspective)
-- Before refactoring (baseline check)
-- After fixing complex bug
-
-## How to Request
-
-**1. Get git SHAs:**
 ```bash
-# BASE = where the work under review began (branch fork point or the commit
-# you recorded before starting). Never HEAD~1 — it silently drops all but the
-# last commit of multi-commit work.
-BASE_SHA=$(git merge-base main HEAD)   # or master, or your recorded base commit
+BASE_SHA=$(~/.claude/hooks/flow-state get base)          # the run records it
+[ -n "$BASE_SHA" ] || BASE_SHA=$(git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null)
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**2. Dispatch code reviewer subagent:**
+If both fall through — a repo whose default branch is `trunk` or `develop` —
+ask the user which branch this work forked from rather than packaging an empty
+or oversized range.
 
-Dispatch a `general-purpose` subagent, filling the template at [code-reviewer.md](code-reviewer.md)
+**2. Package the diff as a file**, so it never enters your context and the
+reviewer reads it in one call:
 
-**Placeholders:**
-- `{DESCRIPTION}` - Brief summary of what you built
-- `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
-
-**3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
-- Push back if reviewer is wrong (with reasoning)
-
-## Example
-
-```
-[Just completed Task 2: Add verification function]
-
-You: Let me request code review before proceeding.
-
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
-HEAD_SHA=$(git rev-parse HEAD)
-
-[Dispatch code reviewer subagent]
-  DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
-  BASE_SHA: a7981ec
-  HEAD_SHA: 3df7661
-
-[Subagent returns]:
-  Strengths: Clean architecture, real tests
-  Issues:
-    Important: Missing progress indicators
-    Minor: Magic number (100) for reporting interval
-  Assessment: Ready to proceed
-
-You: [Fix progress indicators]
-[Continue to Task 3]
+```bash
+PKG=$(~/.claude/skills/subagent-driven-development/scripts/review-package "$BASE_SHA" "$HEAD_SHA")
 ```
 
-## Integration with Workflows
+**3. Dispatch** a `general-purpose` subagent with [code-reviewer.md](code-reviewer.md),
+filling `[DESCRIPTION]` (what you built), `[PLAN_OR_REQUIREMENTS]` (what it
+should do), `[MINOR_FINDINGS]` (the run's deferred findings, in their own block —
+not mixed into the requirements), `[BASE_SHA]`, `[HEAD_SHA]`, and `[DIFF_FILE]`.
+Model per development-workflow's table — the final review earns Opus 5.
 
-**Subagent-Driven Development:**
-- Review after EACH task
-- Catch issues before they compound
-- Fix before moving to next task
-
-**Ad-Hoc Development:**
-- Review before merge
-- Review when stuck
-
-## Red Flags
-
-**Never:**
-- Skip review because "it's simple"
-- Ignore Critical issues
-- Proceed with unfixed Important issues
-- Argue with valid technical feedback
-
-**If reviewer wrong:**
-- Push back with technical reasoning
-- Show code/tests that prove it works
-- Request clarification
-
-See template at: [code-reviewer.md](code-reviewer.md)
+**4. Act on it.** Critical and Important findings go to ONE fix subagent with
+the complete list; Minor findings get recorded, not silently dropped. If the
+reviewer is wrong, push back with the code or test that proves it — but never
+pre-empt a finding by telling the reviewer what not to flag.

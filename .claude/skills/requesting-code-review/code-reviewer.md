@@ -7,6 +7,8 @@ Use this template when dispatching a code reviewer subagent.
 ```
 Subagent (general-purpose):
   description: "Review code changes"
+  model: [MODEL — REQUIRED: per development-workflow's table; the whole-branch
+         review earns Opus 5]
   prompt: |
     You are a Senior Code Reviewer with expertise in software architecture,
     design patterns, and best practices. Your job is to review completed work
@@ -20,19 +22,32 @@ Subagent (general-purpose):
 
     [PLAN_OR_REQUIREMENTS]
 
+    ## Minor findings carried over from per-task reviews
+
+    [MINOR_FINDINGS]
+
+    These were judged Minor during the run and deliberately deferred. Triage
+    them: keep, drop, or raise with a reason. They are NOT requirements — an
+    unfixed one is not a plan-alignment failure.
+
     ## Git Range to Review
 
     **Base:** [BASE_SHA]
     **Head:** [HEAD_SHA]
+    **Diff file:** [DIFF_FILE]
 
-    ```bash
-    git diff --stat [BASE_SHA]..[HEAD_SHA]
-    git diff [BASE_SHA]..[HEAD_SHA]
-    ```
+    Read the diff file once — it holds the commit list, the stat summary, and
+    the full diff with surrounding context. If it is missing, fall back to
+    `git diff --stat [BASE_SHA]..[HEAD_SHA]` and `git diff [BASE_SHA]..[HEAD_SHA]`.
 
     ## Read-Only Review
 
-    Your review is read-only on this checkout. Do not mutate the working tree, the index, HEAD, or branch state in any way. Use tools like `git show`, `git diff`, and `git log` to inspect history. If you need a working copy of a different revision, check it out into a separate temporary directory (e.g. `git worktree add /tmp/review-[SHA] [SHA]`) — never move HEAD on this checkout.
+    Your review is read-only on this checkout. Do not mutate the working tree, the index, HEAD, or branch state in any way. Inspect history with `git show`, `git diff`, and `git log`. To read a file at another revision, use `git show <sha>:<path>` — do not create a worktree for the review (this run already has one, and a second is denied while it is implementing), and never move HEAD on this checkout.
+
+    Stay inside the diff. Look outside it only for a concrete risk you can name
+    — one focused check per named risk, naming both the risk and what you
+    checked — using codebase-memory (`trace_path`, `get_code_snippet`) rather
+    than grepping the tree. Do not survey the codebase.
 
     ## What to Check
 
@@ -58,7 +73,9 @@ Subagent (general-purpose):
     - Tests verify real behavior, not mocks?
     - Edge cases covered?
     - Integration tests where they matter?
-    - All tests passing?
+    - Are the tests covering this change present, and did the reported runs
+      pass? Judge from the diff and the reports — do not run the suite yourself;
+      the finish step re-runs it on the merged result.
 
     **Production readiness:**
     - Migration strategy if schema changed?
@@ -111,65 +128,43 @@ Subagent (general-purpose):
 
     **Reasoning:** [1-2 sentence technical assessment]
 
-    ## Critical Rules
-
-    **DO:**
-    - Categorize by actual severity
-    - Be specific (file:line, not vague)
-    - Explain WHY each issue matters
-    - Acknowledge strengths
-    - Give a clear verdict
-
-    **DON'T:**
-    - Say "looks good" without checking
-    - Mark nitpicks as Critical
-    - Give feedback on code you didn't actually read
-    - Be vague ("improve error handling")
-    - Avoid giving a clear verdict
 ```
 
 **Placeholders:**
+- `[MODEL]` — REQUIRED: reviewer model per development-workflow's table
 - `[DESCRIPTION]` — brief summary of what was built
 - `[PLAN_OR_REQUIREMENTS]` — what it should do (plan file path, task text, or requirements)
-- `[BASE_SHA]` — starting commit
+- `[MINOR_FINDINGS]` — the Minor findings accumulated during the run, for triage. Keep them out of the requirements block: a reviewer that reads them as requirements reports each unfixed one as a spec gap.
+- `[BASE_SHA]` — starting commit (the run's recorded `base`, not `HEAD~1`)
 - `[HEAD_SHA]` — ending commit
+- `[DIFF_FILE]` — REQUIRED: the path printed by
+  `~/.claude/skills/subagent-driven-development/scripts/review-package BASE HEAD`
 
-**Reviewer returns:** Strengths, Issues (Critical / Important / Minor), Recommendations, Assessment
+**Reviewer returns:** Issues (Critical / Important / Minor), Recommendations, Assessment, and a load-bearing strength only where one exists
 
 ## Example Output
 
-```
-### Strengths
-- Clean database schema with proper migrations (db.ts:15-42)
-- Comprehensive test coverage (18 tests, all edge cases)
-- Good error handling with fallbacks (summarizer.ts:85-92)
+Note what it opens with: the problems. A praise block at the top trains the
+reader to skim past the part that matters.
 
+```
 ### Issues
 
 #### Important
-1. **Missing help text in CLI wrapper**
-   - File: index-conversations:1-31
-   - Issue: No --help flag, users won't discover --concurrency
-   - Fix: Add --help case with usage examples
-
-2. **Date validation missing**
+1. **Date validation missing**
    - File: search.ts:25-27
    - Issue: Invalid dates silently return no results
-   - Fix: Validate ISO format, throw error with example
+   - Fix: Validate ISO format, throw with an example
 
 #### Minor
-1. **Progress indicators**
-   - File: indexer.ts:130
-   - Issue: No "X of Y" counter for long operations
-   - Impact: Users don't know how long to wait
+1. **Progress indicators** — indexer.ts:130, no "X of Y" counter on long runs
 
-### Recommendations
-- Add progress reporting for user experience
-- Consider config file for excluded projects (portability)
+### Strengths (load-bearing only)
+- The migration ordering in db.ts:15-42 is deliberate and easy to break later — keep it.
 
 ### Assessment
 
 **Ready to merge: With fixes**
 
-**Reasoning:** Core implementation is solid with good architecture and tests. Important issues (help text, date validation) are easily fixed and don't affect core functionality.
+**Reasoning:** The one Important issue sits at the edge and does not touch the indexing path; the core is sound.
 ```

@@ -22,7 +22,9 @@ git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&
 
 if [ $# -eq 3 ]; then
   out=$3
+  caller_chose_path=1
 else
+  caller_chose_path=0
   dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")
   out="$dir/review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
 fi
@@ -40,5 +42,23 @@ fi
   git diff -U10 "${base}..${head}"
 } > "$out"
 
+# stdout is the package path and nothing else, so `pkg=$(review-package ...)`
+# is safe; the size note goes to stderr.
 commits=$(git rev-list --count "${base}..${head}")
-echo "wrote ${out}: ${commits} commit(s), $(wc -c < "$out" | tr -d ' ') bytes"
+
+# An empty range is never a reviewable task: either the implementer's commits
+# landed in another working tree (a resumed run whose session cwd is the main
+# checkout is the usual cause) or the wrong base was passed. Failing loudly
+# beats handing a reviewer an empty diff, which reads as "nothing wrong".
+if [ "$commits" -eq 0 ]; then
+  # Only clean up a path this script chose; a caller-supplied OUTFILE may be
+  # something they already had.
+  [ "$caller_chose_path" -eq 0 ] && rm -f "$out"
+  echo "no commits in ${base}..${head} — nothing to review. The implementer's
+commits are not in this working tree ($(git rev-parse --show-toplevel)), or BASE
+is wrong. Find them before reviewing: \`git log --all --oneline -5\`." >&2
+  exit 4
+fi
+
+echo "wrote ${out}: ${commits} commit(s), $(wc -c < "$out" | tr -d ' ') bytes" >&2
+echo "$out"

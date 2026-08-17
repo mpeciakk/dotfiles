@@ -24,7 +24,7 @@ choices; when in doubt on such a plan, run it.
 ## Dispatch
 
 Dispatch a `general-purpose` subagent with the template below. Pin it to a
-strong model (Opus 4.8) — a critic weaker than the planner tends to miss the
+strong model (Opus 5) — a critic weaker than the planner tends to miss the
 subtle structural problems.
 
 ```
@@ -36,11 +36,17 @@ Subagent (general-purpose):
     ships as written and fails. Your job is to make the strongest possible case
     for WHY it fails — before a line of code is written.
 
+    ## Scope
+
+    Read-only. Do not edit the plan, the spec, or any file in the repository,
+    and do not run tests or builds. Read the plan and the spec, read code only
+    to check a specific claim, and report. Your final message IS the report.
+
     ## The Plan
-    [PLAN_PATH or inline plan]
+    [PLAN_PATH]
 
     ## The Spec It Implements
-    [SPEC_PATH or inline spec]
+    [SPEC_PATH]
 
     ## Attack surface — look hard for:
     - Hidden assumptions the plan treats as settled but aren't
