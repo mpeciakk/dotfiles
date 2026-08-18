@@ -21,6 +21,9 @@ import os
 import sys
 
 FLOW_STATE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "flow-state")
+# Roles whose agent definition withholds Edit/Write (see ~/.claude/agents/).
+# Anything unknown is treated as a writer: the writer contract is the safe default.
+READ_ONLY_AGENTS = {"task-reviewer", "branch-reviewer", "plan-red-team", "Explore"}
 
 
 def load_state(cwd):
@@ -40,21 +43,34 @@ def emit(event, context):
     }))
 
 
-def subagent_context(state):
+def subagent_context(state, agent_type):
+    """The workspace contract, addressed to what this subagent can actually do.
+
+    Roles whose definition withholds Edit/Write get the location without the
+    writer instructions — telling a reviewer "you are the only writer here" is
+    noise it has to reason past, and it invites a report about a rule that does
+    not apply to it.
+    """
     worktree = state.get("worktree")
     if not worktree:
         return None
     branch = state.get("branch")
     where = f"{worktree} on branch {branch}" if branch else f"{worktree} (detached HEAD)"
+
+    if agent_type in READ_ONLY_AGENTS:
+        return (
+            f"This run's workspace is {where}. That is the tree the diff you were "
+            "given came from. Read-only: report what you find, do not change it."
+        )
+
     checks = "`git rev-parse --show-toplevel`" + (
         " and `git branch --show-current`" if branch else "")
     return (
         f"Workspace contract for this run: work in {where}. Verify with {checks} "
         "before your first edit; if it differs, stop and report BLOCKED with what "
         "you found rather than switching branches or creating a worktree of your "
-        "own. If you write here you are the only writer: changes in `git status` "
-        "that you did not make mean you stop and report BLOCKED, not commit "
-        "someone else's work."
+        "own. You are the only writer here: changes in `git status` that you did "
+        "not make mean you stop and report BLOCKED, not commit someone else's work."
     )
 
 
@@ -96,7 +112,10 @@ def main():
     if not state:
         return
     event = payload.get("hook_event_name") or "SessionStart"
-    context = subagent_context(state) if event == "SubagentStart" else session_context(state)
+    if event == "SubagentStart":
+        context = subagent_context(state, payload.get("agent_type") or "")
+    else:
+        context = session_context(state)
     if context:
         emit(event, context)
 

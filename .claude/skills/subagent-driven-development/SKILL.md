@@ -51,7 +51,10 @@ state file and `git log` over your recollection.
    session sitting in the main checkout would brief, commit and review the
    wrong tree.
 3. Read the plan; note its Global Constraints and the interfaces tasks share.
-4. Create one todo per task.
+4. The ledger is the progress record — `flow-state task N ...` per task, shown
+   live on the status line. If a todo tool is available in this session, mirror
+   the plan into it as well; there is no reliable built-in one, so nothing
+   depends on it.
 5. **Pre-flight scan.** Read the plan once for tasks that contradict each other
    or the Global Constraints. Present what you find as one batched question,
    each finding beside the plan text, before execution starts — not one
@@ -79,9 +82,8 @@ state file and `git log` over your recollection.
    BASE=$(git rev-parse HEAD)
    ~/.claude/hooks/flow-state task N started "base=$BASE"
    ```
-3. **Dispatch the implementer** with [implementer-prompt.md](implementer-prompt.md).
-   Model per the table in development-workflow — always explicit; an omitted
-   model inherits the session model, which may not fit the role.
+3. **Dispatch the implementer** — `subagent_type: "implementer"`. See Dispatching
+   below for what the prompt carries.
 4. **Handle the status** (below).
 5. **Review package.** `PKG=$($SDD/review-package "$BASE" HEAD)` writes the
    commit list, stat summary, and full diff with context to one file and prints
@@ -89,22 +91,16 @@ state file and `git log` over your recollection.
    If it exits with "no commits in BASE..HEAD", the implementer's commits are
    not in this tree — find them before reviewing rather than shipping an empty
    diff to a reviewer who will approve it.
-6. **Dispatch the task reviewer** with [task-reviewer-prompt.md](task-reviewer-prompt.md):
-   brief path, report path, package path, plus the Global Constraints that bind
-   this task, copied verbatim.
+6. **Dispatch the task reviewer** — `subagent_type: "task-reviewer"`, with
+   `model: "opus"` for a non-trivial, security- or concurrency-touching diff.
    After a fix, re-package the same range (`BASE..HEAD`, not just the fix
    commits) so the re-review judges the task, not the patch.
-7. **Fix loop.** Dispatch the fix with [implementer-prompt.md](implementer-prompt.md),
-   unchanged except: keep the Workspace block verbatim, replace the requirements
-   section with the verbatim finding list (file:line each) plus the same brief
-   path, and point the report file at the existing report so the fix appends. A
-   fix dispatch without the Workspace block is how a fix commit lands in the main
-   checkout. Critical and Important findings go to ONE fix subagent with
-   the complete list — per-finding fixers each rebuild context and re-run
-   suites, which in a real session cost more than all its tasks combined. The
-   fix report must contain the covering tests, the command, and the output
-   before you re-dispatch the review. Minor findings go into the state ledger
-   note and get handed to the final review to triage.
+7. **Fix loop.** Critical and Important findings go to ONE `fixer` dispatch with
+   the complete list — per-finding fixers each rebuild context and re-run suites,
+   which in a real session cost more than all its tasks combined. Its report
+   must contain the covering tests, the command and the output before you
+   re-dispatch the review. Minor findings go into the ledger note and get handed
+   to the final review to triage.
 8. **Record it.** `flow-state task N complete ...`, mark the todo done, move on
    — without checking in. The approved plan is the instruction. Stop only for
    BLOCKED you cannot resolve, ambiguity the plan does not settle, or the end
@@ -149,27 +145,49 @@ back to the implementer, then re-review.
 Present the finding and the plan text, ask which governs. Do not dismiss the
 finding, and do not dispatch a fix that contradicts the plan.
 
-## Dispatch hygiene
+## Dispatching
+
+The roles live in `~/.claude/agents/` — `implementer`, `task-reviewer`, `fixer`,
+`branch-reviewer`. Each definition carries its own system prompt, model, effort,
+and tool restrictions, so you do not paste a role description into a prompt: the
+reviewers cannot edit files at all (the harness withholds Edit/Write from them),
+and the implementer and fixer get the test-driven-development skill preloaded.
+Pass `model:` only to override a definition's default — e.g. `opus` for a
+task-reviewer on a hard diff, or for one genuinely hard implementer task.
+
+Your prompt supplies only what varies per dispatch:
+
+| Role | The prompt carries |
+|---|---|
+| `implementer` | task number and name; the **worktree and branch** (`flow-state get worktree` / `get branch` — never `pwd`, which lies on a resumed session); the brief path; the report path; one line on where this task fits; interfaces and decisions from earlier tasks the brief cannot know; your resolution of any ambiguity you noticed |
+| `task-reviewer` | brief path, implementer report path, diff-package path, BASE and HEAD, and the plan's Global Constraints copied verbatim |
+| `fixer` | the worktree and branch; the verbatim finding list with file:line each; the brief path; the existing report path to append to |
+| `branch-reviewer` | what was built, the requirements, the whole-branch diff-package path, and the run's deferred Minor findings as their own block |
+
+If `flow-state get worktree` prints nothing, stop: the run has no workspace and
+using-git-worktrees has not run. Do not dispatch into a workspace nobody recorded.
+
+Never pass `isolation: "worktree"` to a writer. That hands it a *different*
+working tree, and its commits never reach the branch you are building. The guard
+denies it, but the dispatch is yours to get right.
+
+### Hygiene
 
 Everything you paste into a dispatch — and everything a subagent prints back —
-stays in your context for the rest of the session and is re-read every turn.
-So hand artifacts over as files and keep dispatches to one task:
+stays in your context for the rest of the session and is re-read every turn. So
+hand artifacts over as files:
 
-- **Implementer dispatch contains:** one line on where this task fits; the
-  brief path ("read this first — your requirements, exact values verbatim");
-  interfaces and decisions from earlier tasks the brief cannot know (pull exact
-  signatures with cbm `get_code_snippet`/`search_graph`, not by reading files);
-  your resolution of any ambiguity you noticed; the report-file path.
-- **Report file** is named after the brief (`task-N-brief.md` →
-  `task-N-report.md`). The implementer writes detail there and returns only
-  status, commits, a one-line test summary, and concerns.
+- **The report file** is named after the brief (`task-N-brief.md` →
+  `task-N-report.md`). Detail goes there; the subagent returns status, commits, a
+  one-line test summary, and concerns. Fix dispatches append to the same file.
 - **Never paste session history.** A real dispatch reached 42k characters of
   which 99% was accumulated prior-task summaries. A fresh subagent needs its
-  task, the interfaces it touches, and the constraints. Nothing else.
+  task, the interfaces it touches, and the constraints. Nothing else. Pull exact
+  signatures with cbm `get_code_snippet`/`search_graph` rather than reading files
+  into your own context to quote them.
 - **Never pre-judge a reviewer's findings.** If your prompt contains "do not
-  flag", "at most Minor", or "the plan chose", stop — you are buying yourself
-  out of a review loop. Let the reviewer raise it and adjudicate afterwards.
-- Fix dispatches append to the same report file and return a short summary.
+  flag", "at most Minor", or "the plan chose", stop — you are buying yourself out
+  of a review loop. Let the reviewer raise it and adjudicate afterwards.
 
 ## Example
 

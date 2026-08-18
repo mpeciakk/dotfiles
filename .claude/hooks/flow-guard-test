@@ -305,6 +305,70 @@ case "$c" in *"re-enter it"*) report ok "SessionStart tells a resumed run to re-
 [ -z "$(context_of "$(event_payload "$ROOT/plain" SessionStart)")" ] \
   && report ok "silent with no run" || report no "context with no run"
 
+echo "=== agent definitions ==="
+# A typo here makes Claude Code refuse to launch the agent, mid-run. The
+# validator is written to a file so it can be run twice: once on the real
+# definitions, once on a deliberately broken one — a checker nobody checked is
+# not a checker.
+cat > "$ROOT/validate-agents.py" <<'PY'
+import os, re, sys
+KNOWN = {"name","description","tools","disallowedTools","model","permissionMode","maxTurns",
+         "skills","mcpServers","hooks","memory","background","effort","isolation","color",
+         "initialPrompt"}
+MODELS = {"sonnet","opus","haiku","fable","inherit"}
+EFFORT = {"low","medium","high","xhigh","max"}
+READ_ONLY = {"task-reviewer","branch-reviewer","plan-red-team"}
+WRITERS = {"implementer","fixer"}
+d = sys.argv[1]
+seen, bad = {}, []
+for f in sorted(os.listdir(d)):
+    if not f.endswith(".md"):
+        continue
+    m = re.match(r"^---\n(.*?)\n---\n", open(os.path.join(d, f)).read(), re.S)
+    if not m:
+        bad.append(f"{f}: no frontmatter"); continue
+    fm = dict(
+        (k.strip(), v.strip())
+        for k, v in (l.split(":", 1) for l in m.group(1).splitlines() if ":" in l)
+    )
+    name = fm.get("name", "")
+    if not re.fullmatch(r"[a-z0-9-]+", name):
+        bad.append(f"{f}: bad name {name!r}")
+    if not fm.get("description"):
+        bad.append(f"{f}: no description")
+    if set(fm) - KNOWN:
+        bad.append(f"{f}: unknown fields {sorted(set(fm) - KNOWN)}")
+    if fm.get("model") and fm["model"] not in MODELS and not fm["model"].startswith("claude-"):
+        bad.append(f"{f}: model {fm['model']!r}")
+    if fm.get("effort") and fm["effort"] not in EFFORT:
+        bad.append(f"{f}: effort {fm['effort']!r}")
+    if name in seen:
+        bad.append(f"{f}: duplicate name (also {seen[name]})")
+    seen[name] = f
+    if name in READ_ONLY and "Edit" not in fm.get("disallowedTools", ""):
+        bad.append(f"{f}: {name} must withhold Edit — read-only is the point")
+    if name in WRITERS and "Edit" in fm.get("disallowedTools", ""):
+        bad.append(f"{f}: {name} writes code and must not withhold Edit")
+for missing in (READ_ONLY | WRITERS) - set(seen):
+    bad.append(f"missing definition: {missing}")
+print("\n".join(f"  {b}" for b in bad) if bad else f"  {len(seen)} definitions valid")
+sys.exit(1 if bad else 0)
+PY
+python3 "$ROOT/validate-agents.py" "$(cd "$HERE/.." && pwd)/agents" \
+  && report ok "agent definitions parse; read-only roles withhold Edit" \
+  || report no "agent definitions"
+
+# Prove the validator has teeth: a reviewer that can edit must fail it.
+BAD=$ROOT/bad-agents; mkdir -p "$BAD"
+printf -- '---\nname: task-reviewer\ndescription: broken on purpose\nmodel: sonnet\n---\nbody\n' \
+  > "$BAD/task-reviewer.md"
+for role in branch-reviewer plan-red-team implementer fixer; do
+  printf -- '---\nname: %s\ndescription: ok\ndisallowedTools: Edit, Write\n---\nbody\n' "$role" > "$BAD/$role.md"
+done
+python3 "$ROOT/validate-agents.py" "$BAD" >/dev/null 2>&1 \
+  && report no "validator accepted a reviewer that can edit" \
+  || report ok "validator rejects a read-only role that can edit"
+
 echo "=== settings.json wiring ==="
 for tool in Edit Write EnterWorktree Agent; do
   wired PreToolUse "$tool" flow-guard && report ok "$tool wired to flow-guard" || report no "$tool wired to flow-guard"
@@ -316,6 +380,26 @@ setting 'len(cfg.get("permissions",{}).get("allow",[])) >= 4' \
   && report ok "flow-state and the SDD scripts are permission-allowed" || report no "permissions allowlist"
 setting 'cfg.get("worktree",{}).get("baseRef") == "head"' \
   && report ok "worktree.baseRef = head" || report no "worktree.baseRef"
+setting 'str(cfg.get("statusLine",{}).get("command","")).endswith("statusline")' \
+  && report ok "statusLine points at the flow status line" || report no "statusLine command"
+
+echo "=== status line ==="
+sl_payload() { python3 -c '
+import json, sys
+print(json.dumps({"workspace": {"current_dir": sys.argv[1], "project_dir": sys.argv[1]},
+                  "model": {"display_name": "Opus 5"}, "effort": {"level": "xhigh"},
+                  "context_window": {"used_percentage": 42},
+                  "cost": {"total_cost_usd": 0.42, "total_lines_added": 9,
+                           "total_lines_removed": 2}}))' "$1"; }
+SL=$HERE/statusline
+lines=$(sl_payload "$COLD" | "$SL" | wc -l)
+[ "$lines" = 1 ] && report ok "no run: one line, no flow segment" || report no "no-run status line" "$lines lines"
+lines=$(sl_payload "$REPO" | "$SL" | wc -l)
+[ "$lines" = 2 ] && report ok "open run: adds the flow line" || report no "run status line" "$lines lines"
+sl_payload "$REPO" | "$SL" | tail -1 | grep -q "demo" \
+  && report ok "flow line names the run" || report no "flow line content"
+out=$(printf 'not json' | "$SL"; echo "rc=$?")
+case "$out" in *rc=0*) report ok "status line survives junk input";; *) report no "status line on junk" "$out";; esac
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

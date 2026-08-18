@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""Status line: where you are, what you are talking to, and what the run is doing.
+
+Written in python3 on purpose. The previous status line ran claude-hud through
+bun; bun disappeared from this machine and the status line died silently — no
+error, just an empty bar. python3 is the one dependency the hooks already
+require, so this has nothing left to lose.
+
+Renders one line normally, two while a pipeline run is open:
+
+    ~/dotfiles  main*   Opus 5 · xhigh   ctx 38%   $0.42  +156/-23
+    flow  json-export · implement · 2/5 tasks · feat/json
+
+Input schema is the documented statusLine payload (model, workspace, cost,
+context_window, effort). Every field is optional here: a missing one drops its
+segment instead of breaking the bar. Claude Code debounces renders at 300ms and
+cancels a render still running when the next one arrives, so this stays cheap —
+one git call for branch and dirt, one for the run state.
+"""
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+DIM = "\033[2m"
+BOLD = "\033[1m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+RED = "\033[31m"
+CYAN = "\033[36m"
+RESET = "\033[0m"
+
+
+def git(cwd, *args):
+    try:
+        result = subprocess.run(["git", "-C", cwd, *args],
+                                capture_output=True, text=True, timeout=2)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return result.stdout if result.returncode == 0 else None
+
+
+def run_state(cwd):
+    try:
+        path = os.path.join(HERE, "flow-state")
+        sys.dont_write_bytecode = True
+        loader = importlib.machinery.SourceFileLoader("flow_state", path)
+        spec = importlib.util.spec_from_loader("flow_state", loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        return module.load(cwd)
+    except Exception:
+        return None
+
+
+def short_path(current, project):
+    path = current or project or os.getcwd()
+    home = os.path.expanduser("~")
+    if path.startswith(home):
+        path = "~" + path[len(home):]
+    parts = path.split(os.sep)
+    return os.sep.join(parts[-2:]) if len(parts) > 3 else path
+
+
+def git_segment(cwd):
+    """branch plus a marker when the tree is dirty, in one call."""
+    out = git(cwd, "status", "--porcelain=v2", "--branch")
+    if out is None:
+        return None
+    branch, dirty = None, False
+    for line in out.splitlines():
+        if line.startswith("# branch.head "):
+            branch = line.split(" ", 2)[2].strip()
+        elif line and not line.startswith("#"):
+            dirty = True
+    if not branch:
+        return None
+    if branch == "(detached)":
+        return f"{YELLOW}detached{RESET}"
+    colour = YELLOW if dirty else GREEN
+    return f"{colour}{branch}{'*' if dirty else ''}{RESET}"
+
+
+def context_segment(payload):
+    window = payload.get("context_window") or {}
+    pct = window.get("used_percentage")
+    if not isinstance(pct, (int, float)):
+        return None
+    pct = int(pct)
+    colour = GREEN if pct < 50 else YELLOW if pct < 80 else RED
+    return f"ctx {colour}{pct}%{RESET}"
+
+
+def cost_segment(payload):
+    cost = payload.get("cost") or {}
+    bits = []
+    usd = cost.get("total_cost_usd")
+    if isinstance(usd, (int, float)) and usd > 0:
+        bits.append(f"${usd:.2f}")
+    added, removed = cost.get("total_lines_added"), cost.get("total_lines_removed")
+    if isinstance(added, int) and isinstance(removed, int) and (added or removed):
+        bits.append(f"{GREEN}+{added}{RESET}/{RED}-{removed}{RESET}")
+    return "  ".join(bits) or None
+
+
+def model_segment(payload):
+    model = (payload.get("model") or {}).get("display_name")
+    if not model:
+        return None
+    effort = (payload.get("effort") or {}).get("level")
+    return f"{BOLD}{model}{RESET}" + (f"{DIM} · {effort}{RESET}" if effort else "")
+
+
+def flow_line(state):
+    if not state:
+        return None
+    bits = [f"{CYAN}{state.get('task') or 'run'}{RESET}", state.get("stage") or "?"]
+    tasks = [t for t in (state.get("tasks") or []) if isinstance(t, dict)]
+    if tasks:
+        done = sum(1 for t in tasks if t.get("status") == "complete")
+        colour = GREEN if done == len(tasks) else YELLOW
+        bits.append(f"{colour}{done}/{len(tasks)}{RESET} tasks")
+    if state.get("branch"):
+        bits.append(state["branch"])
+    if not state.get("worktree"):
+        bits.append(f"{RED}no workspace{RESET}")
+    return f"{DIM}flow{RESET}  " + f"{DIM} · {RESET}".join(bits)
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+    except Exception:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    workspace = payload.get("workspace") or {}
+    cwd = workspace.get("current_dir") or payload.get("cwd") or os.getcwd()
+
+    segments = [f"{DIM}{short_path(cwd, workspace.get('project_dir'))}{RESET}"]
+    for segment in (git_segment(cwd), model_segment(payload),
+                    context_segment(payload), cost_segment(payload)):
+        if segment:
+            segments.append(segment)
+    print(f"{DIM}   {RESET}".join(segments))
+
+    line = flow_line(run_state(cwd))
+    if line:
+        print(line)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        # A status line that raises is a status line you stop trusting.
+        print("")

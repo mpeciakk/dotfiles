@@ -12,7 +12,7 @@ the work.
 
 This template is for the **whole-branch review** at the end of
 subagent-driven-development, and for ad-hoc reviews. Per-*task* review has its
-own template (`../subagent-driven-development/task-reviewer-prompt.md`).
+own reviewer (`subagent_type: "task-reviewer"`).
 
 Request one after a major feature, before merging to main, and when a fresh
 perspective would help: stuck on something, about to refactor, just fixed a
@@ -41,11 +41,12 @@ reviewer reads it in one call:
 PKG=$(~/.claude/skills/subagent-driven-development/scripts/review-package "$BASE_SHA" "$HEAD_SHA")
 ```
 
-**3. Dispatch** a `general-purpose` subagent with [code-reviewer.md](code-reviewer.md),
-filling `[DESCRIPTION]` (what you built), `[PLAN_OR_REQUIREMENTS]` (what it
-should do), `[MINOR_FINDINGS]` (the run's deferred findings, in their own block —
-not mixed into the requirements), `[BASE_SHA]`, `[HEAD_SHA]`, and `[DIFF_FILE]`.
-Model per development-workflow's table — the final review earns Opus 5.
+**3. Dispatch** `subagent_type: "branch-reviewer"`. Its role, model and read-only
+tool set live in `~/.claude/agents/branch-reviewer.md`, so your prompt carries
+only: what was built, the requirements (plan or spec path), BASE and HEAD, the
+diff-package path, and the run's deferred Minor findings **as their own block** —
+mixed into the requirements, a reviewer reads them as things the branch was
+supposed to deliver and reports each unfixed one as a spec gap.
 
 **4. Act on it.** Critical and Important findings go to ONE fix subagent with
 the complete list; Minor findings get recorded, not silently dropped. If the

@@ -74,24 +74,28 @@ test-driven-development (before implementation code), systematic-debugging
 
 ## Model & effort per stage
 
-Session default is **Opus 5**. A dispatch takes `model` only — there is no
-effort parameter, so thinking depth for dispatched roles is whatever the session
-is set to; `effortLevel` is your lever for the stages you run inline (xhigh for
-design, planning and debugging). Omit `model` on a dispatch and the subagent
-inherits the session model.
+Session default is **Opus 5**, and `effortLevel` is your lever for the stages you
+run **inline** (xhigh for design, planning and debugging).
 
-| Stage / role | Model |
-|---|---|
-| Brainstorm / grill / planning / debugging (inline) | Opus 5 |
-| Read-only code exploration (Explore agent) | Haiku 4.5 |
-| Implementer subagent (per task, TDD) | Sonnet 5 · Haiku 4.5 if the task text is complete code · Opus 5 for one genuinely hard task |
-| Task reviewer subagent (spec + quality) | Sonnet 5 for small/mechanical diffs · Opus 5 for non-trivial / security / concurrency |
-| Fix subagent | Sonnet 5 · Opus 5 if a fix keeps failing |
-| Final whole-branch review | Opus 5 |
-| Finish (tests, git, diff summary) | Haiku 4.5 |
+**Dispatched roles carry their own model and effort** in their definition under
+`~/.claude/agents/` — that is where per-role thinking depth lives, since the
+Agent tool call itself takes `model` but no effort. Pass `model:` on a dispatch
+only to override the definition for one case.
 
-Keep the reviewer at least as strong as the implementer — a reviewer weaker
-than the code it judges rubber-stamps it.
+| Role | Where it is set | Default |
+|---|---|---|
+| Brainstorm / grill / planning / debugging (inline) | session | Opus 5 · xhigh |
+| `implementer`, `fixer` | agent definition | Sonnet 5 · high (override to Opus for one genuinely hard task) |
+| `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus for non-trivial / security / concurrency) |
+| `branch-reviewer` | agent definition | Opus 5 · high |
+| `plan-red-team` | agent definition | Opus 5 · xhigh |
+| Read-only exploration (`Explore`) | dispatch | Haiku 4.5 |
+| Finish (tests, git, diff summary) | inline or Haiku 4.5 | — |
+
+Keep a reviewer at least as strong as what it reviews: a reviewer weaker than the
+code it judges rubber-stamps it. The reviewers' definitions also withhold
+Edit/Write, so read-only is enforced by the harness rather than asked for in
+prose — a reviewer that can fix things stops reporting them.
 
 ## Rules
 
