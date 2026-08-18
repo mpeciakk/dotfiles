@@ -42,6 +42,25 @@ Do this mapping with cbm before Grep/Read: `search_graph` to locate the code you
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
+## Keeping the Living Spec True
+
+The decision this change made is already in the spec's decision table
+(brainstorming put it there at the gate). What is *not* there yet is everything
+the spec says about **state** — architecture, data model, API contracts,
+behaviour it documents — because none of it existed when the design was approved.
+
+**If this change alters any of that, the plan's last task updates those spec
+sections**, listing them by heading, alongside the code that made them true. It
+is a normal task: dispatched, diffed, reviewed with the change it describes. That
+is the whole mechanism — a spec updated in the same branch, by the same review,
+is a spec that stays true; a "remember to update the docs" note at the end is how
+five of this user's seven specs went a month without a touch while their code
+moved on.
+
+Skip that task when the change genuinely alters nothing the spec states (a
+bugfix restoring documented behaviour, an internal refactor). Say so in one line
+in the plan rather than leaving it ambiguous.
+
 ## Task Right-Sizing
 
 A task is the smallest unit that carries its own test cycle and is worth a
@@ -74,6 +93,12 @@ independently testable deliverable.
 **Architecture:** [2-3 sentences about approach]
 
 **Tech Stack:** [Key technologies/libraries]
+
+**Spec:** [absolute path to the project's living spec.md, and the decision
+number this change added to it — e.g. `spec.md` D18. Omit only if the project
+has no living spec.]
+
+**Design record:** [path to `.flow/specs/<date>-<topic>-design.md`]
 
 ## Global Constraints
 
@@ -149,7 +174,7 @@ Every step must contain the actual content an engineer needs. These are **plan f
 
 After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
 
-**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps.
+**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps. Then the reverse check: which sections of the *living* spec will this change make untrue? Each one is either named in the final spec-sync task or explicitly out of scope.
 
 **2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
 

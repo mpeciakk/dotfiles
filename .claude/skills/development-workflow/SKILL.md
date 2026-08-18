@@ -49,11 +49,19 @@ stage=inline`) and say so.
 agents; see dispatching-parallel-agents. Nothing enforces this one, so it is on
 you.
 
+**5. The project's living spec is context in and output out.** Most projects here
+keep a `spec.md` (root, or per-component in a monorepo) stating what the project
+is, which decisions are in force, and what is open. Read it before you ask the
+user anything, and leave it true: the decision goes in at the design gate, the
+sections describing state get updated by the plan's last task. Nothing enforces
+this either — and the evidence says it is the rule most likely to lapse, since
+five of seven specs here went over a month untouched while their code moved.
+
 ## The Pipeline
 
 | # | Stage | Skill | State when the stage completes | Output | User gate |
 |---|-------|-------|----------------|--------|-----------|
-| 1 | Understand + design | brainstorming (grill-gate embedded) | `stage=design` | spec → `.flow/specs/` + commit | ✋ approve design, then review written spec |
+| 1 | Understand + design | brainstorming (grill-gate embedded) | `stage=design spec=<living spec.md>` | decision row in the project's living spec + deliberation record in `.flow/specs/`, one commit | ✋ approve design, then review what was written |
 | 2 | Plan | writing-plans (red-team on non-trivial plans) | `stage=plan plan=<path>` | plan of 2-5 min tasks with TDD steps → `.flow/plans/` | ✋ approve plan ("go") |
 | 3 | Isolate | using-git-worktrees | `stage=isolate worktree= branch= base=` | worktree + clean test baseline | — |
 | 4 | Implement | subagent-driven-development | `stage=implement`, plus a ledger entry per task | fresh implementer per task (strict TDD), per-task review, fix loop, final whole-branch review | — |
@@ -133,8 +141,10 @@ them.
 
 1. **State the decision in one sentence and get one ✋ approval.** "Default
    timeout goes 30s → 10s; callers that relied on 30 get it explicitly." No
-   spec document, no approaches — if you cannot put the decision in a sentence,
-   this is not the small lane.
+   deliberation record, no approaches — if you cannot put the decision in a
+   sentence, this is not the small lane. If the project has a living spec and
+   this decision belongs in its decision table, add the row now, at the gate —
+   one line, and the lane's whole point is that one line is the documentation.
 2. **Open the run with a `small/` slug**, so the lane is visible after
    compaction and in every guard message:
    `~/.claude/hooks/flow-state init small/<slug>`.

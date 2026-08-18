@@ -41,12 +41,12 @@ The HARD-GATE holds on both paths: no implementation until the spec is validated
 You MUST create a task for each of these items and complete them in order:
 
 0. **Open the run** — `~/.claude/hooks/flow-state init <task-slug>` (if development-workflow's triage has not already) and `set stage=design`. The run state is what later stages and the pipeline's guards read; a run nobody opened is a run that loses its worktree.
-1. **Explore project context** — use cbm first (`get_architecture` for structure, `search_graph`/`search_code` to find relevant code), then check docs and recent commits; Grep/Read only for non-code
+1. **Explore project context** — **read the project's living spec first** (see The Project Spec below); it states what the project is, which decisions are already in force, and what is still open, and it is the one document that makes your questions non-redundant. Then cbm (`get_architecture` for structure, `search_graph`/`search_code` to find relevant code), then docs and recent commits; Grep/Read only for non-code
 2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 3. **Grill gate** — scan for open decision points; if any remain, grill one question at a time until none do; if none, stay silent and move on. See `~/.claude/skills/brainstorming/grill-gate.md`
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — one message, sections scaled to complexity, then ask for approval once. Pause mid-design only when a section's answer changes the sections after it (that is a grill-gate dependency, not a checkpoint)
-6. **Write design doc** — save to `.flow/specs/YYYY-MM-DD-<topic>-design.md`, commit, and record it: `~/.claude/hooks/flow-state set spec="$(git rev-parse --show-toplevel)/.flow/specs/<file>.md"` (absolute — a relative path breaks from any subdirectory)
+6. **Record the design in two places** — the deliberation record and the living spec. See The Project Spec below for exactly what goes where, then commit both in one commit and record the living spec's path: `~/.claude/hooks/flow-state set spec="<absolute path to the project's spec.md>"` (absolute — a relative path breaks from any subdirectory)
 7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 8. **User reviews written spec** — ask user to review the spec file before proceeding
 9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
@@ -54,6 +54,51 @@ You MUST create a task for each of these items and complete them in order:
 Two loops inside that order: the grill gate sends you back to questions while
 open decisions remain, and a design section the user rejects gets revised
 before you move on. Everything else runs straight through.
+
+## The Project Spec
+
+Most projects here keep a **living spec** — `spec.md` at the project root, or
+per-component (`agent/spec.md`, `webui/spec.md`) in a monorepo. Use the nearest
+one above the code you are changing. It states what the project *is right now*:
+a numbered decision table with rationale, the architecture, the data model, the
+API contracts, and the open points. It is the highest-value context in the repo
+and the most likely to be stale — in this user's projects, five of seven specs
+had not been touched in over a month while their code moved on.
+
+Two documents with **disjoint jobs**, which is what keeps them from drifting:
+
+| | `spec.md` (living) | `.flow/specs/<date>-<topic>-design.md` |
+|---|---|---|
+| Holds | what is true **now** | what we deliberated **then** |
+| Contains | the decision in force, architecture, model, open points | the options considered, what was rejected and **why** |
+| Revised later? | yes — every change that alters it | **never**; it is a dated journal entry |
+
+So the design record keeps the reasoning that a statement of current state
+cannot hold, and the spec keeps the truth that a dated record goes stale about.
+Nothing is duplicated: link them by decision number ("resolved as D18" in the
+record; "see `.flow/specs/…`" in the D18 row).
+
+**At this gate, write both:**
+
+1. The deliberation record to `.flow/specs/YYYY-MM-DD-<topic>-design.md` —
+   approaches, trade-offs, what you rejected and why, the chosen design.
+2. The approved decision into the living spec: a new row in its decision table,
+   continuing its numbering (`D18`, not a new scheme), with the same columns it
+   already uses. Any new unknown goes into its open-points section; an unknown
+   this change *closes* gets struck there, dated.
+
+Match the spec's existing conventions — its numbering, its language (several of
+these specs are in Polish), its table columns, its section order. You are adding
+a row to someone's document, not imposing a format on it.
+
+**Sections that describe state** — architecture, data model, API — are *not*
+updated here. They describe what exists, and it does not exist yet; the plan's
+last task updates them alongside the code, so they get reviewed together
+(writing-plans owns that).
+
+**If the project has no living spec:** say so once and ask whether to start one.
+It is a real commitment, not a side effect of this change — if the answer is no,
+the deliberation record alone is the output, exactly as before.
 
 **The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
 

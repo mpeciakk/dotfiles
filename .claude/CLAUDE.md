@@ -23,6 +23,11 @@ Zasady:
    instrukcja projektu, której narzędzie wymaga), a stan runu trzyma
    `~/.claude/hooks/flow-state`. Gdy worktree jest zapisany, kodu nie piszesz
    sam — dispatchujesz implementerów; szczegóły i bramki: development-workflow.
+6. Projekt ma zwykle **żywy `spec.md`** (w rootcie albo per komponent) — czym
+   jest, decyzje w mocy, punkty otwarte. Czytasz go PRZED pytaniami do mnie
+   i zostawiasz prawdziwym: decyzja wchodzi na bramce designu, sekcje opisujące
+   stan aktualizuje ostatnie zadanie planu. Spec, który kłamie, jest gorszy niż
+   ubogi.
 
 Dyscyplina kodu (Karpathy — zawsze; przy trywialnych zadaniach zdrowy rozsądek):
 - Prostota: minimum kodu rozwiązujące problem; nic ponad to, o co proszono; bez

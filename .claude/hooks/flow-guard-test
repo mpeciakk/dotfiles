@@ -5,10 +5,18 @@
 # Lives beside the hooks on purpose: an enforcement layer whose tests sit in
 # /tmp has no regression net at all.
 #
-# Fixtures are VERIFIED before any assertion runs. An earlier version passed
-# 34/34 while `git commit` was silently failing (global commit signing, no
-# agent), so "$WT" was an empty directory and every worktree assertion proved
-# nothing. GIT_CONFIG_GLOBAL=/dev/null keeps the user's config out.
+# Two lessons are built into this file, both learned the hard way:
+#
+#   Fixtures are VERIFIED before any assertion runs. An earlier version passed
+#   34/34 while `git commit` was silently failing (global commit signing, no
+#   agent), so "$WT" was an empty directory and every worktree assertion proved
+#   nothing.
+#
+#   All JSON goes through python3, which the hooks themselves require. A
+#   previous version built payloads with `jq`; on a machine where jq was absent
+#   it sent empty payloads and reported 29 failures that looked exactly like a
+#   real regression. A suite that cannot tell "the system is broken" from "my
+#   own tooling is broken" is worse than no suite.
 #
 # Usage: flow-guard-test        (exit 0 = all green)
 set -u
@@ -23,29 +31,100 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 pass=0; fail=0
 trap 'chmod -R u+w "$ROOT" 2>/dev/null' EXIT
 
+for dep in python3 git; do
+  command -v "$dep" >/dev/null || { echo "MISSING DEPENDENCY: $dep" >&2; exit 1; }
+done
+
 report() { if [ "$1" = ok ]; then printf 'PASS  %-60s %s\n' "$2" "${3:-}"; pass=$((pass+1))
   else printf 'FAIL  %-60s %s\n' "$2" "${3:-}"; fail=$((fail+1)); fi; }
 fixture_fail() { printf 'FIXTURE FAILED: %s\n' "$1" >&2; exit 1; }
 
-decide() { local out; out=$(printf '%s' "$1" | "$GUARD" 2>/dev/null)
-  if [ -z "$out" ]; then echo allow
-  else printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "malformed"'; fi; }
+# ---------------------------------------------------------------- payloads
+edit_payload() { # cwd file [agent_id] [agent_type] [tool]
+  python3 -c '
+import json, sys
+cwd, f, aid, at, tool = sys.argv[1:6]
+p = {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": cwd,
+     "tool_input": {"file_path": f}}
+if aid: p["agent_id"] = aid
+if at: p["agent_type"] = at
+print(json.dumps(p))' "$1" "$2" "${3:-}" "${4:-}" "${5:-Edit}"
+}
+bash_payload() { # cwd command
+  python3 -c '
+import json, sys
+print(json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Bash",
+                  "cwd": sys.argv[1], "tool_input": {"command": sys.argv[2]}}))' "$1" "$2"
+}
+enter_payload() { # cwd [path]  (no path = creating a new worktree by name)
+  python3 -c '
+import json, sys
+cwd, path = sys.argv[1], sys.argv[2]
+ti = {"path": path} if path else {"name": "feat"}
+print(json.dumps({"hook_event_name": "PreToolUse", "tool_name": "EnterWorktree",
+                  "cwd": cwd, "tool_input": ti}))' "$1" "${2:-}"
+}
+agent_payload() { # cwd [isolation]
+  python3 -c '
+import json, sys
+cwd, iso = sys.argv[1], sys.argv[2]
+ti = {"prompt": "do a thing"}
+if iso: ti["isolation"] = iso
+print(json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Agent",
+                  "cwd": cwd, "tool_input": ti}))' "$1" "${2:-}"
+}
+event_payload() { # cwd event
+  python3 -c '
+import json, sys
+print(json.dumps({"hook_event_name": sys.argv[2], "cwd": sys.argv[1],
+                  "agent_id": "a1", "agent_type": "general-purpose"}))' "$1" "$2"
+}
+
+decide() { # payload -> allow | deny | malformed
+  local out; out=$(printf '%s' "$1" | "$GUARD" 2>/dev/null)
+  if [ -z "$out" ]; then echo allow; else
+    printf '%s' "$out" | python3 -c '
+import json, sys
+try: print(json.load(sys.stdin)["hookSpecificOutput"]["permissionDecision"])
+except Exception: print("malformed")'
+  fi
+}
 check() { local got; got=$(decide "$3")
   [ "$got" = "$2" ] && report ok "$1" "$got" || report no "$1" "got=$got want=$2"; }
 
-edit_payload() { # cwd file [agent_id] [agent_type] [tool]
-  jq -n --arg cwd "$1" --arg f "$2" --arg id "${3:-}" --arg t "${4:-}" --arg tool "${5:-Edit}" \
-    '{hook_event_name:"PreToolUse",tool_name:$tool,cwd:$cwd,tool_input:{file_path:$f}}
-     + (if $id == "" then {} else {agent_id:$id} end)
-     + (if $t == "" then {} else {agent_type:$t} end)'; }
-bash_payload() { jq -n --arg cwd "$1" --arg c "$2" \
-  '{hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$cwd,tool_input:{command:$c}}'; }
-enter_payload() { jq -n --arg cwd "$1" --arg p "${2:-}" \
-  '{hook_event_name:"PreToolUse",tool_name:"EnterWorktree",cwd:$cwd,
-    tool_input:(if $p == "" then {name:"feat"} else {path:$p} end)}'; }
-agent_payload() { jq -n --arg cwd "$1" --arg iso "${2:-}" \
-  '{hook_event_name:"PreToolUse",tool_name:"Agent",cwd:$cwd,
-    tool_input:({prompt:"do a thing"} + (if $iso == "" then {} else {isolation:$iso} end))}'; }
+deny_reason() { printf '%s' "$1" | "$GUARD" 2>/dev/null | python3 -c '
+import json, sys
+try: print(json.load(sys.stdin)["hookSpecificOutput"]["permissionDecisionReason"])
+except Exception: print("")'; }
+
+context_of() { # payload -> injected context text ("" when silent)
+  printf '%s' "$1" | "$CONTEXT" 2>/dev/null | python3 -c '
+import json, sys
+s = sys.stdin.read().strip()
+if not s: print("")
+else:
+    try: print(json.loads(s)["hookSpecificOutput"]["additionalContext"])
+    except Exception: print("")'
+}
+
+wired() { # event matcher_substring command_substring
+  python3 -c '
+import json, sys
+cfg = json.load(open(sys.argv[1]))
+event, matcher, command = sys.argv[2], sys.argv[3], sys.argv[4]
+for entry in cfg.get("hooks", {}).get(event, []):
+    if matcher and matcher not in (entry.get("matcher") or ""): continue
+    for hook in entry.get("hooks", []):
+        if command in (hook.get("command") or ""): sys.exit(0)
+sys.exit(1)' "$SETTINGS" "$1" "$2" "$3"
+}
+setting() { # python expression over `cfg` -> exit 0 when truthy
+  python3 -c '
+import json, sys
+cfg = json.load(open(sys.argv[1]))
+sys.exit(0 if eval(sys.argv[2]) else 1)' "$SETTINGS" "$1"
+}
+
 mkrepo() { mkdir -p "$1" && git -C "$1" init -q -b main \
     && git -C "$1" config user.email t@t.t && git -C "$1" config user.name t \
     && echo hello > "$1/app.py" && git -C "$1" add -A \
@@ -61,7 +140,13 @@ git -C "$REPO" worktree add -q "$EXT" -b ext/x || fixture_fail "external worktre
 [ -f "$EXT/.git" ] || fixture_fail "$EXT is not a linked worktree"
 [ "$(git -C "$REPO" rev-list --count HEAD)" = 1 ] || fixture_fail "no commit in fixture"
 mkdir -p "$REPO/.flow/plans" "$WT/.flow/sdd" "$REPO/src/.flow/run" "$ROOT/outside"
+echo "# spec" > "$WT/spec.md"
 report ok "fixtures verified (repo + linked + external worktree + a commit)"
+
+# Payload construction must work before any assertion means anything.
+probe=$(edit_payload "$REPO" "$REPO/app.py")
+case "$probe" in *'"tool_name": "Edit"'*) : ;; *) fixture_fail "payload builder produced: $probe";; esac
+report ok "payload builder works (no jq dependency)"
 
 "$STATE" --cwd "$REPO" init demo >/dev/null || fixture_fail "flow-state init"
 "$STATE" --cwd "$REPO" set plan=.flow/plans/p.md worktree="$WT" branch=feat/x \
@@ -73,14 +158,16 @@ echo "=== controller must not write code ==="
 check "controller edits code in the worktree" deny "$(edit_payload "$WT" "$WT/app.py")"
 check "controller edits code in the main checkout" deny "$(edit_payload "$REPO" "$REPO/app.py")"
 check "controller edits with a relative path" deny "$(edit_payload "$REPO" app.py)"
+check "controller edits the project's spec.md" deny "$(edit_payload "$WT" "$WT/spec.md")"
 check "Write, not just Edit" deny "$(edit_payload "$REPO" "$REPO/app.py" "" "" Write)"
 check "subagent edits code" allow "$(edit_payload "$WT" "$WT/app.py" sub-1 general-purpose)"
+check "subagent edits spec.md (the spec-sync task)" allow "$(edit_payload "$WT" "$WT/spec.md" sub-1 general-purpose)"
 check "fork subagent (controller by proxy)" deny "$(edit_payload "$WT" "$WT/app.py" sub-2 fork)"
 check "controller edits .flow/ in the main checkout" allow "$(edit_payload "$REPO" "$REPO/.flow/plans/p.md")"
-check "controller edits .flow/sdd/ INSIDE the worktree" allow "$(edit_payload "$WT" "$WT/.flow/sdd/task-1-brief.md")"
+check "controller edits .flow/sdd/ inside the worktree" allow "$(edit_payload "$WT" "$WT/.flow/sdd/task-1-brief.md")"
 check "controller edits outside the repo" allow "$(edit_payload "$REPO" "$ROOT/outside/x.md")"
 check "cwd outside the repo, target inside it" deny "$(edit_payload "$ROOT/outside" "$REPO/app.py")"
-check "controller edits in an EXTERNAL worktree of this repo" deny "$(edit_payload "$EXT" "$EXT/app.py")"
+check "controller edits in an external worktree of this repo" deny "$(edit_payload "$EXT" "$EXT/app.py")"
 
 echo "=== the state file is not hand-editable ==="
 check "controller writes state.json" deny "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" "" "" Write)"
@@ -102,6 +189,11 @@ check "Agent with isolation=worktree" deny "$(agent_payload "$WT" worktree)"
 check "Agent without isolation" allow "$(agent_payload "$WT")"
 check "unrelated bash command" allow "$(bash_payload "$WT" 'npm test')"
 check "git commit (not enforced, by design)" allow "$(bash_payload "$REPO" 'git commit -m x')"
+
+echo "=== deny messages carry the run, not an off switch ==="
+r=$(deny_reason "$(edit_payload "$WT" "$WT/app.py")")
+case "$r" in *"run 'demo'"*) report ok "deny names the run and its state file";; *) report no "deny lacks run label" "$r";; esac
+case "$r" in *"set stage=inline"*|*"flow-state clear"*) report no "deny hands over the disarm command";; *) report ok "deny does not hand over the disarm command";; esac
 
 echo "=== deliberate stand-downs ==="
 for stage in inline finish; do
@@ -136,7 +228,7 @@ case "$out" in *"already open"*) report ok "init refuses to wipe a run with a wo
   && report ok "unrelated set is not blocked by an ordering rule" || report no "ordering rule over-reaches"
 printf 'garbage' > "$SP"
 out=$("$STATE" --cwd "$REPO" init fresh 2>&1)
-case "$out" in *cannot?be?read*) report ok "init refuses over an unreadable state file";; *) report no "init overwrote junk state" "$out";; esac
+case "$out" in *"cannot be read"*) report ok "init refuses over an unreadable state file";; *) report no "init overwrote junk state" "$out";; esac
 cp "$ROOT/state.bak" "$SP"
 out=$("$STATE" --cwd "$REPO" set worktree=rel/path 2>&1)
 case "$out" in *absolute*) report ok "relative worktree rejected";; *) report no "relative worktree accepted";; esac
@@ -176,6 +268,13 @@ out=$("$STATE" --cwd "$ORD" init again 2>&1)
 case "$out" in *"already open"*) report ok "init refuses over a run with only a ledger";; *) report no "init wiped a ledgered run" "$out";; esac
 "$STATE" --cwd "$ORD" clear >/dev/null
 "$STATE" --cwd "$ORD" clear >/dev/null && report ok "clear is idempotent" || report no "second clear failed"
+"$STATE" --cwd "$ORD" init led >/dev/null
+"$STATE" --cwd "$ORD" task 2 complete b >/dev/null
+"$STATE" --cwd "$ORD" task branch-review complete r >/dev/null
+"$STATE" --cwd "$ORD" task 10 pending c >/dev/null
+[ "$("$STATE" --cwd "$ORD" get tasks | python3 -c 'import json,sys; print(",".join(t["n"] for t in json.load(sys.stdin)))')" = "2,10,branch-review" ] \
+  && report ok "ledger orders numbers first, named gates after" \
+  || report no "ledger order" "$("$STATE" --cwd "$ORD" get tasks)"
 
 echo "=== cost and process hygiene ==="
 SHIM=$ROOT/shim; mkdir -p "$SHIM"
@@ -183,7 +282,7 @@ printf '#!/bin/sh\necho "$@" >> %s/git.log\nexec /usr/bin/git "$@"\n' "$ROOT" > 
 chmod +x "$SHIM/git"; : > "$ROOT/git.log"
 PATH="$SHIM:$PATH" decide "$(edit_payload "$REPO" "$REPO/app.py")" >/dev/null
 n=$(wc -l < "$ROOT/git.log")
-[ "$n" -le 2 ] && report ok "guard uses at most 2 git calls per invocation" "${n}" \
+[ "$n" -le 2 ] && report ok "guard uses at most 2 git calls per invocation" "$n" \
   || report no "guard git calls" "$n"
 COLD=$ROOT/cold; mkrepo "$COLD" >/dev/null || fixture_fail "cold repo"
 P=$(bash_payload "$COLD" ls)
@@ -193,30 +292,30 @@ avg=$(( (e-s)/10000000 ))
   || report no "no-run guard latency" "${avg}ms/call — investigate before raising this bound"
 
 echo "=== context injection ==="
-ctx() { jq -n --arg cwd "$1" --arg ev "$2" '{hook_event_name:$ev,cwd:$cwd,agent_id:"a1",agent_type:"general-purpose"}' \
-  | "$CONTEXT" | jq -r '.hookSpecificOutput.additionalContext // ""'; }
-c=$(ctx "$WT" SubagentStart)
+c=$(context_of "$(event_payload "$WT" SubagentStart)")
 case "$c" in *"$WT"*feat/x*) report ok "SubagentStart names workspace and branch";; *) report no "SubagentStart: $c";; esac
 "$STATE" --cwd "$REPO" set branch= >/dev/null
-c=$(ctx "$WT" SubagentStart)
+c=$(context_of "$(event_payload "$WT" SubagentStart)")
 case "$c" in *detached*) report ok "detached run: verifies the tree, no phantom branch";; *) report no "detached contract: $c";; esac
 "$STATE" --cwd "$REPO" set branch=feat/x >/dev/null
 "$STATE" --cwd "$REPO" task 1 complete "aaa..bbb" >/dev/null
-c=$(ctx "$REPO" SessionStart)
+c=$(context_of "$(event_payload "$REPO" SessionStart)")
 case "$c" in *"complete: 1"*) report ok "SessionStart re-injects the ledger";; *) report no "SessionStart: $c";; esac
 case "$c" in *"re-enter it"*) report ok "SessionStart tells a resumed run to re-enter the worktree";; *) report no "no re-entry hint";; esac
-[ -z "$(ctx "$ROOT/plain" SessionStart)" ] && report ok "silent with no run" || report no "context with no run"
+[ -z "$(context_of "$(event_payload "$ROOT/plain" SessionStart)")" ] \
+  && report ok "silent with no run" || report no "context with no run"
 
 echo "=== settings.json wiring ==="
-w() { jq -e "$1" "$SETTINGS" >/dev/null 2>&1 && report ok "$2" || report no "$2"; }
 for tool in Edit Write EnterWorktree Agent; do
-  w ".hooks.PreToolUse[] | select(.matcher | test(\"$tool\")) | .hooks[] | select(.command | test(\"flow-guard\"))" "$tool wired to flow-guard"
+  wired PreToolUse "$tool" flow-guard && report ok "$tool wired to flow-guard" || report no "$tool wired to flow-guard"
 done
-w '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[] | select(.command | test("flow-guard"))' "Bash wired to flow-guard"
-w '.hooks.SubagentStart[] | .hooks[] | select(.command | test("flow-context"))' "SubagentStart wired to flow-context"
-w '.hooks.SessionStart[] | .hooks[] | select(.command | test("flow-context"))' "SessionStart wired to flow-context"
-w '.permissions.allow | length >= 4' "flow-state and the SDD scripts are permission-allowed"
-w '.worktree.baseRef == "head"' "worktree.baseRef = head"
+wired PreToolUse Bash flow-guard && report ok "Bash wired to flow-guard" || report no "Bash wired to flow-guard"
+wired SubagentStart "" flow-context && report ok "SubagentStart wired to flow-context" || report no "SubagentStart wired to flow-context"
+wired SessionStart "" flow-context && report ok "SessionStart wired to flow-context" || report no "SessionStart wired to flow-context"
+setting 'len(cfg.get("permissions",{}).get("allow",[])) >= 4' \
+  && report ok "flow-state and the SDD scripts are permission-allowed" || report no "permissions allowlist"
+setting 'cfg.get("worktree",{}).get("baseRef") == "head"' \
+  && report ok "worktree.baseRef = head" || report no "worktree.baseRef"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

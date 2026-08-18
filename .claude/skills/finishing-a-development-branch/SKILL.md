@@ -17,6 +17,13 @@ the user has picked what to do.
 Run the project's full suite. If anything fails, report the failures and stop:
 merging red code or opening a failing PR costs more than the delay.
 
+Then one question, which no test answers: **does the project's living spec still
+describe reality?** `~/.claude/hooks/flow-state get spec` names it. Skim the
+sections this branch touched. If one now describes the old behaviour, fix it
+before the merge — you are the last person who holds the whole change in mind,
+and this is the last moment the fix is cheap. Nothing enforces it; it is the step
+most easily skipped and the one whose absence you feel weeks later.
+
 ## Step 2 — what kind of workspace is this?
 
 ```bash

@@ -100,6 +100,12 @@ Subagent (general-purpose):
     unchanged code or spans tasks), report it as ⚠️ rather than widening your
     search.
 
+    If this task's job was to bring the project's living spec back in line with
+    the code (its brief names spec sections), that IS the deliverable: check each
+    named section against what the branch actually built, and treat a section
+    left describing the old behaviour as a missed requirement, not a nitpick. A
+    spec that lies is worse than one that is merely thin.
+
     ## Part 2: Code quality
 
     - Separation of concerns; error handling; DRY without premature
