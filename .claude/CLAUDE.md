@@ -30,6 +30,15 @@ Zasady:
    ubogi. Gdy projekt speca nie ma — to osobna robota, skill `writing-specs`,
    nie produkt uboczny bieżącej zmiany.
 
+Cross-session — vault wypełnia się sam:
+Gdy w Twojej sesji zapada decyzja albo wychodzi trwały fakt, który ma przeżyć tę
+sesję (architektura, zamknięta decyzja, pułapka, stan wdrożenia), zgłoś to sesji
+o cwd `/home/m/obsidian` — adres z `ListAgents`, bo nazwy zmieniają się po
+restarcie. Wysyłasz wskaźnik: czego dotyczy plus plik w repo, który to opisuje.
+NIE wysyłasz statusu zadań, numerów commitów ani sekretów. Do vaulta nie piszesz
+sam — formatu i indeksów pilnuje sesja vaulta. Nie ma jej na liście: fakt zostaje
+w repo, zgłosisz następnym razem.
+
 Dyscyplina kodu (Karpathy — zawsze; przy trywialnych zadaniach zdrowy rozsądek):
 - Prostota: minimum kodu rozwiązujące problem; nic ponad to, o co proszono; bez
   abstrakcji dla kodu użytego raz, bez nieproszonej elastyczności/konfigurowalności,

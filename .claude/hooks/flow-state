@@ -36,6 +36,12 @@ import sys
 FIELDS = ("task", "stage", "spec", "plan", "worktree", "branch", "base")
 STAGES = ("triage", "design", "plan", "isolate", "implement", "inline", "finish")
 LIVE_KEYS = ("worktree", "plan", "spec", "tasks")
+# A free-form status is a silent-failure machine: the status line and
+# flow-context both pattern-match on it, so a status nobody recognises reads as
+# "no progress" instead of failing loudly. `complete` is the word the skills
+# documented before `done` won in practice; it is kept as an alias.
+TASK_STATUSES = ("started", "done", "blocked")
+TASK_ALIASES = {"complete": "done"}
 
 
 def git(cwd, *args):
@@ -268,7 +274,11 @@ def main(argv):
     if command == "task":
         if len(args) < 2:
             die("usage: flow-state task N STATUS [NOTE]")
-        entry = {"n": args[0], "status": args[1]}
+        status = TASK_ALIASES.get(args[1].strip().lower(), args[1].strip().lower())
+        if status not in TASK_STATUSES:
+            die(f"unknown task status: {args[1]} — use one of: "
+                f"{', '.join(TASK_STATUSES)}")
+        entry = {"n": args[0], "status": status}
         if len(args) > 2:
             entry["note"] = " ".join(args[2:])
         existing = state.get("tasks")

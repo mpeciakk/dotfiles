@@ -271,7 +271,7 @@ case "$out" in *"already open"*) report ok "init refuses over a run with only a 
 "$STATE" --cwd "$ORD" init led >/dev/null
 "$STATE" --cwd "$ORD" task 2 complete b >/dev/null
 "$STATE" --cwd "$ORD" task branch-review complete r >/dev/null
-"$STATE" --cwd "$ORD" task 10 pending c >/dev/null
+"$STATE" --cwd "$ORD" task 10 started c >/dev/null
 [ "$("$STATE" --cwd "$ORD" get tasks | python3 -c 'import json,sys; print(",".join(t["n"] for t in json.load(sys.stdin)))')" = "2,10,branch-review" ] \
   && report ok "ledger orders numbers first, named gates after" \
   || report no "ledger order" "$("$STATE" --cwd "$ORD" get tasks)"
@@ -400,6 +400,64 @@ sl_payload "$REPO" | "$SL" | tail -1 | grep -q "demo" \
   && report ok "flow line names the run" || report no "flow line content"
 out=$(printf 'not json' | "$SL"; echo "rc=$?")
 case "$out" in *rc=0*) report ok "status line survives junk input";; *) report no "status line on junk" "$out";; esac
+
+echo "=== ledger vocabulary ==="
+VOC=$ROOT/vocab; mkrepo "$VOC" >/dev/null || fixture_fail "vocab repo"
+"$STATE" --cwd "$VOC" init voc >/dev/null
+out=$("$STATE" --cwd "$VOC" task 1 finished 2>&1)
+case "$out" in
+  *"task status"*) report ok "unknown task status is refused, not stored silently";;
+  *) report no "unknown status accepted silently" "$out";;
+esac
+"$STATE" --cwd "$VOC" task 1 complete >/dev/null 2>&1
+st=$("$STATE" --cwd "$VOC" get tasks | python3 -c 'import json,sys; t=json.load(sys.stdin); print(t[0]["status"] if t else "")')
+[ "$st" = done ] && report ok "the documented 'complete' normalises to done" \
+  || report no "complete not normalised" "$st"
+bad=""
+for s in started done blocked; do
+  "$STATE" --cwd "$VOC" task 2 "$s" >/dev/null 2>&1 || bad="$bad $s"
+done
+[ -z "$bad" ] && report ok "canonical statuses accepted (started, done, blocked)" \
+  || report no "canonical status rejected:$bad"
+"$STATE" --cwd "$VOC" task 3 DONE >/dev/null 2>&1 \
+  && report ok "status matching is case-insensitive" || report no "uppercase status rejected"
+
+echo "=== status line task counter ==="
+SLR=$ROOT/slcount; mkrepo "$SLR" >/dev/null || fixture_fail "counter repo"
+"$STATE" --cwd "$SLR" init counting >/dev/null
+mkdir -p "$SLR/.flow/plans"
+PLAN=$SLR/.flow/plans/p.md
+: > "$PLAN"
+for n in 1 2 3 4 5 6 7 8 9; do printf '### Task %d: t\n\nbody\n\n' "$n" >> "$PLAN"; done
+[ "$(grep -c '^### Task' "$PLAN")" = 9 ] || fixture_fail "plan fixture has no tasks"
+"$STATE" --cwd "$SLR" set plan="$PLAN" >/dev/null || fixture_fail "could not record plan"
+for n in 1 2 3 4 5; do "$STATE" --cwd "$SLR" task "$n" done >/dev/null 2>&1; done
+"$STATE" --cwd "$SLR" task 6 started >/dev/null 2>&1
+[ "$("$STATE" --cwd "$SLR" get tasks | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')" = 6 ] \
+  || fixture_fail "ledger fixture did not take"
+line=$(sl_payload "$SLR" | "$SL" | tail -1)
+case "$line" in *5/9*) report ok "counter: tasks done over the plan's total";; *) report no "counter denominator is not the plan total" "$line";; esac
+"$STATE" --cwd "$SLR" task 0 done >/dev/null 2>&1
+"$STATE" --cwd "$SLR" task branch-review done >/dev/null 2>&1
+line=$(sl_payload "$SLR" | "$SL" | tail -1)
+case "$line" in *5/9*) report ok "counter ignores the baseline (task 0) and named gates";; *) report no "counter counts non-plan entries" "$line";; esac
+"$STATE" --cwd "$SLR" set plan= >/dev/null
+line=$(sl_payload "$SLR" | "$SL" | tail -1)
+case "$line" in *5/6*) report ok "no plan: falls back to numbered ledger entries";; *) report no "counter fallback" "$line";; esac
+PLAN2=$SLR/.flow/plans/gone.md
+"$STATE" --cwd "$SLR" set plan="$PLAN2" >/dev/null
+line=$(sl_payload "$SLR" | "$SL" | tail -1)
+case "$line" in *5/6*) report ok "unreadable plan: falls back instead of crashing";; *) report no "missing plan breaks the counter" "$line";; esac
+
+echo "=== context reflects the real vocabulary ==="
+CTX=$ROOT/ctxvocab; mkrepo "$CTX" >/dev/null || fixture_fail "ctx repo"
+"$STATE" --cwd "$CTX" init ctxvoc >/dev/null
+"$STATE" --cwd "$CTX" set worktree="$CTX" >/dev/null
+"$STATE" --cwd "$CTX" task 1 done >/dev/null 2>&1
+"$STATE" --cwd "$CTX" task 2 started >/dev/null 2>&1
+c=$(context_of "$(event_payload "$CTX" SessionStart)")
+case "$c" in *"complete: 1"*) report ok "a done task is reported to subagents as complete";; *) report no "done task not reported complete" "$c";; esac
+case "$c" in *"in flight: 2"*) report ok "a started task is reported in flight";; *) report no "started task not in flight" "$c";; esac
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

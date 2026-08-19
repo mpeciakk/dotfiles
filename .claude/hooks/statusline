@@ -22,6 +22,7 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -115,15 +116,36 @@ def model_segment(payload):
     return f"{BOLD}{model}{RESET}" + (f"{DIM} · {effort}{RESET}" if effort else "")
 
 
+PLAN_TASK = re.compile(r"^#+\s*Task\s+(\d+)", re.M)
+
+
+def plan_total(path):
+    """How many tasks the approved plan holds, or None if it cannot be read."""
+    if not path:
+        return None
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            numbers = {m.group(1) for m in PLAN_TASK.finditer(handle.read())}
+    except OSError:
+        return None
+    return len(numbers) or None
+
+
 def flow_line(state):
     if not state:
         return None
     bits = [f"{CYAN}{state.get('task') or 'run'}{RESET}", state.get("stage") or "?"]
     tasks = [t for t in (state.get("tasks") or []) if isinstance(t, dict)]
-    if tasks:
-        done = sum(1 for t in tasks if t.get("status") == "complete")
-        colour = GREEN if done == len(tasks) else YELLOW
-        bits.append(f"{colour}{done}/{len(tasks)}{RESET} tasks")
+    # The ledger gains an entry the moment a task starts, so its length is
+    # "tasks touched so far", never the run's size — only the plan knows that.
+    # Task 0 is the test baseline and named entries are gates; neither is a
+    # task of the plan, so neither belongs in this ratio.
+    numbered = [t for t in tasks if str(t.get("n")).isdigit() and int(t["n"]) >= 1]
+    total = plan_total(state.get("plan")) or len(numbered)
+    if total:
+        done = sum(1 for t in numbered if t.get("status") == "done")
+        colour = GREEN if done >= total else YELLOW
+        bits.append(f"{colour}{done}/{total}{RESET} tasks")
     if state.get("branch"):
         bits.append(state["branch"])
     if not state.get("worktree"):

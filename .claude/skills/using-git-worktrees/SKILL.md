@@ -113,7 +113,7 @@ full suite twice — and so nothing infers "baseline done" from the workspace
 being recorded, which happens one step earlier:
 
 ```bash
-~/.claude/hooks/flow-state task 0 complete "baseline green: <result>"
+~/.claude/hooks/flow-state task 0 done "baseline green: <result>"
 ```
 
 Report: worktree path, branch, test result, and what you are about to

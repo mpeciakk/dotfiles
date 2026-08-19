@@ -30,8 +30,6 @@ depends = []
 # settings.local.json is intentionally NOT mapped: it is the per-host override layer.
 ".claude/settings.json" = "~/.claude/settings.json"
 ".claude/CLAUDE.md" = "~/.claude/CLAUDE.md"
-".claude/AGENTIC-WORKFLOW.md" = "~/.claude/AGENTIC-WORKFLOW.md"
-".claude/statusline-command.sh" = "~/.claude/statusline-command.sh"
 ".claude/.mcp.json" = "~/.claude/.mcp.json"
 ".claude/agents" = "~/.claude/agents"
 ".claude/skills" = "~/.claude/skills"

@@ -28,7 +28,7 @@ re-dispatch entire completed task sequences — the most expensive failure
 observed in real sessions. After each clean review:
 
 ```bash
-~/.claude/hooks/flow-state task N complete "<base7>..<head7>, review clean"
+~/.claude/hooks/flow-state task N done "<base7>..<head7>, review clean"
 ```
 
 At skill start, read `~/.claude/hooks/flow-state show`: tasks marked complete
@@ -101,7 +101,7 @@ state file and `git log` over your recollection.
    must contain the covering tests, the command and the output before you
    re-dispatch the review. Minor findings go into the ledger note and get handed
    to the final review to triage.
-8. **Record it.** `flow-state task N complete ...`, mark the todo done, move on
+8. **Record it.** `flow-state task N done ...`, mark the todo done, move on
    — without checking in. The approved plan is the instruction. Stop only for
    BLOCKED you cannot resolve, ambiguity the plan does not settle, or the end
    of the plan.
@@ -115,7 +115,7 @@ task otherwise leaves a state that looks finished when the branch was never
 reviewed:
 
 ```bash
-~/.claude/hooks/flow-state task branch-review complete "<base7>..<head7>, findings triaged"
+~/.claude/hooks/flow-state task branch-review done "<base7>..<head7>, findings triaged"
 ```
 
 Then finishing-a-development-branch.
@@ -200,7 +200,7 @@ Reviewer: Spec ❌ missing progress reporting; extra --json flag. Important: mag
 [ONE fix subagent with all three findings]
 Fixer: removed --json, added progress reporting, extracted PROGRESS_INTERVAL, 8/8 passing.
 [re-review] Spec ✅, quality Approved.
-[flow-state task 2 complete "a1b2c3d..9f8e7d6, review clean"]
+[flow-state task 2 done "a1b2c3d..9f8e7d6, review clean"]
 ```
 
 ## Never

@@ -77,8 +77,8 @@ def subagent_context(state, agent_type):
 def session_context(state):
     tasks = state.get("tasks")
     tasks = [t for t in tasks if isinstance(t, dict)] if isinstance(tasks, list) else []
-    done = [str(t.get("n")) for t in tasks if t.get("status") == "complete"]
-    open_tasks = [str(t.get("n")) for t in tasks if t.get("status") != "complete"]
+    done = [str(t.get("n")) for t in tasks if t.get("status") == "done"]
+    open_tasks = [str(t.get("n")) for t in tasks if t.get("status") != "done"]
     lines = [
         "An open pipeline run exists in this repository (development-workflow).",
         f"  task: {state.get('task') or 'unnamed'}",
