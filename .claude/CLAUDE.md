@@ -27,7 +27,8 @@ Zasady:
    jest, decyzje w mocy, punkty otwarte. Czytasz go PRZED pytaniami do mnie
    i zostawiasz prawdziwym: decyzja wchodzi na bramce designu, sekcje opisujące
    stan aktualizuje ostatnie zadanie planu. Spec, który kłamie, jest gorszy niż
-   ubogi.
+   ubogi. Gdy projekt speca nie ma — to osobna robota, skill `writing-specs`,
+   nie produkt uboczny bieżącej zmiany.
 
 Dyscyplina kodu (Karpathy — zawsze; przy trywialnych zadaniach zdrowy rozsądek):
 - Prostota: minimum kodu rozwiązujące problem; nic ponad to, o co proszono; bez

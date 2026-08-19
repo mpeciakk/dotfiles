@@ -60,10 +60,17 @@ before you move on. Everything else runs straight through.
 Most projects here keep a **living spec** — `spec.md` at the project root, or
 per-component (`agent/spec.md`, `webui/spec.md`) in a monorepo. Use the nearest
 one above the code you are changing. It states what the project *is right now*:
-a numbered decision table with rationale, the architecture, the data model, the
-API contracts, and the open points. It is the highest-value context in the repo
-and the most likely to be stale — in this user's projects, five of seven specs
-had not been touched in over a month while their code moved on.
+its purpose, scope, architecture, data model, contracts, the decisions in force,
+and the points still open. It is the highest-value context in the repo and the
+most likely to be stale — in this user's projects, five of seven specs had not
+been touched in over a month while their code moved on.
+
+Their shape varies by project and you follow the one in front of you: numbered
+`## N. Section` headings, Polish, opening with `## 1. Cel`, and closing with open
+points (named "Punkty otwarte", "Otwarte kwestie i flagi", "Otwarte decyzje" —
+whatever that file already calls it). One spec records decisions in a numbered
+table with a rationale column; most record them inside the section they belong
+to. Match the file, do not impose a format on it.
 
 Two documents with **disjoint jobs**, which is what keeps them from drifting:
 
@@ -75,30 +82,33 @@ Two documents with **disjoint jobs**, which is what keeps them from drifting:
 
 So the design record keeps the reasoning that a statement of current state
 cannot hold, and the spec keeps the truth that a dated record goes stale about.
-Nothing is duplicated: link them by decision number ("resolved as D18" in the
-record; "see `.flow/specs/…`" in the D18 row).
+Nothing is duplicated: point one at the other — the record names the decision it
+resolved, and the spec entry names the record.
 
 **At this gate, write both:**
 
 1. The deliberation record to `.flow/specs/YYYY-MM-DD-<topic>-design.md` —
    approaches, trade-offs, what you rejected and why, the chosen design.
-2. The approved decision into the living spec: a new row in its decision table,
-   continuing its numbering (`D18`, not a new scheme), with the same columns it
-   already uses. Any new unknown goes into its open-points section; an unknown
+2. The approved decision into the living spec, **the way that spec already
+   records decisions**: a row in its decision table if it has one (continue its
+   numbering, keep its columns), otherwise a sentence in the section the decision
+   governs, dated. Any new unknown goes into its open-points section; an unknown
    this change *closes* gets struck there, dated.
 
-Match the spec's existing conventions — its numbering, its language (several of
-these specs are in Polish), its table columns, its section order. You are adding
-a row to someone's document, not imposing a format on it.
+If the spec has no decision record at all, propose adding one — a table with
+what/choice/why is the strongest form and the one spec here that has it is the
+most useful of the set — but propose it, do not retrofit someone's document as a
+side effect of an unrelated change.
 
 **Sections that describe state** — architecture, data model, API — are *not*
 updated here. They describe what exists, and it does not exist yet; the plan's
 last task updates them alongside the code, so they get reviewed together
 (writing-plans owns that).
 
-**If the project has no living spec:** say so once and ask whether to start one.
-It is a real commitment, not a side effect of this change — if the answer is no,
-the deliberation record alone is the output, exactly as before.
+**If the project has no living spec at all:** that is a bootstrap job, not a side
+effect of this change — say so and offer the writing-specs skill, which
+interviews for one and writes it. If the answer is no, the deliberation record
+alone is the output, exactly as before.
 
 **The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
 

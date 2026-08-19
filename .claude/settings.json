@@ -2,8 +2,15 @@
   "env": {
     "CBM_ALLOWED_ROOT": "/home/m",
     "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(~/.claude/hooks/flow-state:*)",
+      "Bash(~/.claude/skills/subagent-driven-development/scripts/task-brief:*)",
+      "Bash(~/.claude/skills/subagent-driven-development/scripts/review-package:*)",
+      "Bash(~/.claude/skills/subagent-driven-development/scripts/sdd-workspace:*)"
+    ]
   },
   "hooks": {
     "PreToolUse": [
@@ -108,6 +115,9 @@
       }
     ]
   },
+  "worktree": {
+    "baseRef": "head"
+  },
   "statusLine": {
     "type": "command",
     "command": "~/.claude/hooks/statusline",
@@ -116,7 +126,6 @@
   "enabledPlugins": {
     "claude-code-wakatime@wakatime": true,
     "andrej-karpathy-skills@karpathy-skills": true,
-    "claude-hud@claude-hud": true,
     "context7@context7-marketplace": true,
     "github@claude-plugins-official": false,
     "document-skills@anthropic-agent-skills": true,
@@ -162,17 +171,7 @@
       }
     }
   },
-  "permissions": {
-    "allow": [
-      "Bash(~/.claude/hooks/flow-state:*)",
-      "Bash(~/.claude/skills/subagent-driven-development/scripts/task-brief:*)",
-      "Bash(~/.claude/skills/subagent-driven-development/scripts/review-package:*)",
-      "Bash(~/.claude/skills/subagent-driven-development/scripts/sdd-workspace:*)"
-    ]
-  },
-  "worktree": {
-    "baseRef": "head"
-  },
+  "crossSessionInbound": "accept",
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark"

@@ -61,7 +61,8 @@ five of seven specs here went over a month untouched while their code moved.
 
 | # | Stage | Skill | State when the stage completes | Output | User gate |
 |---|-------|-------|----------------|--------|-----------|
-| 1 | Understand + design | brainstorming (grill-gate embedded) | `stage=design spec=<living spec.md>` | decision row in the project's living spec + deliberation record in `.flow/specs/`, one commit | ✋ approve design, then review what was written |
+| 0 | Bootstrap — **once per project**, only when it has no living spec | writing-specs | — (no run state; this is not a code change) | `spec.md` interviewed into existence and committed | ✋ review the spec |
+| 1 | Understand + design | brainstorming (grill-gate embedded) | `stage=design spec=<living spec.md>` | decision recorded in the project's living spec + deliberation record in `.flow/specs/`, one commit | ✋ approve design, then review what was written |
 | 2 | Plan | writing-plans (red-team on non-trivial plans) | `stage=plan plan=<path>` | plan of 2-5 min tasks with TDD steps → `.flow/plans/` | ✋ approve plan ("go") |
 | 3 | Isolate | using-git-worktrees | `stage=isolate worktree= branch= base=` | worktree + clean test baseline | — |
 | 4 | Implement | subagent-driven-development | `stage=implement`, plus a ledger entry per task | fresh implementer per task (strict TDD), per-task review, fix loop, final whole-branch review | — |
