@@ -14,10 +14,6 @@ prefer-no-csd
 
 screenshot-path "~/pictures/screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
-debug {
-  honor-xdg-activation-with-invalid-serial
-}
-
 recent-windows {
     debounce-ms 750
 
