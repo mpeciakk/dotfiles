@@ -49,6 +49,13 @@ PanelWindow {
 
         VolumeIndicator {}
 
+        MediaIndicator {
+            onClicked: {
+                mediaDrawer.anchorY = mapToItem(null, 0, height / 2).y;
+                mediaDrawer.open();
+            }
+        }
+
         // Optional status widgets — each hides itself when unsupported
         // (no battery / no NetworkManager). Click the network icon for the
         // Wi-Fi + Bluetooth management drawer.
@@ -145,5 +152,13 @@ PanelWindow {
         NetworkMenu {
             active: networkDrawer.shown
         }
+    }
+
+    Drawer {
+        id: mediaDrawer
+
+        screen: bar.screen
+
+        Media {}
     }
 }
