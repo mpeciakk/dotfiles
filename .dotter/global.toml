@@ -26,6 +26,7 @@ depends = []
 # Explicitly a symlink: the file documents `open = "bookmarks open {{id}}"`, which dotter's
 # automatic detection reads as a handlebars template and then fails to render.
 "config/herdr/plugins/config/herdr-navigator/config.toml" = { target = "~/.config/herdr/plugins/config/herdr-navigator/config.toml", type = "symbolic" }
+"config/herdr-automatic-rename/config.sh" = "~/.config/herdr-automatic-rename/config.sh"
 
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
 "config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
