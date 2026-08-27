@@ -16,3 +16,9 @@ export ASDF_DATA_DIR="$XDG_DATA_HOME"/toolchains/asdf
 export ANSIBLE_HOME="$XDG_DATA_HOME"/toolchains/ansible
 export KONAN_DATA_DIR="$XDG_DATA_HOME/toolchains/konan"
 export WINEPREFIX="$XDG_DATA_HOME"/wine
+
+# herdr-lazy reads its plugin list from here instead of herdr's plugin config dir, so the
+# declared plugin set and its lockfile live in this repo. Must be set session-wide: the
+# herdr *server* spawns the plugin and the manage pane, so a shell-only export would make
+# the CLI and the pane read different files.
+export HERDR_LAZY_LIST="$HOME/dotfiles/config/herdr/plugins.list"

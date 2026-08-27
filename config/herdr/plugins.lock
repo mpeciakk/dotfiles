@@ -1,0 +1,10 @@
+# herdr-lazy lock — resolved plugin set at last sync.
+# Each `owner/repo@commit` reproduces exactly via `plugin install --ref`.
+# Commits come from herdr's own `source.resolved_commit`.
+
+qu8n/herdr-automatic-rename@11cbee3aa54ea3a507550e4f58a2727de2b119eb
+aigorahub/herdr-lantern@f94266bb103a010f7ddf72bc19ba40450bc0233c
+natori-hrj/herdr-lazy@58ff156766ecd6a3a0eac4fbf32e1e1e62aa7dc4
+jeffarese/herdr-bar@01cc0620ec743ee7a62a561551b59d9be81bd563
+nikok6/herdr-mirror@fc879380267a29a86ed64f1b032063b46d82c4b1
+thanhdat77/herdr-navigator@9bdf30f03f53730e6232377a3fca3bdc6ed9f3ca
