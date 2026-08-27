@@ -13,6 +13,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -88,12 +89,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/home/m/.claude/hooks/herdr-agent-state.sh' session",
+            "command": "~/.claude/hooks/flow-context",
             "timeout": 10
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/flow-context",
+            "command": "bash '/home/m/.claude/hooks/herdr-agent-state.sh' session",
             "timeout": 10
           }
         ]
@@ -172,8 +178,9 @@
       }
     }
   },
-  "crossSessionInbound": "accept",
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
-  "theme": "dark"
+  "theme": "dark",
+  "crossSessionInbound": "accept",
+  "tui": "fullscreen"
 }
