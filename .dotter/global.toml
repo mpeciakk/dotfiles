@@ -17,6 +17,16 @@ depends = []
 "config/quickshell" = "~/.config/quickshell"
 "config/systemd/user/quickshell.service" = "~/.config/systemd/user/quickshell.service"
 
+# herdr — only the two config files; the rest of ~/.config/herdr is runtime state
+# (session.json, plugins.json, logs, sockets, installed plugins). config/herdr/plugins.list
+# and plugins.lock are deliberately NOT mapped: herdr-lazy is pointed at them in-place via
+# HERDR_LAZY_LIST (config/uwsm/env), because it rewrites the lock with rename(2), which
+# would replace a symlink with a regular file and silently detach it from this repo.
+"config/herdr/config.toml" = "~/.config/herdr/config.toml"
+# Explicitly a symlink: the file documents `open = "bookmarks open {{id}}"`, which dotter's
+# automatic detection reads as a handlebars template and then fails to render.
+"config/herdr/plugins/config/herdr-navigator/config.toml" = { target = "~/.config/herdr/plugins/config/herdr-navigator/config.toml", type = "symbolic" }
+
 "config/electron-flags.conf" = "~/.config/electron-flags.conf"
 "config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
 "config/keyd/default.conf" = { target = "/etc/keyd/default.conf", type = "symbolic", owner = "root" }
@@ -38,6 +48,8 @@ depends = []
 [host-pc.files]
 "hosts/pc/niri-output.kdl" = "~/.config/niri/output.kdl"
 "hosts/pc/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
+# Per-host: each machine's mirror config names the *other* machine.
+"hosts/pc/herdr-mirror-hosts.toml" = "~/.config/herdr-mirror/hosts.toml"
 
 [host-mac.files]
 "hosts/mac/niri-output.kdl" = "~/.config/niri/output.kdl"

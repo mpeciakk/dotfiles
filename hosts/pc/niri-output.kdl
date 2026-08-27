@@ -1,4 +1,4 @@
-output "DP-1" {
+output "DP-2" {
     mode "3840x2160@143.851"
     scale 1.5
     position x=0 y=0
