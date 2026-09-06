@@ -3,10 +3,14 @@
 # implementer reads in one call, so the task text never has to be pasted
 # through the controller's context.
 #
-# The plan's "## Global Constraints" section is prepended to every brief. The
-# plan states that every task's requirements implicitly include it, and the
-# reviewer is handed those constraints verbatim — an implementer that cannot
-# see them is being graded on requirements it was never shown.
+# Every heading-level-2-or-shallower preamble section that appears before the
+# first Task heading is prepended to every brief, in document order — not just
+# "## Global Constraints" by name, but any other shared section a plan author
+# adds (a setup snippet, a testing approach) that a task's own steps refer back
+# to in prose. A brief that silently drops such a section is unrecoverable from
+# the brief text alone: a real run's Task 1 said "run the snippet above" and
+# the generated brief never carried the snippet, caught only because the tool
+# it needed happened to already be installed.
 #
 # Section boundaries are heading-LEVEL aware: a task ends at the next heading
 # of the same or shallower level, so `#### Implementation notes` inside a task
@@ -58,24 +62,30 @@ if [ ! -s "$out" ]; then
   exit 3
 fi
 
-# Constraints are a flat list, so this block ends at the NEXT heading of any
-# level — level-awareness here would swallow every task that follows, since
-# tasks nest one level deeper than the `## Global Constraints` heading.
-constraints=$(awk '
-  /^```/ { infence = !infence; if (inblock) print; next }
+# Every section at heading level >= 2 before the first Task heading is
+# preamble — Global Constraints and anything else a plan author added at that
+# level. Capture starts at the first such heading (excluding the level-1
+# document title) and runs until a `Task N` heading of any level, so multiple
+# preamble sections are concatenated in document order rather than only the
+# one literally named "Global Constraints".
+preamble=$(awk '
+  /^```/ { infence = !infence; if (started) print; next }
+  !infence && /^---[ \t]*$/ { next }
   !infence && /^#+[ \t]/ {
-    if (tolower($0) ~ /^#+[ \t]+global[ \t]+constraints/) { inblock = 1; print; next }
-    else if (inblock) { exit }
+    match($0, /^#+/); lvl = RLENGTH
+    if ($0 ~ /^#+[ \t]+Task[ \t]+[0-9]/) exit
+    if (lvl >= 2) started = 1
   }
-  inblock { print }
+  started { print }
 ' "$plan")
 
-if [ -n "$constraints" ]; then
-  printf '%s\n\n---\n\n%s\n' "$constraints" "$(cat "$out")" > "$out.tmp"
+if [ -n "$preamble" ]; then
+  printf '%s\n\n---\n\n%s\n' "$preamble" "$(cat "$out")" > "$out.tmp"
   mv "$out.tmp" "$out"
 else
-  echo "note: ${plan} has no '## Global Constraints' section — if its project-wide
-requirements live under another heading, paste them into the dispatch yourself" >&2
+  echo "note: ${plan} has no heading-level preamble section before its tasks —
+if project-wide requirements live somewhere the plan's tasks reference, paste
+them into the dispatch yourself" >&2
 fi
 
 echo "wrote ${out}: $(wc -l < "$out" | tr -d ' ') lines" >&2

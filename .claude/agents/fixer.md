@@ -61,7 +61,7 @@ Reply with ONLY (under 15 lines):
 
 - **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
 - Findings fixed (one line each) and any declined, with the reason
-- Commits (short SHA + subject)
+- Commits (short SHA + subject — from `git log`, not recalled)
 - One-line test summary ("14/14 passing, output pristine")
 - The report file path
 

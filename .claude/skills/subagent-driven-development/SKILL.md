@@ -94,13 +94,26 @@ state file and `git log` over your recollection.
 6. **Dispatch the task reviewer** — `subagent_type: "task-reviewer"`, with
    `model: "opus"` for a non-trivial, security- or concurrency-touching diff.
    After a fix, re-package the same range (`BASE..HEAD`, not just the fix
-   commits) so the re-review judges the task, not the patch.
+   commits) so the re-review judges the task, not the patch — and pass the
+   prior findings plus the fixer's report alongside it. Without that, a fresh
+   reviewer either re-litigates ground the fixer already covered, or — hunting
+   for something to say — flags a new nitpick each round. Tell it what to treat
+   as settled; that single habit is what separated a clean second review from a
+   real run's ten-round one.
 7. **Fix loop.** Critical and Important findings go to ONE `fixer` dispatch with
    the complete list — per-finding fixers each rebuild context and re-run suites,
    which in a real session cost more than all its tasks combined. Its report
    must contain the covering tests, the command and the output before you
    re-dispatch the review. Minor findings go into the ledger note and get handed
    to the final review to triage.
+
+   **Circuit breaker: two rounds, not five.** If a second fix-and-re-review
+   still does not reach Approved, stop before dispatching a third fixer. Two
+   clean rounds of disagreement is a signal about the brief or the task, not
+   about needing one more patch — the brief is ambiguous, the task was too big
+   to be one task, or the reviewer and the plan disagree about what correct
+   means. Bring that to the user rather than looping a third time on your own
+   judgment.
 8. **Record it.** `flow-state task N done ...`, mark the todo done, move on
    — without checking in. The approved plan is the instruction. Stop only for
    BLOCKED you cannot resolve, ambiguity the plan does not settle, or the end
@@ -160,7 +173,7 @@ Your prompt supplies only what varies per dispatch:
 | Role | The prompt carries |
 |---|---|
 | `implementer` | task number and name; the **worktree and branch** (`flow-state get worktree` / `get branch` — never `pwd`, which lies on a resumed session); the brief path; the report path; one line on where this task fits; interfaces and decisions from earlier tasks the brief cannot know; your resolution of any ambiguity you noticed |
-| `task-reviewer` | brief path, implementer report path, diff-package path, BASE and HEAD, and the plan's Global Constraints copied verbatim |
+| `task-reviewer` | brief path, implementer report path, diff-package path, BASE and HEAD, and the plan's Global Constraints copied verbatim; on a re-review, also the prior findings and the fixer's report, so settled ground is named as settled |
 | `fixer` | the worktree and branch; the verbatim finding list with file:line each; the brief path; the existing report path to append to |
 | `branch-reviewer` | what was built, the requirements, the whole-branch diff-package path, and the run's deferred Minor findings as their own block |
 

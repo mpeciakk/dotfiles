@@ -6,9 +6,12 @@
 # being wiped, and it is shared with the main checkout.)
 #
 # In the working tree rather than under .git/, because agent writes to .git/ are
-# denied — which would block an implementer from writing its report. A
-# self-ignoring .gitignore keeps it out of `git status` without touching any
-# tracked file. Single source of truth, so task-brief and review-package cannot
+# denied — which would block an implementer from writing its report. The
+# .gitignore here excludes only *.diff (review-package's output — regenerable
+# from `git log`/`git diff` any time); briefs and reports (*.md) are tracked, so
+# they survive `git worktree remove --force` at finish instead of being deleted
+# with the worktree. finishing-a-development-branch commits them before
+# cleanup. Single source of truth, so task-brief and review-package cannot
 # drift apart.
 #
 # Usage: sdd-workspace
@@ -17,5 +20,5 @@ set -euo pipefail
 root=$(git rev-parse --show-toplevel)
 dir="$root/.flow/sdd"
 mkdir -p "$dir"
-printf '*\n' > "$dir/.gitignore"
+printf '*.diff\n' > "$dir/.gitignore"
 cd "$dir" && pwd

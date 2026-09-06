@@ -75,8 +75,13 @@ test-driven-development (before implementation code), systematic-debugging
 
 ## Model & effort per stage
 
-Session default is **Opus 5**, and `effortLevel` is your lever for the stages you
-run **inline** (xhigh for design, planning and debugging).
+Session default is **Sonnet 5 · high** — the baseline for every stage you run
+**inline**. Escalate to **Opus 5 · xhigh** only for a stage that is genuinely
+complex or demanding (a hard design call, a gnarly debug, a plan with many
+interacting parts), not as the default cost of doing design or planning at all.
+Ten review rounds and a milestone eating a full day in real runs were partly a
+symptom of running everything at maximum depth by default instead of reserving
+it for what actually needed it.
 
 **Dispatched roles carry their own model and effort** in their definition under
 `~/.claude/agents/` — that is where per-role thinking depth lives, since the
@@ -85,7 +90,7 @@ only to override the definition for one case.
 
 | Role | Where it is set | Default |
 |---|---|---|
-| Brainstorm / grill / planning / debugging (inline) | session | Opus 5 · xhigh |
+| Brainstorm / grill / planning / debugging (inline) | session | Sonnet 5 · high (Opus 5 · xhigh for a genuinely hard case) |
 | `implementer`, `fixer` | agent definition | Sonnet 5 · high (override to Opus for one genuinely hard task) |
 | `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus for non-trivial / security / concurrency) |
 | `branch-reviewer` | agent definition | Opus 5 · high |
@@ -104,7 +109,12 @@ prose — a reviewer that can fix things stops reporting them.
   Stop only on: a user gate, a BLOCKED task you cannot resolve, or ambiguity
   the spec does not settle.
 - **Escalation contract.** Ambiguity outside the spec → stop and ask. A fact
-  you can look up (test runner, existing pattern, API shape) → look it up.
+  you can look up — a SHA, a branch's real state, an API's actual shape, a
+  test's actual output, existing pattern — never gets reconstructed from memory
+  or assumption; check it with a tool call before you write it down or act on
+  it. `git cat-file -t <sha>` costs a second and is the difference between
+  "this session made it up" and "this session read the wrong state" — a hash
+  written down before it was read has, in a real run, turned out not to exist.
 - **Code discipline.** Simplicity, surgical changes, no guessing — CLAUDE.md
   and the karpathy-guidelines skill.
 

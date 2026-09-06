@@ -42,6 +42,23 @@ Do this mapping with cbm before Grep/Read: `search_graph` to locate the code you
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
+## External Dependencies Get Verified Before They Get Built On
+
+If a task's correctness depends on the real behavior of something outside this
+codebase — a third-party API's response shape, a tool's actual flag semantics,
+a service's real data — that assumption gets one task making one real,
+low-cost check (a single request, reading the actual docs, a smoke call)
+**before** any task that builds validation, parsing, or handling logic on top
+of it. Put it early in the task order, not folded into the task that uses it.
+
+This is not caution for its own sake: in a real run, four review rounds
+confirmed a ClickUp integration matched its design spec, and none of them could
+catch that the spec described a different ClickUp instance than the real one
+— because nothing had made one real call yet to check. Internal review
+verifies the code against the plan; it cannot verify the plan against reality.
+One cheap empirical check up front is worth more than an arbitrarily thorough
+review of code built on an unverified assumption.
+
 ## Keeping the Living Spec True
 
 The decision this change made is already in the spec's decision table

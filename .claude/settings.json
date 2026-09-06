@@ -178,9 +178,9 @@
       }
     }
   },
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "crossSessionInbound": "accept",
-  "tui": "fullscreen"
+  "crossSessionInbound": "accept"
 }

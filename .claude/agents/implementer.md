@@ -106,7 +106,8 @@ Write the full report to the report file named in your dispatch:
 Then reply with ONLY (under 15 lines — detail lives in the report file):
 
 - **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
-- Commits (short SHA + subject)
+- Commits (short SHA + subject — from `git log`, not recalled; a misremembered
+  SHA sends the reviewer chasing a commit that does not exist)
 - One-line test summary ("14/14 passing, output pristine")
 - Concerns, if any
 - The report file path

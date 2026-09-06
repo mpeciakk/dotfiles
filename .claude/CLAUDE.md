@@ -17,7 +17,9 @@ Zasady:
    search_graph; kto-co-woła / łańcuch wywołań → trace_path; źródło symbolu →
    get_code_snippet; struktura projektu → get_architecture. Grep/Glob/Read tylko do
    tekstu, configów i plików nie-kodu (oraz zawsze Read przed edycją pliku).
-3. Każda biblioteka/API → context7 (/docs), nie zgaduj z pamięci.
+3. Każda biblioteka/API → context7 (/docs); każdy fakt sprawdzalny narzędziem
+   (SHA, stan gałęzi, wynik komendy, istnienie symbolu) → sprawdź, nie zgaduj
+   z pamięci.
 4. Nic nie jest „zrobione" bez uruchomienia i dowodu.
 5. Implementacja idzie do **worktree** (natywne `EnterWorktree` — to ta jawna
    instrukcja projektu, której narzędzie wymaga), a stan runu trzyma
