@@ -24,6 +24,24 @@ before the merge — you are the last person who holds the whole change in mind,
 and this is the last moment the fix is cheap. Nothing enforces it; it is the step
 most easily skipped and the one whose absence you feel weeks later.
 
+**Archive the run's sdd reports before anything can delete them.** Task briefs,
+implementer reports and reviewer verdicts live in `.flow/sdd/` — real prose that
+does not exist anywhere else, unlike the diff packages there (`*.diff`), which
+`git log`/`git diff` regenerate on demand and stay ignored. Commit the rest now,
+while the worktree is still whole:
+
+```bash
+git add .flow/sdd
+git commit -m "docs: archive sdd reports for $(basename "$(~/.claude/hooks/flow-state get plan)" .md)"
+```
+
+No-op if there is nothing to add. Skipping this is exactly how a real run lost
+ten rounds of review findings: the reports sat gitignored inside the worktree,
+and `git worktree remove --force` at Step 6 deleted them along with everything
+else — the only things that survived were the living spec and whatever
+conclusions got stuffed into code comments instead, which is not what comments
+are for.
+
 ## Step 2 — what kind of workspace is this?
 
 ```bash
@@ -70,6 +88,18 @@ Record the stage now — the merge itself must not be denied:
 **1. Merge locally.** Merge before removing anything — a failed merge with the
 worktree already gone is unrecoverable work.
 
+Check where you actually are first: `git rev-parse --show-toplevel` against
+the recorded `worktree` (`flow-state get worktree`). Still inside a worktree
+`EnterWorktree` created (Step 2's second row) → exit it before touching the
+main checkout: `ExitWorktree` with `action: "keep"`, not `"remove"` — the
+merge has not happened yet, and removing the branch now would make it
+unrecoverable. A real run hit this directly: Bash from inside that session is
+confined to the worktree, and a git operation aimed at the shared main
+checkout was refused until the session left ("the isolation guard blocks git
+operations on the shared checkout from inside the worktree — correctly"). A
+worktree the session only `cd`'d into (Step 2's third row) carries no such
+confinement — skip this if that's what you're in.
+
 ```bash
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
 cd "$MAIN_ROOT"
@@ -96,26 +126,35 @@ and require the user to type `discard`. Then clean up the workspace (Step 6).
 
 Only for options 1 and 4; options 2 and 3 always keep the worktree.
 
-**Created by `EnterWorktree` (under `.claude/worktrees/`):** call `ExitWorktree`
-with `action: "remove"`. It deletes the worktree **and its branch**, and returns
-the session to its original directory — so there is no separate `git branch -d`
-afterwards; running one errors with "branch not found".
+**Created by `EnterWorktree` (under `.claude/worktrees/`):** check where you are
+first — `git rev-parse --show-toplevel` against the recorded `worktree`.
 
-Two things it will do that the naive reading does not expect:
+- **Still inside it** (discard, option 4 — nothing needed the main checkout):
+  call `ExitWorktree` with `action: "remove"`. It deletes the worktree **and
+  its branch**, and returns the session to its original directory — no
+  separate `git branch -d` afterwards; running one errors with "branch not
+  found".
+- **Already back in the main checkout** (merge, option 1 — Step 5 required
+  exiting with `action: "keep"` first to reach it): you already left this
+  worktree once. Do not call `ExitWorktree` again expecting it to still track
+  what you exited — fall straight to the git-based path below, using the
+  worktree path you recorded before you left.
+
+Two things the direct-removal call above will do that the naive reading does
+not expect:
 
 - It **refuses** to remove a worktree holding uncommitted files or commits not
-  on the original branch, and returns the list. After a verified merge, or a
-  discard the user confirmed by typing `discard`, that leftover is scratch:
-  re-invoke with `discard_changes: true`. Answering the refusal with
-  `action: "keep"` instead leaves the worktree alive *and* blocks the branch
-  delete — the lost-workspace failure, recreated at the last step.
-- It only knows worktrees **it created in this session**. Two common states it
+  on the original branch, and returns the list. After a discard the user
+  confirmed by typing `discard`, that leftover is scratch: re-invoke with
+  `discard_changes: true`. Answering the refusal with `action: "keep"` instead
+  leaves the worktree alive *and* blocks the branch delete — the
+  lost-workspace failure, recreated at the last step.
+- It only knows worktrees **it created in this session**. Two more states it
   cannot remove: a resumed run (it reports no active worktree session and
   changes nothing), and a worktree you re-entered with `path` — the tool's own
-  contract says it will not remove that one, and `action: "keep"` is the
-  documented way to return to your original directory. In both cases the
-  removal is yours to do: `keep` first if you are still inside it, then the git
-  path below. Do not report cleanup as done because the tool exited cleanly.
+  contract says it will not remove that one. In every state where it does not
+  apply, the removal is yours to do: the git path below. Do not report cleanup
+  as done because the tool exited cleanly.
 
 **Created by git, or from an earlier session (under `.worktrees/`,
 `worktrees/`, `.claude/worktrees/`):** `cd` to the main root first. Removing a
@@ -144,5 +183,7 @@ Finally, end the run: `~/.claude/hooks/flow-state clear`.
   the merged result.
 - Remove a worktree before the merge succeeded, or remove one you did not
   create.
+- Remove a worktree before `.flow/sdd` is committed (Step 1) — `--force`
+  deletes it right along with the untracked test artifacts it is meant for.
 - Delete the branch before removing the worktree that has it checked out.
 - Discard without typed confirmation, or force-push unless asked.

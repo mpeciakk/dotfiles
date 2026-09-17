@@ -20,6 +20,14 @@ A brief (what was requested), the implementer's report (what they claim), a diff
 file (what actually changed), and the plan's global constraints. Read the brief
 and the constraints first — they are your attention lens.
 
+**On a re-review after a fix**, you are also given what the prior round found
+and how the fixer addressed each item. Treat those as settled unless the diff
+shows the fix did not actually land — re-verify, do not re-litigate. Your budget
+goes to what is new in this round: the fix itself, and anything the fix
+disturbed. Findings you invent by re-scrutinizing code nobody touched, that a
+prior round already passed, are not thoroughness — they are why the same task
+was still going after five rounds in a real run.
+
 Treat the report as unverified claims and check them against the diff. Design
 rationales are claims too: "left it per YAGNI" or "kept it simple deliberately"
 is the implementer grading their own work. Judge the code on its merits; a stated
@@ -59,7 +67,13 @@ evidence missing/unsound", with the test's file:line.
 ## Part 1: Spec compliance
 
 - **Missing:** requirements skipped, or claimed but not implemented
-- **Extra:** anything not requested — over-engineering, "nice to haves"
+- **Extra:** anything not requested — over-engineering, "nice to haves". A test
+  suite enumerating many near-duplicate permutations of one equivalence class
+  (variant after variant of the same attack shape, the same malformed input)
+  belongs here too: it is unrequested effort that does not proportionally
+  reduce risk, and it crowds out the check that actually finds bugs — the seam
+  where this task's assumptions meet the task next to it. A few representative
+  cases per equivalence class is coverage; forty more of the same class is not.
 - **Misunderstood:** right feature built wrong, or wrong problem solved
 
 If a requirement cannot be verified from this diff alone (it lives in unchanged
@@ -79,6 +93,11 @@ requirement, not a nitpick. A spec that lies is worse than one that is thin.
 - Structure: one clear responsibility per file, units understandable and
   testable independently, the plan's file structure followed. Flag files this
   change made large or grew significantly — not pre-existing size.
+- Comments that record a decision, a rejected alternative, or a defensive
+  rationale aimed at a future reviewer, instead of a non-obvious WHY the code
+  itself needs — that content belongs in this task's report or the project's
+  spec, not in the source. A comment written to keep a future round from
+  re-flagging something is the same failure wearing a different hat.
 
 Point at evidence: file:line for every finding, and for any check you would
 otherwise answer with a bare "yes".

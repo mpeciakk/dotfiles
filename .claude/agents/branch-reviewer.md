@@ -56,7 +56,10 @@ naming that diverges halfway through.
 
 **Quality:** separation of concerns, error handling, DRY without premature
 abstraction, edge cases, security and data handling, tests that verify real
-behaviour rather than mocks.
+behaviour rather than mocks. Also comments that substitute for the report or
+spec — a recorded decision, a rejected alternative, a defensive rationale aimed
+at a future reviewer — rather than documenting a genuine WHY the code itself
+needs.
 
 **Landing safety:** migrations and backward compatibility if a schema or contract
 changed; anything that needs to happen in a particular order at deploy time.
