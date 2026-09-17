@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse guard for the development-workflow pipeline.
 
-Enforces two things prose demonstrably failed to enforce:
+Enforces four things prose demonstrably failed to enforce:
 
   1. **The controller does not write code.** Edit/Write/MultiEdit/NotebookEdit
      from the main thread are denied once a run has a workspace. Subagents pass
@@ -12,6 +12,23 @@ Enforces two things prose demonstrably failed to enforce:
      `Agent` dispatched with `isolation: "worktree"` are denied once a worktree
      is recorded; re-entering the recorded one by `path` is allowed. A second
      workspace is how a run loses track of where its work went.
+
+  3. **The controller does not poll for a dispatched subagent.** A short-interval
+     `ScheduleWakeup` naming an implementer, reviewer, fixer or red-team is
+     denied: the harness already re-invokes the session with a
+     `<task-notification>` when that work finishes. Each wakeup re-reads the
+     whole context, so the polling measured across these transcripts cost
+     millions of tokens per run for information that arrived on its own. This
+     one runs with or without run state — the first wakeup in the observed
+     sessions came at the design stage, before any worktree existed.
+
+  4. **A task gets at most two fix rounds.** The third `fixer` dispatch for the
+     same task is denied. Past two, the finding is not a patch away: it is the
+     brief or the design, and the next round belongs to the user. Measured
+     across these transcripts (deduplicated by tool-call id): 39 tasks went to
+     three rounds or more, 29 of them as fix→review→fix loops that a
+     "consecutive fixers" rule would miss, the worst eight rounds across two
+     hours and forty minutes.
 
 Commit location is NOT enforced here: deciding which tree a `git commit` targets
 means parsing arbitrary shell, which produced eleven bypasses and false denials
@@ -32,6 +49,7 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import re
 import shlex
 import sys
 
@@ -39,6 +57,21 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 WORKSPACE_TOOLS = {"EnterWorktree", "Agent", "Bash"}
 STOOD_DOWN = {"inline", "finish"}
+# Roles this pipeline dispatches. Naming one in a short wakeup is polling for
+# work the harness reports by itself.
+DISPATCHED_ROLES = ("implementer", "reviewer", "fixer", "red-team", "redteam",
+                    "subagent", "docs-researcher", "branch review", "task review")
+COMPLETION_WORDS = ("finish", "done", "complete", "report", "verdict", "result",
+                    "returned", "came back", "skończy", "zakończy", "gotow")
+# Standalone word only: hyphenated compounds ("agents-sdk", "agent-ops",
+# "multi-agent") are project and topic names, not a dispatch being waited on.
+AGENT_WORD = re.compile(r"(?<![\w-])agents?(?![\w-])", re.IGNORECASE)
+# The tool's own sanctioned use while dispatched work runs: a rare fallback
+# heartbeat in case the work hangs and never notifies. Below this, it is polling.
+FALLBACK_FLOOR_S = 1200
+# A task's brief or report names it; either identifies the task a fixer is on.
+TASK_KEY = re.compile(r"([^\s`\"']*/)task-(\d+)-(?:brief|report)\.md")
+MAX_FIX_ROUNDS = 2
 # A "fork" subagent inherits the controller's context and model, so letting it
 # write is the controller writing through a proxy.
 PROXY_AGENT_TYPES = {"fork"}
@@ -138,6 +171,94 @@ def creates_worktree(command):
     return False
 
 
+def polls_for_agent(text):
+    """True when the wakeup is about work a dispatched subagent is doing."""
+    low = text.lower()
+    if any(role in low for role in DISPATCHED_ROLES):
+        return True
+    # "agent" alone is too common (a project *about* agents); pair it with a
+    # word about the work being over.
+    return bool(AGENT_WORD.search(low)) and any(w in low for w in COMPLETION_WORDS)
+
+
+def check_wakeup(payload):
+    """Deny a short wakeup scheduled to check on a dispatched subagent."""
+    tool_input = payload.get("tool_input") or {}
+    if tool_input.get("stop"):
+        allow()  # ending a loop is always fine
+    delay = tool_input.get("delaySeconds")
+    if not isinstance(delay, (int, float)) or isinstance(delay, bool):
+        allow()  # nothing to judge
+    if delay >= FALLBACK_FLOOR_S:
+        allow()  # the sanctioned fallback heartbeat, not polling
+    text = " ".join(str(tool_input.get(key) or "") for key in ("reason", "prompt"))
+    if not polls_for_agent(text):
+        allow()
+    deny(
+        f"That subagent already wakes you: when it finishes, the harness re-invokes "
+        f"this session with a <task-notification>. A {int(delay)}s wakeup to check on "
+        "it turns one dispatch into a loop — every wakeup re-reads your whole "
+        "context, and in this setup's own transcripts that cost millions of tokens "
+        "per run for an answer that arrived by itself 30 seconds later. End the turn "
+        "instead: say what you dispatched and stop. A turn with no visible output is "
+        "correct here. ListAgents is not a waiting mechanism either. If you want a "
+        f"net against work that hangs and never notifies, one wakeup at "
+        f"{FALLBACK_FLOOR_S}s or more is the sanctioned form."
+    )
+
+
+def fix_rounds_file(root):
+    return os.path.join(root, ".flow", "run", "fix-rounds.json")
+
+
+def check_fix_rounds(payload, root, task):
+    """Deny the third fix round on one task, however the rounds were interleaved."""
+    # Returns instead of allow(): the workspace check still has to run after it.
+    tool_input = payload.get("tool_input") or {}
+    if tool_input.get("subagent_type") != "fixer":
+        return
+    match = TASK_KEY.search(tool_input.get("prompt") or "")
+    if not match:
+        # Nothing to attribute the round to. The dispatch table says a fixer
+        # prompt carries the brief path; without it this cap cannot see the task.
+        return
+    key = f"{match.group(1)}|{match.group(2)}"
+    path = fix_rounds_file(root)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            rounds = json.load(handle)
+        if not isinstance(rounds, dict):
+            rounds = {}
+    except (OSError, ValueError):
+        rounds = {}
+    count = rounds.get(key, 0) + 1
+    rounds[key] = count
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as handle:
+            json.dump(rounds, handle)
+        os.replace(tmp, path)
+    except OSError:
+        pass  # counting is best-effort; never break the dispatch over bookkeeping
+    if count <= MAX_FIX_ROUNDS:
+        return
+    deny(
+        f"Fix round {count} on task {match.group(2)}. Two rounds did not close it, "
+        "so the next patch will not either — what is failing is the brief or the "
+        "design, not the code, and each further round pays a fresh fixer, a fresh "
+        "review and your context. In this setup's own history 39 tasks went past "
+        "two rounds, the worst eight times in under three hours, each round fixing "
+        "the next variant of the same defect. Stop and put it to the user: what "
+        "the reviewer keeps finding, what the brief actually requires, and whether "
+        "the task needs re-briefing, re-planning, or a stronger implementer model. "
+        "If they hear all that and still want another round, that is their call to "
+        f"make out loud — the counter is {fix_rounds_file(root)}, and clearing this "
+        "task's entry is something you do on their say-so, never on your own to get "
+        f"past this message. [{task}]"
+    )
+
+
 def check_workspace(payload, state, worktree, task):
     tool = payload.get("tool_name")
     tool_input = payload.get("tool_input") or {}
@@ -171,8 +292,14 @@ def main():
     cwd = payload.get("cwd")
     cwd = cwd if isinstance(cwd, str) and cwd else os.getcwd()
 
-    module = flow_state()
     tool = payload.get("tool_name")
+    if tool == "ScheduleWakeup":
+        # Judged without run state: the polling starts at the design stage,
+        # before a worktree exists.
+        check_wakeup(payload)
+        allow()
+
+    module = flow_state()
     target = target_file(payload) if tool in EDIT_TOOLS else ""
 
     root = module.repo_root(cwd)
@@ -197,6 +324,8 @@ def main():
             allow()
         check_edit(payload, module, state, root, worktree, task, target)
     elif tool in WORKSPACE_TOOLS:
+        if tool == "Agent":
+            check_fix_rounds(payload, root, task)
         check_workspace(payload, state, worktree, task)
     allow()
 

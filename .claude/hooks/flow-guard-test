@@ -73,6 +73,26 @@ if iso: ti["isolation"] = iso
 print(json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Agent",
                   "cwd": cwd, "tool_input": ti}))' "$1" "${2:-}"
 }
+fixer_payload() { # cwd task_number [subagent_type]
+  python3 -c '
+import json, sys
+cwd, n, st = sys.argv[1:4]
+p = {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": cwd,
+     "tool_input": {"subagent_type": st,
+                    "prompt": f"Worktree: {cwd}\nBrief: {cwd}/.flow/sdd/run/task-{n}-brief.md\nFindings: …"}}
+print(json.dumps(p))' "$1" "$2" "${3:-fixer}"
+}
+wakeup_payload() { # cwd delaySeconds reason [prompt] | delay "stop" = a stop call
+  python3 -c '
+import json, sys
+cwd, delay, reason, prompt = sys.argv[1:5]
+if delay == "stop": ti = {"stop": True}
+elif delay == "": ti = {"reason": reason}
+else: ti = {"delaySeconds": float(delay), "reason": reason}
+if prompt: ti["prompt"] = prompt
+print(json.dumps({"hook_event_name": "PreToolUse", "tool_name": "ScheduleWakeup",
+                  "cwd": cwd, "tool_input": ti}))' "$1" "$2" "${3:-}" "${4:-}"
+}
 event_payload() { # cwd event
   python3 -c '
 import json, sys
@@ -369,8 +389,65 @@ python3 "$ROOT/validate-agents.py" "$BAD" >/dev/null 2>&1 \
   && report no "validator accepted a reviewer that can edit" \
   || report ok "validator rejects a read-only role that can edit"
 
+echo "=== a task gets at most two fix rounds ==="
+FR=$ROOT/fixrounds; mkrepo "$FR" >/dev/null || fixture_fail "fix-rounds repo"
+"$STATE" --cwd "$FR" init fixr >/dev/null
+"$STATE" --cwd "$FR" set worktree="$FR" >/dev/null
+check "first fix round is allowed"  allow "$(fixer_payload "$FR" 1)"
+check "second fix round is allowed" allow "$(fixer_payload "$FR" 1)"
+check "third fix round is denied"   deny  "$(fixer_payload "$FR" 1)"
+check "a fourth stays denied"       deny  "$(fixer_payload "$FR" 1)"
+check "a different task keeps its own budget" allow "$(fixer_payload "$FR" 2)"
+# The loop this cap exists for alternates fixer and reviewer, so a review must
+# not hand the task a fresh budget.
+decide "$(fixer_payload "$FR" 2 task-reviewer)" >/dev/null
+check "a review does not reset the budget" allow "$(fixer_payload "$FR" 2)"
+check "the third round is denied after a review too" deny "$(fixer_payload "$FR" 2)"
+check "a reviewer is never capped" allow "$(fixer_payload "$FR" 2 task-reviewer)"
+check "an implementer is never capped" allow "$(fixer_payload "$FR" 2 implementer)"
+r=$(deny_reason "$(fixer_payload "$FR" 1)")
+case "$r" in *brief*) report ok "cap deny points at the brief, not at more patching";;
+  *) report no "cap deny message" "$r";; esac
+case "$r" in *fix-rounds.json*) report ok "cap deny names the escape hatch and whose call it is";;
+  *) report no "cap deny hides the escape hatch" "$r";; esac
+# Clearing the counter must actually work, or the hatch is decoration.
+rm -f "$FR/.flow/run/fix-rounds.json"
+check "clearing the counter restores the budget" allow "$(fixer_payload "$FR" 1)"
+# Rule 2 must still fire on the same tool.
+check "worktree isolation still denied on an Agent dispatch" deny "$(agent_payload "$WT" worktree)"
+check "a plain dispatch still passes" allow "$(agent_payload "$WT")"
+
+echo "=== controller must not poll a dispatched subagent ==="
+check "short wakeup naming an implementer is denied" deny \
+  "$(wakeup_payload "$REPO" 300 "Waiting on Task 1 implementer to finish before dispatching review" "Check whether the Task 1 implementer has finished.")"
+check "short wakeup naming a reviewer is denied" deny \
+  "$(wakeup_payload "$REPO" 420 "Waiting on whole-branch review of the full 5-task diff")"
+check "short wakeup naming a fixer is denied" deny \
+  "$(wakeup_payload "$REPO" 240 "Waiting on Task 4 fixer (close-button exclusion)")"
+check "short wakeup naming red-team is denied" deny \
+  "$(wakeup_payload "$REPO" 120 "Waiting on plan-red-team subagent to finish its pre-mortem")"
+check "a bare 'agent' plus a completion word is denied" deny \
+  "$(wakeup_payload "$REPO" 90 "Waiting on the background research agent" "Check if the agent has completed")"
+# The polling starts at the design stage, so this must not depend on run state.
+check "denied in a repo with no run state at all" deny \
+  "$(wakeup_payload "$COLD" 300 "Waiting on the Task 2 reviewer verdict")"
+check "the sanctioned fallback heartbeat is allowed" allow \
+  "$(wakeup_payload "$REPO" 1800 "Fallback heartbeat while the branch reviewer runs")"
+check "stopping a loop is allowed" allow "$(wakeup_payload "$REPO" stop "")"
+check "external work the harness cannot report is allowed" allow \
+  "$(wakeup_payload "$REPO" 300 "Waiting for the CI build on the deploy branch to finish")"
+check "a hyphenated project name is not a dispatch" allow \
+  "$(wakeup_payload "$REPO" 300 "Checking whether the agents-sdk install completed")"
+check "a wakeup with no delay is not judged" allow \
+  "$(wakeup_payload "$REPO" "" "Waiting on the Task 1 implementer")"
+r=$(deny_reason "$(wakeup_payload "$REPO" 300 "Waiting on Task 1 implementer")")
+case "$r" in *task-notification*) report ok "deny names the mechanism that replaces polling";;
+  *) report no "poll deny message" "$r";; esac
+case "$r" in *ListAgents*) report ok "deny closes the ListAgents workaround";;
+  *) report no "poll deny does not mention ListAgents" "$r";; esac
+
 echo "=== settings.json wiring ==="
-for tool in Edit Write EnterWorktree Agent; do
+for tool in Edit Write EnterWorktree Agent ScheduleWakeup; do
   wired PreToolUse "$tool" flow-guard && report ok "$tool wired to flow-guard" || report no "$tool wired to flow-guard"
 done
 wired PreToolUse Bash flow-guard && report ok "Bash wired to flow-guard" || report no "Bash wired to flow-guard"

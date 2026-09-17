@@ -13,7 +13,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "opus[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -27,7 +27,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit|EnterWorktree|Agent",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|EnterWorktree|Agent|ScheduleWakeup",
         "hooks": [
           {
             "type": "command",
@@ -178,9 +178,18 @@
       }
     }
   },
-  "effortLevel": "xhigh",
+  "feedbackDrafts": "off",
+  "effortLevel": "high",
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "high"
+    },
+    "claude-sonnet-5": {
+      "effortLevel": "xhigh"
+    }
+  },
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "crossSessionInbound": "accept",
-  "tui": "fullscreen"
+  "crossSessionInbound": "accept"
 }
