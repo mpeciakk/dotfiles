@@ -13,3 +13,6 @@ records = true
 [daemon]
 
 [search]
+
+[logs]
+dir = "~/.local/state/atuin/logs"
