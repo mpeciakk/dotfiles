@@ -25,8 +25,7 @@ Every code task starts at the **`development-workflow`** skill, which **triages*
 Artifacts: specs → `.flow/specs/`, plans → `.flow/plans/`, execution scratch → `.flow/sdd/`.
 
 **Always-on discipline** (fires on trigger, any stage): `test-driven-development`,
-`systematic-debugging` (independent failures investigated in parallel via
-`dispatching-parallel-agents`), `verification-before-completion`,
+`systematic-debugging` (independent failures investigated in parallel),
 `receiving-code-review`. Candor (anti-sycophancy) and code discipline (Karpathy)
 live always-on in `CLAUDE.md`.
 

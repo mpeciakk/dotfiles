@@ -47,7 +47,7 @@ Use for ANY technical issue:
 
 The four phases below run **per bug**. When you face several *independent* failures at once — different test files, different subsystems, unrelated root causes — don't investigate them one after another. Dispatch one subagent per independent failure in a single message so they run concurrently; each runs the four phases on its own failure, then you integrate the fixes.
 
-**REQUIRED SUB-SKILL:** dispatching-parallel-agents — for scoping each agent, avoiding shared-state conflicts, and integrating results.
+Give each agent one domain (a single test file or subsystem), the symptom evidence inline, a stated read-only scope, and a named deliverable: root cause, the lines involved, and the minimal change it recommends. Then sequence the fixes yourself — one writer at a time.
 
 Only parallelize genuinely independent failures: if fixing one might fix or affect another, or they touch the same code, investigate together first (parallel agents editing overlapping code conflict). Within a single bug, stay sequential — one hypothesis at a time (Phase 3).
 
@@ -216,9 +216,16 @@ You MUST complete each phase before proceeding to the next.
    - Are we "sticking with it through sheer inertia"?
    - Should we refactor architecture vs. continue fixing symptoms?
 
-   **Discuss with your human partner before attempting more fixes**
+   **Stop and put it to the user before attempting more fixes**
 
    This is NOT a failed hypothesis - this is a wrong architecture.
+
+   **Inside a plan run this threshold is enforced, not advised.** The third
+   `fixer` dispatch on one task is denied by `hooks/flow-guard`, which counts
+   rounds per task in `.flow/run/fix-rounds.json` — see subagent-driven-development
+   step 7. Same number, arrived at independently: the transcripts show 39 tasks
+   that went past two rounds, 29 of them alternating fix and review so each round
+   looked like progress. If you change the threshold here, change it there too.
 
 ## Red Flags - STOP and Follow Process
 
@@ -239,14 +246,14 @@ If you catch yourself thinking:
 
 **If 3+ fixes failed:** Question the architecture (see Phase 4.5)
 
-## your human partner's Signals You're Doing It Wrong
+## Redirections that mean you skipped Phase 1
 
-**Watch for these redirections:**
-- "Is that not happening?" - You assumed without verifying
-- "Will it show us...?" - You should have added evidence gathering
-- "Stop guessing" - You're proposing fixes without understanding
-- "Ultra-think this" - Question fundamentals, not just symptoms
-- "We're stuck?" (frustrated) - Your approach isn't working
+**Watch for questions of this shape, however they are worded:**
+- asking whether the thing you asserted is actually happening — you assumed without verifying
+- asking what a change would *show* — you should have gathered evidence first
+- being told to stop guessing — you are proposing fixes without understanding
+- being told to think harder about fundamentals — question the design, not the symptom
+- visible frustration that the approach is not working
 
 **When you see these:** STOP. Return to Phase 1.
 
@@ -293,12 +300,12 @@ These techniques are part of systematic debugging and available in this director
 
 **Related skills:**
 - **test-driven-development** - For creating failing test case (Phase 4, Step 1)
-- **verification-before-completion** - Verify fix worked before claiming success
+- **CLAUDE.md rule 4** - run the fix and quote the output before claiming success
 
 ## Real-World Impact
 
-From debugging sessions:
-- Systematic approach: 15-30 minutes to fix
-- Random fixes approach: 2-3 hours of thrashing
-- First-time fix rate: 95% vs 40%
-- New bugs introduced: Near zero vs common
+The measured case in this setup: one task took 8 fix rounds across 2 hours and 40
+minutes, each round patching the next variant of one defect, because no round went
+back to Phase 1. The prompt that finally closed it said so — "the previous three
+rounds each fixed one variant and review kept finding the next." Root cause first
+is not slower than that; nothing is slower than that.

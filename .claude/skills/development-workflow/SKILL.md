@@ -46,8 +46,9 @@ it. If a run genuinely should be inline, record it (`flow-state set
 stage=inline`) and say so.
 
 **4. One writer per working tree, ever** — parallel dispatch is for read-only
-agents; see dispatching-parallel-agents. Nothing enforces this one, so it is on
-you.
+agents (exploration, review, independent diagnosis), issued in one response.
+Two agents writing in one tree collide on the index and the lock. Nothing
+enforces this one, so it is on you.
 
 **5. The project's living spec is context in and output out.** Most projects here
 keep a `spec.md` (root, or per-component in a monorepo) stating what the project
@@ -70,8 +71,9 @@ five of seven specs here went over a month untouched while their code moved.
 
 **Always-on discipline** — fires whenever its trigger matches, at any stage:
 test-driven-development (before implementation code), systematic-debugging
-(any bug or unexpected behavior), verification-before-completion (before any
-"done / passing / fixed" claim), receiving-code-review (acting on feedback).
+(any bug or unexpected behavior), receiving-code-review (acting on feedback).
+Evidence before any "done / passing / fixed" claim is CLAUDE.md's rule 4, not a
+skill: name the command that proves it, run it, quote the output.
 
 ## Model & effort per stage
 
@@ -122,8 +124,8 @@ other code depends on, anything security- or data-sensitive, or a bundle of
 (say, a `--json` flag with output guarantees) belongs here, scaled down.
 
 The bypass is for changes whose correctness is self-evident, not for work you
-would rather not process. A triaged-out change still gets candor and
-verification-before-completion.
+would rather not process. A triaged-out change still gets candor, and still gets
+run and shown to work before you call it done.
 
 **A trivial change that arrives mid-run is not a bypass.** With a run open at
 `stage=implement`, the guard denies your edit — correctly, because the run owns

@@ -4,7 +4,18 @@
 
 When you fix a bug caused by invalid data, adding validation at one place feels sufficient. But that single check can be bypassed by different code paths, refactoring, or mocks.
 
-**Core principle:** Validate at EVERY layer data passes through. Make the bug structurally impossible.
+**Core principle:** put a check on every path that can *reach* the bad state — not on every layer the data happens to pass through.
+
+**The test for each candidate check: can something reach this point without having
+gone through the check above it?** Another caller, a mock, a different platform, a
+future refactor that inlines the entry point. If yes, the check earns its place. If
+the layer above it structurally guarantees the value, the check is handling an
+impossible case, and CLAUDE.md's code discipline rules it out — it reads as a
+real guard to the next person, so they leave it, and it protects nothing.
+
+That distinction is what the worked example below actually shows: each of its four
+layers was reachable by a path the others did not cover. Read it as four earned
+checks, not as a quota of four.
 
 ## Why Multiple Layers
 
@@ -90,8 +101,10 @@ When you find a bug:
 
 1. **Trace the data flow** - Where does bad value originate? Where used?
 2. **Map all checkpoints** - List every point data passes through
-3. **Add validation at each layer** - Entry, business, environment, debug
-4. **Test each layer** - Try to bypass layer 1, verify layer 2 catches it
+3. **Keep the ones something can reach independently** - for each, name the path
+   that arrives there without passing the check above. No such path, no check.
+4. **Test each layer you kept** - bypass layer 1, verify layer 2 actually catches
+   it. A layer you cannot write a bypass test for was not reachable, so drop it.
 
 ## Example from Session
 
@@ -119,4 +132,5 @@ All four layers were necessary. During testing, each layer caught bugs the other
 - Edge cases on different platforms needed environment guards
 - Debug logging identified structural misuse
 
-**Don't stop at one validation point.** Add checks at every layer.
+**Don't stop at one validation point** when a second path reaches the same state —
+and don't add a second one when nothing does.

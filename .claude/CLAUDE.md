@@ -8,7 +8,7 @@ brainstorming (z wbudowanym grill-gate) → writing-plans → using-git-worktree
 subagent-driven-development (implementacja w TDD + review per-task + finalny
 review całej gałęzi) → finishing-a-development-branch.
 Ambientowo, gdy pasuje trigger: test-driven-development, systematic-debugging,
-verification-before-completion, receiving-code-review.
+receiving-code-review.
 
 Zasady:
 1. Skille procesowe (development-workflow, brainstorming, systematic-debugging,

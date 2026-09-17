@@ -48,6 +48,10 @@ diff-package path, and the run's deferred Minor findings **as their own block** 
 mixed into the requirements, a reviewer reads them as things the branch was
 supposed to deliver and reports each unfixed one as a spec gap.
 
+Then end the turn and wait for the notification — not for a wakeup you schedule
+yourself. A branch review runs for minutes; polling it re-reads your whole
+context every few minutes for nothing.
+
 **4. Act on it.** Critical and Important findings go to ONE fix subagent with
 the complete list; Minor findings get recorded, not silently dropped. If the
 reviewer is wrong, push back with the code or test that proves it — but never

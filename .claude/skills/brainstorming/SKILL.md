@@ -88,7 +88,18 @@ resolved, and the spec entry names the record.
 **At this gate, write both:**
 
 1. The deliberation record to `.flow/specs/YYYY-MM-DD-<topic>-design.md` —
-   approaches, trade-offs, what you rejected and why, the chosen design.
+   **the branch you did not take**: approaches considered, what you rejected and
+   why, what this change deliberately leaves out of scope. Head each section with
+   the decision it resolved (`## D29 — …`) so record and spec entry point at each
+   other. Tens of lines, not hundreds.
+
+   **Not the chosen design's mechanism.** That is state: it belongs in the spec
+   entry below, and its execution belongs in the plan's tasks. Restating it here
+   makes a third copy that goes stale the first time the implementation deviates
+   — in this user's projects the records already run to two thirds the length of
+   the spec, and the overlap is almost entirely chosen-design prose whose spec
+   decision row says the same thing. Anything the plan writer will need about the
+   chosen design goes into that row, not here.
 2. The approved decision into the living spec, **the way that spec already
    records decisions**: a row in its decision table if it has one (continue its
    numbering, keep its columns), otherwise a sentence in the section the decision

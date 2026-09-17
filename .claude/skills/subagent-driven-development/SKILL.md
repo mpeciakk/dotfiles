@@ -23,6 +23,19 @@ handoff for an invisible one.
 **One implementer at a time.** Two agents writing in one working tree fight
 over the index and the lock. Parallel dispatch is for read-only agents only.
 
+**After a dispatch, the turn ends.** The harness re-invokes this session with a
+`<task-notification>` when the subagent finishes — that is the wake signal, and
+it arrives on its own. Do not schedule a `ScheduleWakeup` to check on it and do
+not poll `ListAgents`: each wakeup re-reads your entire context, and one
+`ScheduleWakeup` puts the session in a loop that must keep calling itself to
+stay alive. Measured in this setup's own transcripts: 83% of all wakeups were
+waiting on a subagent, one task drew five `ListAgents` calls in 26 seconds, and
+the notification arrived by itself half a minute later anyway — millions of
+tokens per run for an answer that was already coming. A guard now denies it
+(hooks/flow-guard). Say what you dispatched and stop; a turn whose only visible
+output is that sentence is correct here. The one sanctioned wakeup is a single
+fallback at 1200s or more, for work that might hang and never notify at all.
+
 **Progress lives in the state file.** Compaction has made controllers
 re-dispatch entire completed task sequences — the most expensive failure
 observed in real sessions. After each clean review:
@@ -95,12 +108,23 @@ state file and `git log` over your recollection.
    `model: "opus"` for a non-trivial, security- or concurrency-touching diff.
    After a fix, re-package the same range (`BASE..HEAD`, not just the fix
    commits) so the re-review judges the task, not the patch.
-7. **Fix loop.** Critical and Important findings go to ONE `fixer` dispatch with
-   the complete list — per-finding fixers each rebuild context and re-run suites,
-   which in a real session cost more than all its tasks combined. Its report
-   must contain the covering tests, the command and the output before you
-   re-dispatch the review. Minor findings go into the ledger note and get handed
-   to the final review to triage.
+7. **Fix loop, two rounds maximum.** Critical and Important findings go to ONE
+   `fixer` dispatch with the complete list — per-finding fixers each rebuild
+   context and re-run suites, which in a real session cost more than all its
+   tasks combined. Its report must contain the covering tests, the command and
+   the output before you re-dispatch the review. Minor findings go into the
+   ledger note and get handed to the final review to triage.
+
+   **If two rounds did not close the task, stop — the third is denied by the
+   guard.** Past two rounds the reviewer is not finding new defects, it is
+   finding the next variant of one defect, and each round buys a fixer, a
+   review and a slice of your context to patch a symptom. The history this cap
+   came from: 39 tasks went past two rounds, 29 of them as fix→review→fix loops
+   that looked like progress, the worst eight rounds across two hours and forty
+   minutes of patching escape cases one at a time. What is wrong at that point
+   is upstream — an underspecified brief, a design the task cannot satisfy, or a
+   model too weak for it. Put it to the user with the reviewer's findings, what
+   the brief actually requires, and your read on which of the three it is.
 8. **Record it.** `flow-state task N done ...`, mark the todo done, move on
    — without checking in. The approved plan is the instruction. Stop only for
    BLOCKED you cannot resolve, ambiguity the plan does not settle, or the end
@@ -208,6 +232,11 @@ Fixer: removed --json, added progress reporting, extracted PROGRESS_INTERVAL, 8/
 - Skip the task review, or accept a report missing either verdict.
 - Move to the next task with unfixed Critical/Important findings, or skip the
   re-review after a fix.
+- Dispatch a third fixer for one task. Two rounds is the budget; past it,
+  escalate instead of patching (step 7).
+- Dispatch a fixer without the brief path in its prompt — 18% of the fixer
+  dispatches in this setup's history carried only the finding list, which is how
+  a fixer ends up satisfying a reviewer rather than the task.
 - Dispatch a reviewer without a diff file, or hand a subagent the whole plan
   instead of its brief.
 - Let implementer self-review stand in for review.

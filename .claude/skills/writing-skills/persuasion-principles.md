@@ -176,12 +176,47 @@ LLMs respond to the same persuasion principles as humans. Understanding this psy
 - Authority, commitment, scarcity most effective
 - Validates parahuman model of LLM behavior
 
+## Counter-evidence from this setup: a checkable rule needs a hook, not an imperative
+
+The 33% → 72% figure above is compliance in a lab, on a single request. Measured
+here, across 2030 session transcripts, the three most emphatically worded rules in
+this whole setup were the ones broken most:
+
+| The rule, verbatim | Where it lives | Times broken |
+|---|---|---|
+| "**Do NOT** schedule a short-interval wakeup to poll for background work you started" | the `ScheduleWakeup` tool description | 110 |
+| "**Never** … skip the re-review after a fix" | subagent-driven-development | 8 in a row on one task |
+| "If ≥ 3: **STOP** … **DON'T** attempt Fix #4" | systematic-debugging | 39 tasks |
+
+Each of those is textbook authority framing — imperative, capitalised,
+non-negotiable. None of them held. What holds, measured over the same
+transcripts, is `hooks/flow-guard`: a PreToolUse hook that inspects the call and
+denies it, with the reason in the denial message. Its own docstring opens
+"Enforces things prose demonstrably failed to enforce," and each of its rules was
+added *after* the prose version of that rule had already failed.
+
+So, before reaching for authority framing:
+
+**If the rule can be checked mechanically — a tool call's arguments, a file path,
+a counter, a sequence — write the hook.** The imperative then belongs in the
+denial message, where it arrives at the moment of the violation, aimed at the
+specific call, and cannot be rationalised past.
+
+Reserve persuasion for what no hook can see: judgement, ordering, when to stop
+and ask. And watch the second cost — the three skills here written hardest in
+this style (`test-driven-development`, `verification-before-completion`,
+`using-superpowers`) ran 371, 139 and 54 lines, most of it rebutting objections a
+fresh subagent has never raised. Two were cut by 80%; one was deleted for
+contradicting the pipeline's own triage rule. The prose bought no compliance and
+was paid for on every dispatch that preloaded it.
+
 ## Quick Reference
 
 When designing a skill, ask:
 
-1. **What type is it?** (Discipline vs. guidance vs. reference)
-2. **What behavior am I trying to change?**
-3. **Which principle(s) apply?** (Usually authority + commitment for discipline)
-4. **Am I combining too many?** (Don't use all seven)
-5. **Is this ethical?** (Serves user's genuine interests?)
+1. **Can a hook check this?** If yes, write the hook; the prose is a fallback.
+2. **What type is it?** (Discipline vs. guidance vs. reference)
+3. **What behavior am I trying to change?**
+4. **Which principle(s) apply?** (Usually authority + commitment for discipline)
+5. **Am I combining too many?** (Don't use all seven)
+6. **Is this ethical?** (Serves user's genuine interests?)
