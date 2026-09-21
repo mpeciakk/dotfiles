@@ -155,7 +155,10 @@ def test_specific_behavior():
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/path/test.py::test_name -v`
-Expected: FAIL with "function not defined"
+Expected: FAIL on the assertion, naming the wrong value — not ImportError,
+NameError or a collection error. A test that fails only because the code does
+not exist yet proves nothing about behaviour, and goes green the moment the
+symbol appears, whatever it does.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -183,6 +186,8 @@ Every step must contain the actual content an engineer needs. These are **plan f
 - "TBD", "TODO", "implement later", "fill in details"
 - "Add appropriate error handling" / "add validation" / "handle edge cases"
 - "Write tests for the above" (without actual test code)
+- An expected RED that is an ImportError, NameError or collection error — the
+  failure must be the assertion, or the test does not discriminate
 - "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
 - Steps that describe what to do without showing how (code blocks required for code steps)
 - References to types, functions, or methods not defined in any task
