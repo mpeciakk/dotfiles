@@ -1,8 +1,7 @@
 ---
 name: implementer
 description: Implements one task from an approved plan, in the run's workspace, test-first. Dispatched per task by subagent-driven-development; not for exploration, review, or multi-task work.
-model: sonnet
-effort: high
+model: haiku
 skills: test-driven-development
 color: green
 ---

@@ -93,7 +93,8 @@ only to override the definition for one case.
 | Role | Where it is set | Default |
 |---|---|---|
 | Brainstorm / grill / planning / debugging (inline) | session | Sonnet 5 · high (Opus 5 · xhigh for a genuinely hard case) |
-| `implementer`, `fixer` | agent definition | Sonnet 5 · high (override to Opus for one genuinely hard task) |
+| `implementer` | agent definition | Haiku 4.5, no effort setting (override to Sonnet 5 for a genuinely hard task) |
+| `fixer` | agent definition | Sonnet 5 · high (override to Opus for one genuinely hard task) |
 | `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus for non-trivial / security / concurrency) |
 | `branch-reviewer` | agent definition | Opus 5 · high |
 | `plan-red-team` | agent definition | Opus 5 · xhigh |

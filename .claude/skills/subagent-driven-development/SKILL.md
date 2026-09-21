@@ -225,9 +225,9 @@ hand artifacts over as files:
 
 ```
 Task 2: Recovery modes
-[task-brief → dispatch implementer (Sonnet 5) with brief + report paths + interfaces]
+[task-brief → dispatch implementer with brief + report paths + interfaces]
 Implementer: DONE, added verify/repair modes, 8/8 passing, 2 commits.
-[review-package a1b2c3d..e4f5g6h → dispatch task reviewer (Opus 5)]
+[review-package a1b2c3d..e4f5g6h → dispatch task reviewer]
 Reviewer: Spec ❌ missing progress reporting; extra --json flag. Important: magic number 100.
 [ONE fix subagent with all three findings]
 Fixer: removed --json, added progress reporting, extracted PROGRESS_INTERVAL, 8/8 passing.
