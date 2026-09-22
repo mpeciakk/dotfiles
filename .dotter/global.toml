@@ -37,6 +37,11 @@ depends = []
 "applications" = "~/.local/share/applications/"
 "autostart" = "~/.config/autostart"
 
+# Skrypty operacyjne. Katalog docelowy trzyma też binarki spoza repo (pnpm,
+# scrapling, codebase-memory-mcp), więc mapowanie jest na katalog z ukośnikiem —
+# dotter linkuje wtedy pojedyncze pliki, a nie podmienia całego ~/.local/bin.
+"bin" = "~/.local/bin/"
+
 # Claude Code — only config sources (no secrets/runtime/plugins; those stay local).
 # settings.local.json is intentionally NOT mapped: it is the per-host override layer.
 ".claude/settings.json" = "~/.claude/settings.json"

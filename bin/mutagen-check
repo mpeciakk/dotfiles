@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+#
+# mutagen-check.sh — sprawdza, czy wszystkie sesje Mutagena są w pełni
+# zsynchronizowane, bez konfliktów i problemów po obu stronach.
+#
+# Parsuje ludzki output `mutagen sync list --long` (stabilniejsze między
+# wersjami niż nazwy pól w szablonach Go).
+#
+# Kody wyjścia:
+#   0 — wszystko zsynchronizowane i czyste
+#   1 — któraś sesja nie jest zsynchronizowana / ma konflikt / problem
+#   2 — błąd (brak mutagena, brak sesji, daemon nie działa)
+#
+# Użycie:
+#   ./mutagen-check.sh              # jednorazowy check
+#   ./mutagen-check.sh -f           # najpierw wymuś flush --all, potem check
+#   ./mutagen-check.sh -w 60        # czekaj do 60 s aż wszystko zejdzie
+#   ./mutagen-check.sh -f -w 120    # flush + poll do 120 s
+
+set -euo pipefail
+
+if [[ -t 1 ]]; then
+  R=$'\e[31m'; G=$'\e[32m'; Y=$'\e[33m'; B=$'\e[1m'; N=$'\e[0m'
+else
+  R=''; G=''; Y=''; B=''; N=''
+fi
+
+FLUSH=0
+WAIT=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f|--flush) FLUSH=1; shift ;;
+    -w|--wait)  WAIT="${2:?-w wymaga liczby sekund}"; shift 2 ;;
+    -h|--help)  grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "Nieznany argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+# Źródło danych: prawdziwy mutagen, albo fixture (do testów).
+run_list() {
+  if [[ -n "${MUTAGEN_CHECK_FIXTURE:-}" ]]; then
+    cat "$MUTAGEN_CHECK_FIXTURE"
+  else
+    mutagen sync list --long
+  fi
+}
+
+if [[ -z "${MUTAGEN_CHECK_FIXTURE:-}" ]]; then
+  command -v mutagen >/dev/null 2>&1 || { echo "${R}mutagen nie jest zainstalowany${N}" >&2; exit 2; }
+fi
+
+# Parsuje output --long. Ustawia globalne OK, REPORT, COUNT.
+check_once() {
+  local raw
+  raw="$(run_list 2>/dev/null || true)"
+
+  OK=1
+  REPORT=""
+  COUNT=0
+
+  local name status conflicts problems disc have
+  _reset() { name=""; status=""; conflicts=0; problems=0; disc=0; have=0; }
+  _reset
+
+  _eval() {
+    [[ "$have" -eq 0 ]] && return
+    COUNT=$((COUNT + 1))
+    local label="${name:-<bez nazwy>}"
+    local reasons=""
+    [[ "${status,,}" != *"watching"* ]] && reasons+="status=\"${status:-?}\" "
+    [[ "$conflicts" -ne 0 ]] && reasons+="konflikt "
+    [[ "$problems" -ne 0 ]]  && reasons+="problemy "
+    [[ "$disc" -ne 0 ]]      && reasons+="rozłączony "
+    if [[ -z "$reasons" ]]; then
+      REPORT+="  ${G}✓${N} ${B}${label}${N} — zsynchronizowane"$'\n'
+    else
+      OK=0
+      REPORT+="  ${R}✗${N} ${B}${label}${N} — ${R}${reasons}${N}"$'\n'
+    fi
+  }
+
+  local line t
+  while IFS= read -r line; do
+    # ltrim (usuwa wiodące spacje/taby)
+    t="${line#"${line%%[![:space:]]*}"}"
+
+    # linia separatora między sesjami = koniec bieżącego rekordu
+    if [[ "$t" =~ ^-{10,}$ ]]; then
+      _eval; _reset; continue
+    fi
+
+    case "$t" in
+      Name:*)        name="${t#Name: }"; have=1 ;;
+      Identifier:*)  have=1; [[ -z "$name" ]] && name="${t#Identifier: }" ;;
+      Status:*)      status="${t#Status: }"; have=1 ;;
+      "Connected: No") disc=1 ;;
+      Conflicts:*)
+        # "Conflicts: none" = ok; "Conflicts:" (lista poniżej) lub cokolwiek innego = konflikt
+        [[ "$t" != "Conflicts: none" ]] && conflicts=1
+        ;;
+      "Scan problems:"*|"Transition problems:"*)
+        local rest="${t#*problems:}"; rest="${rest# }"
+        [[ -z "$rest" || ( "$rest" != "none" && "$rest" != "0" ) ]] && problems=1
+        ;;
+    esac
+  done <<< "$raw"
+  _eval  # ostatni rekord (gdy brak zamykającego separatora)
+
+  if [[ "$COUNT" -eq 0 ]]; then
+    echo "${Y}Brak sesji synchronizacji (albo daemon nie działa)${N}" >&2
+    return 2
+  fi
+  return 0
+}
+
+if [[ "$FLUSH" -eq 1 && -z "${MUTAGEN_CHECK_FIXTURE:-}" ]]; then
+  echo "Wymuszam flush wszystkich sesji..."
+  mutagen sync flush --all || true
+fi
+
+if [[ "$WAIT" -gt 0 ]]; then
+  echo "Czekam do ${WAIT}s aż wszystko się zsynchronizuje..."
+  deadline=$(( $(date +%s) + WAIT ))
+  while :; do
+    check_once || exit 2
+    [[ "$OK" -eq 1 ]] && break
+    if [[ $(date +%s) -ge $deadline ]]; then
+      echo "${Y}Timeout — poniżej stan na moment przerwania:${N}"; break
+    fi
+    sleep 3
+  done
+else
+  check_once || exit 2
+fi
+
+echo
+printf '%b' "$REPORT"
+echo
+if [[ "$OK" -eq 1 ]]; then
+  echo "${G}${B}Wszystko zsynchronizowane — brak konfliktów i problemów.${N}"
+  exit 0
+else
+  echo "${R}${B}Coś nie jest zsynchronizowane. Szczegóły: mutagen sync list --long${N}"
+  exit 1
+fi

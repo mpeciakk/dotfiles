@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+#
+# mutagen-sessions — deklaracja topologii synchronizacji.
+#
+# Idempotentne: tworzy brakujące sesje, istniejących nie rusza i nie
+# przekonfigurowuje (mutagen 0.18 nie umie zmienić parametrów żywej sesji —
+# zmiana konfiguracji to terminate + create, robione świadomie i ręcznie).
+#
+# Uruchamiaj na każdej maszynie po reinstalu albo gdy demon zgubi sesje.
+#
+#   mutagen-sessions          # utwórz brakujące
+#   mutagen-sessions -n       # pokaż, co by zrobił, bez tworzenia
+
+set -euo pipefail
+
+HUB="siriussync:/home/syncer/sync"
+DRY=""
+[ "${1:-}" = "-n" ] && DRY=1
+
+# Wspólne ignory dla obu sesji proj-*: artefakty buildów i środowisk.
+# Trzymane w jednym miejscu, żeby obie maszyny miały identyczną listę —
+# rozjazd tutaj produkuje pliki, które na jednym hoście jadą, a na drugim nie.
+IGNORES=(
+  .idea/ .DS_Store '*.swp' '*.swo' '*~' '*.log' '*.tmp'
+  .direnv/ .terraform/
+  node_modules/ .next/ .nuxt/ .svelte-kit/ .astro/ .turbo/ .vite/ .parcel-cache/
+  coverage/ .yarn/cache/
+  .venv/ venv/ __pycache__/ '*.pyc' .pytest_cache/ .mypy_cache/ .ruff_cache/
+  .tox/ '*.egg-info/' .ipynb_checkpoints/
+  .gradle/ .kotlin/ '*.class'
+  'cmake-build-*/' CMakeFiles/ CMakeCache.txt '*.o' '*.obj' '*.a' '*.so' '*.dylib'
+  build/ dist/ out/ target/
+)
+
+ign_args=()
+for p in "${IGNORES[@]}"; do ign_args+=("--ignore=$p"); done
+
+ensure() {
+  local name=$1 local_path=$2 remote=$3
+  shift 3
+  if mutagen sync list "$name" >/dev/null 2>&1; then
+    echo "=  $name — już istnieje, nie ruszam"
+    return
+  fi
+  if [ ! -d "$local_path" ]; then
+    echo "!  $name — pominięte, brak $local_path"
+    return
+  fi
+  if [ -n "$DRY" ]; then
+    echo "+  $name — utworzyłbym: $local_path -> $HUB/$remote $*"
+    return
+  fi
+  mutagen sync create --name="$name" "$@" "$local_path" "$HUB/$remote" >/dev/null
+  echo "+  $name — utworzone"
+}
+
+ensure proj-projects "$HOME/projects"         proj/projects "${ign_args[@]}"
+ensure proj-work     "$HOME/work"             proj/work     "${ign_args[@]}"
+ensure obsidian      "$HOME/obsidian"         obsidian
+ensure cc-projects   "$HOME/.claude/projects" cc/projects
+
+# zs1 celowo z --ignore-vcs, jako jedyna sesja: w ~/zs1/prace lądują klony
+# repozytoriów uczniów i ich katalogi .git nie mają po co jeździć przez hub.
+# Pozostałe sesje propagują .git (domyślne zachowanie mutagena).
+ensure zs1           "$HOME/zs1"              zs1           --ignore-vcs
