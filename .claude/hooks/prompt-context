@@ -17,6 +17,7 @@ https://github.com/VoxCore84/claude-code-timestamp-hook (MIT).
 import json
 import os
 import sys
+import traceback
 from datetime import datetime
 
 try:
@@ -73,4 +74,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        pass  # never take the timestamp down with the host lookup
+        traceback.print_exc()  # never take the timestamp down with the host lookup

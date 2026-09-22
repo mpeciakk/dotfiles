@@ -87,9 +87,13 @@ e=$(event_of "$PC" UserPromptSubmit)
 e=$(event_of "$PC" SubagentStart)
 [ "$e" = SubagentStart ] && report ok "SubagentStart is echoed back" || report no "wrong hookEventName" "$e"
 
-echo "=== a subagent gets told why the line exists, a prompt does not ==="
-c=$(context_of "$PC" UserPromptSubmit)
-case "$c" in *ciek*) report no "UserPromptSubmit should stay short" "$c";; *) report ok "UserPromptSubmit stays one short line";; esac
+echo "=== the context line is identical for a prompt and a subagent ==="
+c=$(context_of "$PC" SubagentStart)
+if [[ "$c" =~ ^\[CTX\]\ pc\ ·\ [A-Za-z]+\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]; then
+  report ok "SubagentStart carries the same line as UserPromptSubmit, no suffix"
+else
+  report no "SubagentStart line differs from the UserPromptSubmit shape" "$c"
+fi
 
 echo "=== bad input is survivable ==="
 out=$(printf 'not json' | "$PC"; echo "rc=$?")
@@ -100,20 +104,18 @@ case "$out" in "rc=0") report ok "empty stdin exits 0 and emits nothing";; *) re
 echo "=== a missing tomllib is survivable too ==="
 # An interpreter without tomllib must not take the whole hook down with it:
 # shadow the real module with one that raises on import, earlier in
-# PYTHONPATH, and check the hook still emits a well-formed envelope.
+# PYTHONPATH, and check the hook still emits a well-formed envelope. Runs
+# against $PC, which has a valid local.toml selecting host-pc — deliberate:
+# it is the one fixture where a broken import guard could report a *wrong*
+# host instead of unknown.
 NOTOMLLIB=$ROOT/no-tomllib
 mkdir -p "$NOTOMLLIB"
 printf 'raise ImportError("blocked for test")\n' > "$NOTOMLLIB/tomllib.py"
-out=$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"x"}' \
-  | PYTHONPATH="$NOTOMLLIB" "$PC"; echo "|rc=$?")
-body=${out%%|rc=*}; rc=${out##*|rc=}
-case "$rc" in
-  0) case "$body" in
-       *'"hookEventName": "UserPromptSubmit"'*'"additionalContext": "[CTX] unknown ('*)
-         report ok "a missing tomllib degrades to unknown rather than crashing";;
-       *) report no "missing tomllib produced a malformed envelope" "$body";;
-     esac;;
-  *) report no "missing tomllib made the hook exit non-zero" "$out";;
+c=$(PYTHONPATH="$NOTOMLLIB" context_of "$PC" UserPromptSubmit)
+case "$c" in
+  *"'NoneType' object has no attribute 'load'"*)
+    report ok "a missing tomllib degrades to unknown rather than crashing";;
+  *) report no "missing tomllib produced a malformed envelope" "$c";;
 esac
 
 echo "=== the hook is wired into settings.json ==="

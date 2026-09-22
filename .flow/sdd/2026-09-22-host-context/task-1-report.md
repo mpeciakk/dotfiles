@@ -259,3 +259,191 @@ brief or plan.
 ### Commits
 
 See top-level git log for the fix-pass commit(s) following this report.
+
+## Fix pass 2 (re-review, 2026-09-22)
+
+Three findings, all in `.claude/hooks/prompt-context` and its test.
+
+### Finding 1 — stale header and unfalsifiable assertion at `prompt-context-test:90-92`
+
+The section header still described the `SUBAGENT_NOTE` distinction that Fix
+pass 1 (Finding 1) removed, and the assertion grepped for `ciek`, a string
+nothing in the current hook can ever emit (the note that used to embed it is
+gone, and no fixture path contains it either) — an assertion that cannot fail
+is not a test.
+
+Replaced the header and assertion with one that checks what now actually
+matters: that `SubagentStart`'s line for `$PC` is exactly the same shape as
+`UserPromptSubmit`'s, with nothing appended after the timestamp. Anchored with
+a bash regex (`[[ "$c" =~ ^\[CTX\]\ pc\ ·\ ... $ ]]`) rather than a `case`
+wildcard, because "no suffix after the timestamp" needs an end anchor that a
+leading/trailing `*` glob can't express.
+
+```
+echo "=== the context line is identical for a prompt and a subagent ==="
+c=$(context_of "$PC" SubagentStart)
+if [[ "$c" =~ ^\[CTX\]\ pc\ ·\ [A-Za-z]+\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]; then
+  report ok "SubagentStart carries the same line as UserPromptSubmit, no suffix"
+else
+  report no "SubagentStart line differs from the UserPromptSubmit shape" "$c"
+fi
+```
+
+No hook behavior changed for this finding — the current hook already emits
+the same line shape for both events (that's what Fix pass 1 established); this
+is a test-correctness fix. Verified against the existing hook (safety net):
+assertion count held at 17, all green (see full-suite output below).
+
+### Finding 2 — `tomllib` assertion matched serialized JSON and didn't discriminate the branch at `prompt-context-test:105-115`
+
+The old assertion grepped raw stdout for `'"hookEventName": "UserPromptSubmit"'`
+and `'"additionalContext": "[CTX] unknown ('`, which (a) depended on
+`json.dump`'s default separators instead of going through `context_of`/
+`event_of` like every other assertion in the file, and (b) matched `[CTX]
+unknown (` — the same prefix the missing-`local.toml` branch (`NOFILE`
+fixture) produces — so it couldn't tell "tomllib is missing" from "local.toml
+is missing."
+
+Rewrote to use `context_of` and match only the text this branch produces —
+`AttributeError` from `tomllib.load(...)` when `tomllib` is `None`, whose
+message is `'NoneType' object has no attribute 'load'`:
+
+```
+c=$(PYTHONPATH="$NOTOMLLIB" context_of "$PC" UserPromptSubmit)
+case "$c" in
+  *"'NoneType' object has no attribute 'load'"*)
+    report ok "a missing tomllib degrades to unknown rather than crashing";;
+  *) report no "missing tomllib produced a malformed envelope" "$c";;
+esac
+```
+
+Kept it against `$PC` (valid `host-pc` `local.toml`) as instructed — verified
+manually that this fixture, with `tomllib` shadowed, actually produces that
+exact text (confirming the assertion isn't vacuous):
+
+```
+$ printf '{"hook_event_name":"UserPromptSubmit","prompt":"x"}' \
+  | PYTHONPATH=<no-tomllib-dir> <PC-fixture>/prompt-context
+{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext":
+"[CTX] unknown (.../local.toml: 'NoneType' object has no attribute 'load')
+· Tuesday 2026-09-22 21:47:12"}}
+```
+
+Assertion count held at 17 (a rewrite in place, not an addition).
+
+### Finding 3 — swallowed exception left no trace at `prompt-context:73-76`
+
+`except Exception: pass` matched `flow-context`'s shape but not its
+consequence: this branch's `.claude/CLAUDE.md` addition tells every session
+that a turn with no `[CTX]` line means the hook isn't deployed on that
+machine. A silently swallowed bug in `main()` would produce exactly that
+appearance forever, misdiagnosed as a deployment gap.
+
+Fix, kept minimal per the finding's constraints (never-fail contract stays,
+`except Exception` stays broad, `host()` untouched, malformed-stdin
+`SystemExit`-passthrough untouched):
+
+```python
+import traceback   # added to the stdlib import block
+...
+    try:
+        main()
+    except Exception:
+        traceback.print_exc()  # never take the timestamp down with the host lookup
+```
+
+Written test-first, but as a one-off manual reproduction rather than a
+permanent suite assertion — the dispatch's target output is "17 passed" for
+`prompt-context-test`, so a fourth behavioral assertion would contradict that.
+Verified with a scratch script that shadows the `datetime` module via
+`PYTHONPATH` so `datetime.now()` raises inside `main()` (past `host()`'s own
+try/except, so it only exercises the outer swallow):
+
+RED (before the fix, against the unmodified hook):
+```
+--- stdout ---
+
+rc=0
+--- stderr ---
+```
+Crash was fully silent — no trace, exit 0, matching the finding's complaint.
+
+GREEN (after adding `traceback.print_exc()`):
+```
+--- stdout ---
+
+rc=0
+--- stderr ---
+Traceback (most recent call last):
+  File ".../prompt-context", line 75, in <module>
+    main()
+    ~~~~^^
+  File ".../prompt-context", line 65, in main
+    line = f"[CTX] {machine} · {datetime.now():%A %Y-%m-%d %H:%M:%S}"
+                                ~~~~~~~~~~~~^^
+  File ".../no-datetime/datetime.py", line 4, in now
+    raise RuntimeError("blocked for test")
+RuntimeError: blocked for test
+```
+Still exits 0, still emits no stdout (never blocks a prompt), now traces to
+stderr. Also re-confirmed the malformed-stdin path is untouched (still relies
+on `SystemExit` passing through uncaught):
+```
+$ printf 'not json' | .claude/hooks/prompt-context; echo "rc=$?"
+rc=0
+$ printf '' | .claude/hooks/prompt-context; echo "rc=$?"
+rc=0
+```
+
+### Full suite
+
+```
+$ .claude/hooks/prompt-context-test
+=== the host label comes from dotter, not from the hostname ===
+PASS  host-pc is reported as pc
+PASS  host-mac is reported as laptop
+PASS  an unmapped host-* falls back to its own name
+=== an unknown host says so, with the reason ===
+PASS  no host package names the reason
+PASS  a missing local.toml names the reason
+PASS  an unparseable local.toml reports the decode error
+=== the envelope names the event it was called for ===
+PASS  UserPromptSubmit is echoed back
+PASS  SubagentStart is echoed back
+=== the context line is identical for a prompt and a subagent ===
+PASS  SubagentStart carries the same line as UserPromptSubmit, no suffix
+=== bad input is survivable ===
+PASS  malformed stdin exits 0 and emits nothing
+PASS  empty stdin exits 0 and emits nothing
+=== a missing tomllib is survivable too ===
+PASS  a missing tomllib degrades to unknown rather than crashing
+=== the hook is wired into settings.json ===
+PASS  UserPromptSubmit runs prompt-context
+PASS  SubagentStart runs prompt-context
+PASS  SubagentStart still runs flow-context
+PASS  SubagentStart still runs cbm-subagent-reminder
+PASS  no reference to the old hook name remains
+
+17 passed, 0 failed
+```
+
+```
+$ .claude/hooks/flow-guard-test | tail -5
+=== context reflects the real vocabulary ===
+PASS  a done task is reported to subagents as complete
+PASS  a started task is reported in flight
+
+124 passed, 0 failed
+```
+
+Unrelated to this fix pass (no file it covers was touched) — run only to
+confirm nothing broke.
+
+### Declined
+
+None. All three findings were applied as specified; none conflicted with the
+brief or plan.
+
+### Commits
+
+See top-level git log for the fix-pass 2 commit following this report.
