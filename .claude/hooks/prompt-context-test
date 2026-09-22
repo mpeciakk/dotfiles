@@ -88,20 +88,33 @@ e=$(event_of "$PC" SubagentStart)
 [ "$e" = SubagentStart ] && report ok "SubagentStart is echoed back" || report no "wrong hookEventName" "$e"
 
 echo "=== a subagent gets told why the line exists, a prompt does not ==="
-c=$(context_of "$PC" SubagentStart)
-case "$c" in *"hostname \`ciek\`"*) report ok "SubagentStart carries the hostname caveat";; *) report no "SubagentStart missing caveat" "$c";; esac
 c=$(context_of "$PC" UserPromptSubmit)
 case "$c" in *ciek*) report no "UserPromptSubmit should stay short" "$c";; *) report ok "UserPromptSubmit stays one short line";; esac
-# "this line is the only thing naming the machine" is false when the line names
-# no machine — a subagent told that goes and guesses from the hostname.
-c=$(context_of "$NOHOST" SubagentStart)
-case "$c" in *"only thing"*) report no "an unknown host must not claim to name the machine" "$c";; *) report ok "an unknown host drops the caveat";; esac
 
 echo "=== bad input is survivable ==="
 out=$(printf 'not json' | "$PC"; echo "rc=$?")
 case "$out" in "rc=0") report ok "malformed stdin exits 0 and emits nothing";; *) report no "malformed stdin mishandled" "$out";; esac
 out=$(printf '' | "$PC"; echo "rc=$?")
 case "$out" in "rc=0") report ok "empty stdin exits 0 and emits nothing";; *) report no "empty stdin mishandled" "$out";; esac
+
+echo "=== a missing tomllib is survivable too ==="
+# An interpreter without tomllib must not take the whole hook down with it:
+# shadow the real module with one that raises on import, earlier in
+# PYTHONPATH, and check the hook still emits a well-formed envelope.
+NOTOMLLIB=$ROOT/no-tomllib
+mkdir -p "$NOTOMLLIB"
+printf 'raise ImportError("blocked for test")\n' > "$NOTOMLLIB/tomllib.py"
+out=$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"x"}' \
+  | PYTHONPATH="$NOTOMLLIB" "$PC"; echo "|rc=$?")
+body=${out%%|rc=*}; rc=${out##*|rc=}
+case "$rc" in
+  0) case "$body" in
+       *'"hookEventName": "UserPromptSubmit"'*'"additionalContext": "[CTX] unknown ('*)
+         report ok "a missing tomllib degrades to unknown rather than crashing";;
+       *) report no "missing tomllib produced a malformed envelope" "$body";;
+     esac;;
+  *) report no "missing tomllib made the hook exit non-zero" "$out";;
+esac
 
 echo "=== the hook is wired into settings.json ==="
 wired() { # event matcher_substring command_substring

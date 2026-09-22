@@ -17,8 +17,12 @@ https://github.com/VoxCore84/claude-code-timestamp-hook (MIT).
 import json
 import os
 import sys
-import tomllib
 from datetime import datetime
+
+try:
+    import tomllib
+except ImportError:
+    tomllib = None
 
 # This file is reached through a dotter symlink in ~/.claude/hooks; realpath
 # lands on <repo>/.claude/hooks/prompt-context, three levels under the checkout
@@ -28,11 +32,6 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__
 LOCAL_TOML = os.path.join(REPO, ".dotter", "local.toml")
 
 LABELS = {"host-pc": "pc", "host-mac": "laptop"}
-
-SUBAGENT_NOTE = (
-    " — machine identity: both machines report hostname `ciek`, so this line is "
-    "the only thing naming the one you are on."
-)
 
 
 def host():
@@ -63,8 +62,6 @@ def main():
 
     machine = host()
     line = f"[CTX] {machine} · {datetime.now():%A %Y-%m-%d %H:%M:%S}"
-    if event == "SubagentStart" and not machine.startswith("unknown"):
-        line += SUBAGENT_NOTE
 
     json.dump({"hookSpecificOutput": {
         "hookEventName": event,
@@ -73,4 +70,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        pass  # never take the timestamp down with the host lookup
