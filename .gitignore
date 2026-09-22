@@ -30,3 +30,4 @@ config/quickshell/.qmlls.ini
 .claude/policy-limits.json
 .claude/remote-settings.json
 .claude/.last-cleanup
+.claude/worktrees/
