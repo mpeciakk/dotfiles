@@ -103,5 +103,34 @@ case "$out" in "rc=0") report ok "malformed stdin exits 0 and emits nothing";; *
 out=$(printf '' | "$PC"; echo "rc=$?")
 case "$out" in "rc=0") report ok "empty stdin exits 0 and emits nothing";; *) report no "empty stdin mishandled" "$out";; esac
 
+echo "=== the hook is wired into settings.json ==="
+wired() { # event matcher_substring command_substring
+  python3 -c '
+import json, sys
+cfg = json.load(open(sys.argv[1]))
+event, matcher, command = sys.argv[2], sys.argv[3], sys.argv[4]
+for entry in cfg.get("hooks", {}).get(event, []):
+    if matcher and matcher not in (entry.get("matcher") or ""): continue
+    for hook in entry.get("hooks", []):
+        if command in (hook.get("command") or ""): sys.exit(0)
+sys.exit(1)' "$SETTINGS" "$1" "$2" "$3"
+}
+
+wired UserPromptSubmit "" prompt-context \
+  && report ok "UserPromptSubmit runs prompt-context" \
+  || report no "UserPromptSubmit does not run prompt-context"
+wired SubagentStart "" prompt-context \
+  && report ok "SubagentStart runs prompt-context" \
+  || report no "SubagentStart does not run prompt-context"
+wired SubagentStart "" flow-context \
+  && report ok "SubagentStart still runs flow-context" \
+  || report no "flow-context was dropped from SubagentStart"
+wired SubagentStart "" cbm-subagent-reminder \
+  && report ok "SubagentStart still runs cbm-subagent-reminder" \
+  || report no "cbm-subagent-reminder was dropped from SubagentStart"
+grep -q timestamp-injector "$SETTINGS" \
+  && report no "settings.json still references the old hook name" \
+  || report ok "no reference to the old hook name remains"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

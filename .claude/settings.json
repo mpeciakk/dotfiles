@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/timestamp-injector",
+            "command": "~/.claude/hooks/prompt-context",
             "timeout": 5
           }
         ]
@@ -128,6 +128,11 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/cbm-subagent-reminder"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/prompt-context",
+            "timeout": 5
           }
         ]
       }
