@@ -41,6 +41,23 @@ NIE wysyłasz statusu zadań, numerów commitów ani sekretów. Do vaulta nie pi
 sam — formatu i indeksów pilnuje sesja vaulta. Nie ma jej na liście: fakt zostaje
 w repo, zgłosisz następnym razem.
 
+Dwie maszyny — `pc` (desktop) i `laptop` (MacBook Air M2, Asahi):
+- Oba systemy raportują hostname `ciek`, tego samego usera i ten sam prompt.
+  Maszyny NIE wnioskujesz z hostname'a, promptu ani ścieżek — mówi ją wyłącznie
+  linia `[CTX] <host>` wstrzykiwana przez hook `prompt-context` przy każdej
+  wiadomości i przy starcie każdego subagenta.
+- `~/projects`, `~/work`, `~/obsidian` i `~/.claude/projects` są
+  synchronizowane mutagenem przez `sirius`. Wspólne jest **drzewo robocze, nie
+  historia gita** (`~/work` ma `Ignore VCS`): każda maszyna ma tam własną
+  historię. Nie mergujesz i nie rebase'ujesz historii między hostami — raz
+  zjadło to 23 commity.
+- Tura **bez** linii `[CTX]` nie znaczy „ta sama maszyna, co poprzednio" — znaczy
+  maszynę bez wdrożonego hooka albo sesję sprzed jego powstania. Nieoznaczonej
+  tury nie przypisujesz do żadnego hosta.
+- Zapisując fakt zależny od maszyny (spec, notatka, commit, raport), nazywasz ją
+  `pc` albo `laptop`. „Na tej maszynie" i „na `ciek`" są niejednoznaczne i były
+  już źródłem siedmiu poprawek naraz.
+
 Dyscyplina kodu (Karpathy — zawsze; przy trywialnych zadaniach zdrowy rozsądek):
 - Prostota: minimum kodu rozwiązujące problem; nic ponad to, o co proszono; bez
   abstrakcji dla kodu użytego raz, bez nieproszonej elastyczności/konfigurowalności,

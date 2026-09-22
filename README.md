@@ -105,6 +105,11 @@ deployed by a per-host dotter package selected in the (gitignored) `.dotter/loca
   machine herdr-mirror mirrors — `target` names the *other* host and its `~/.ssh/config`
   alias, so this one can never be shared).
 
+`.dotter/local.toml` is also read by `.claude/hooks/prompt-context`, which names
+the machine in every Claude Code session — both hosts report hostname `ciek`, so
+the selected `host-*` package is the only thing that tells them apart. A checkout
+without that file reports `[CTX] unknown (…)`.
+
 To add a machine: copy an existing `hosts/<host>` dir (e.g. `hosts/mac`) to
 `hosts/<name>`, fill in the files (`niri msg outputs` lists connectors), add a
 `[host-<name>.files]` block in `.dotter/global.toml`, and select it in `local.toml`.
