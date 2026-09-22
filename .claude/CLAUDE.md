@@ -47,10 +47,13 @@ Dwie maszyny — `pc` (desktop) i `laptop` (MacBook Air M2, Asahi):
   linia `[CTX] <host>` wstrzykiwana przez hook `prompt-context` przy każdej
   wiadomości i przy starcie każdego subagenta.
 - `~/projects`, `~/work`, `~/obsidian` i `~/.claude/projects` są
-  synchronizowane mutagenem przez `sirius`. Wspólne jest **drzewo robocze, nie
-  historia gita** (`~/work` ma `Ignore VCS`): każda maszyna ma tam własną
-  historię. Nie mergujesz i nie rebase'ujesz historii między hostami — raz
-  zjadło to 23 commity.
+  synchronizowane mutagenem przez `sirius` — **razem z katalogami `.git`**, więc
+  obie maszyny dzielą jedno drzewo robocze i jedną historię (wyjątek: `~/zs1`
+  ma `Ignore VCS`, bo klony repozytoriów uczniów nie mają po co latać). Nie ma
+  czego mergować między hostami. Za to **nie odpalasz operacji gita na obu
+  maszynach naraz** — sync może złapać `.git` w połowie zapisu, a osierocony
+  `index.lock` z jednej maszyny blokuje drugą. Zmiana gałęzi na jednej zmienia
+  ją na obu: to jedno repo, nie dwa.
 - Tura **bez** linii `[CTX]` nie znaczy „ta sama maszyna, co poprzednio" — znaczy
   maszynę bez wdrożonego hooka albo sesję sprzed jego powstania. Nieoznaczonej
   tury nie przypisujesz do żadnego hosta.
