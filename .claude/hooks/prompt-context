@@ -1,30 +1,76 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: stamp every user message with local date and time.
+"""UserPromptSubmit / SubagentStart hook: which machine, and when.
 
-Between turns there is no clock — a 30-second gap and a 30-hour gap look the
-same. The timestamp arrives as additionalContext, so elapsed time and
-time-of-day become things the agent can reason about instead of guess.
+Two machines run this configuration and both report hostname `ciek`, so nothing
+in a session names the one it is on — and transcripts move between them, since
+~/.claude/projects is mutagen-synced. dotter's per-host package is the only
+discriminator: .dotter/local.toml is git-ignored and selects hosts/<name>/.
 
-Vendored from https://github.com/VoxCore84/claude-code-timestamp-hook (MIT),
-with the payload moved into the documented hookSpecificOutput envelope.
+Between turns there is also no clock; a 30-second gap and a 30-hour gap look the
+same. Both facts ride on one line, on every turn, because a mark that appears
+only at the switch point leaves every turn around it unattributed.
+
+The timestamp half is vendored from
+https://github.com/VoxCore84/claude-code-timestamp-hook (MIT).
 """
 
 import json
+import os
 import sys
+import tomllib
 from datetime import datetime
 
-try:
-    json.load(sys.stdin)  # the hook protocol hands the event on stdin
-except Exception:
-    sys.exit(0)
+# This file is reached through a dotter symlink in ~/.claude/hooks; realpath
+# lands on <repo>/.claude/hooks/prompt-context, three levels under the checkout
+# that owns local.toml. Resolving it this way keeps the repo's path out of the
+# code and lets the test run a copy inside a throwaway tree.
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+LOCAL_TOML = os.path.join(REPO, ".dotter", "local.toml")
 
-now = datetime.now()
-json.dump(
-    {
-        "hookSpecificOutput": {
-            "hookEventName": "UserPromptSubmit",
-            "additionalContext": f"[TIMESTAMP] User message received: {now:%A %Y-%m-%d %H:%M:%S}",
-        }
-    },
-    sys.stdout,
+LABELS = {"host-pc": "pc", "host-mac": "laptop"}
+
+SUBAGENT_NOTE = (
+    " — machine identity: both machines report hostname `ciek`, so this line is "
+    "the only thing naming the one you are on."
 )
+
+
+def host():
+    """The machine's label, or `unknown (<reason>)`. Never a guess, never raises.
+
+    A crash here would take the timestamp down with it, so the catch-all stays:
+    `packages = [1]` is valid TOML and would otherwise raise AttributeError past
+    every specific handler below.
+    """
+    try:
+        with open(LOCAL_TOML, "rb") as handle:
+            packages = tomllib.load(handle).get("packages", [])
+        for package in packages:
+            if package.startswith("host-"):
+                return LABELS.get(package, package[len("host-"):])
+    except FileNotFoundError:
+        return f"unknown (no {LOCAL_TOML})"
+    except Exception as exc:
+        return f"unknown ({LOCAL_TOML}: {exc})"
+    return f"unknown ({LOCAL_TOML} selects no host-* package)"
+
+
+def main():
+    try:
+        event = json.load(sys.stdin).get("hook_event_name") or "UserPromptSubmit"
+    except Exception:
+        sys.exit(0)
+
+    machine = host()
+    line = f"[CTX] {machine} · {datetime.now():%A %Y-%m-%d %H:%M:%S}"
+    if event == "SubagentStart" and not machine.startswith("unknown"):
+        line += SUBAGENT_NOTE
+
+    json.dump({"hookSpecificOutput": {
+        "hookEventName": event,
+        "additionalContext": line,
+    }}, sys.stdout)
+
+
+if __name__ == "__main__":
+    main()

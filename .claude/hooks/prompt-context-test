@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# Regression net for the prompt-context hook. Runs the real script against
+# synthetic payloads inside throwaway checkouts, because the only thing that
+# distinguishes the two machines is .dotter/local.toml and it is git-ignored.
+#
+# Fixtures are verified before any assertion runs: a suite that cannot tell
+# "the hook is broken" from "my own tooling is broken" is worse than none.
+#
+# Usage: prompt-context-test        (exit 0 = all green)
+set -u
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+HOOK=$HERE/prompt-context
+SETTINGS=$(cd "$HERE/.." && pwd)/settings.json
+ROOT=${TMPDIR:-/tmp}/prompt-context-test
+pass=0; fail=0
+
+command -v python3 >/dev/null || { echo "MISSING DEPENDENCY: python3" >&2; exit 1; }
+# Not python3 alone: on 3.10 `import tomllib` fails and every host assertion
+# fails identically to a real regression.
+python3 -c 'import tomllib' 2>/dev/null \
+  || { echo "MISSING DEPENDENCY: python3 >= 3.11 (tomllib)" >&2; exit 1; }
+[ -x "$HOOK" ] || { echo "FIXTURE FAILED: $HOOK is not executable" >&2; exit 1; }
+
+report() { if [ "$1" = ok ]; then printf 'PASS  %-58s %s\n' "$2" "${3:-}"; pass=$((pass+1))
+  else printf 'FAIL  %-58s %s\n' "$2" "${3:-}"; fail=$((fail+1)); fi; }
+
+rm -rf "$ROOT"; mkdir -p "$ROOT"
+
+# A throwaway checkout: <name>/.claude/hooks/prompt-context beside a
+# <name>/.dotter/local.toml we control. The hook resolves its repo from its own
+# realpath, so the copy reads the fake local.toml and nothing else.
+fake() { # name packages_toml_line_or_empty
+  local dir=$ROOT/$1
+  mkdir -p "$dir/.claude/hooks" "$dir/.dotter"
+  cp "$HOOK" "$dir/.claude/hooks/prompt-context"
+  if [ -n "${2:-}" ]; then printf '%s\n' "$2" > "$dir/.dotter/local.toml"; fi
+  printf '%s' "$dir/.claude/hooks/prompt-context"
+}
+
+context_of() { # script event
+  printf '{"hook_event_name":"%s","prompt":"x"}' "$2" | "$1" | python3 -c '
+import json, sys
+try: print(json.load(sys.stdin)["hookSpecificOutput"]["additionalContext"])
+except Exception: print("")'
+}
+
+event_of() { # script event
+  printf '{"hook_event_name":"%s","prompt":"x"}' "$2" | "$1" | python3 -c '
+import json, sys
+try: print(json.load(sys.stdin)["hookSpecificOutput"]["hookEventName"])
+except Exception: print("")'
+}
+
+echo "=== the host label comes from dotter, not from the hostname ==="
+PC=$(fake pc 'packages = ["default", "host-pc"]')
+c=$(context_of "$PC" UserPromptSubmit)
+case "$c" in "[CTX] pc · "*) report ok "host-pc is reported as pc";; *) report no "host-pc not reported as pc" "$c";; esac
+
+MAC=$(fake mac 'packages = ["default", "host-mac"]')
+c=$(context_of "$MAC" UserPromptSubmit)
+case "$c" in "[CTX] laptop · "*) report ok "host-mac is reported as laptop";; *) report no "host-mac not reported as laptop" "$c";; esac
+
+OTHER=$(fake other 'packages = ["default", "host-sirius"]')
+c=$(context_of "$OTHER" UserPromptSubmit)
+case "$c" in "[CTX] sirius · "*) report ok "an unmapped host-* falls back to its own name";; *) report no "host-sirius not reported as sirius" "$c";; esac
+
+echo "=== an unknown host says so, with the reason ==="
+NOHOST=$(fake nohost 'packages = ["default"]')
+c=$(context_of "$NOHOST" UserPromptSubmit)
+case "$c" in "[CTX] unknown ("*"no host-* package"*) report ok "no host package names the reason";; *) report no "no host package not explained" "$c";; esac
+
+# The three unknown reasons all embed the path, so each pattern below matches
+# the part that only its own branch produces — otherwise a hook that reported
+# "no local.toml" for a corrupt file would pass.
+NOFILE=$(fake nofile '')
+c=$(context_of "$NOFILE" UserPromptSubmit)
+case "$c" in "[CTX] unknown (no "*"local.toml)"*) report ok "a missing local.toml names the reason";; *) report no "missing local.toml not explained" "$c";; esac
+
+BROKEN=$(fake broken 'packages = [oops')
+c=$(context_of "$BROKEN" UserPromptSubmit)
+case "$c" in "[CTX] unknown ("*"local.toml: "*) report ok "an unparseable local.toml reports the decode error";; *) report no "unparseable local.toml not handled" "$c";; esac
+
+echo "=== the envelope names the event it was called for ==="
+e=$(event_of "$PC" UserPromptSubmit)
+[ "$e" = UserPromptSubmit ] && report ok "UserPromptSubmit is echoed back" || report no "wrong hookEventName" "$e"
+e=$(event_of "$PC" SubagentStart)
+[ "$e" = SubagentStart ] && report ok "SubagentStart is echoed back" || report no "wrong hookEventName" "$e"
+
+echo "=== a subagent gets told why the line exists, a prompt does not ==="
+c=$(context_of "$PC" SubagentStart)
+case "$c" in *"hostname \`ciek\`"*) report ok "SubagentStart carries the hostname caveat";; *) report no "SubagentStart missing caveat" "$c";; esac
+c=$(context_of "$PC" UserPromptSubmit)
+case "$c" in *ciek*) report no "UserPromptSubmit should stay short" "$c";; *) report ok "UserPromptSubmit stays one short line";; esac
+# "this line is the only thing naming the machine" is false when the line names
+# no machine — a subagent told that goes and guesses from the hostname.
+c=$(context_of "$NOHOST" SubagentStart)
+case "$c" in *"only thing"*) report no "an unknown host must not claim to name the machine" "$c";; *) report ok "an unknown host drops the caveat";; esac
+
+echo "=== bad input is survivable ==="
+out=$(printf 'not json' | "$PC"; echo "rc=$?")
+case "$out" in "rc=0") report ok "malformed stdin exits 0 and emits nothing";; *) report no "malformed stdin mishandled" "$out";; esac
+out=$(printf '' | "$PC"; echo "rc=$?")
+case "$out" in "rc=0") report ok "empty stdin exits 0 and emits nothing";; *) report no "empty stdin mishandled" "$out";; esac
+
+printf '\n%d passed, %d failed\n' "$pass" "$fail"
+[ "$fail" -eq 0 ]
