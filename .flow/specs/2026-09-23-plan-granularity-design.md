@@ -26,8 +26,12 @@ expected failure, exact values (names, constants, messages, formats, paths), and
 verified external API shapes. Implementation code only where the implementation
 is itself a decision — where a reviewer would reject a reasonable alternative
 (algorithm, storage format, lock order, a specific error-handling contract).
-Otherwise: the approach in 1–3 sentences plus the existing pattern to follow
-(`file:line` or a symbol).
+Otherwise: the approach in 1–3 sentences plus the pattern to follow — an
+existing `file:line` or symbol, or a symbol from an earlier task's Produces line.
+When no pattern exists at all (greenfield, the first of its kind), that first
+instance is itself a decision and gets full code. (Amended at the plan gate after
+the red-team pass: without it, a literal planner falls back to full code exactly
+where earlier tasks have not been built yet.)
 
 **Rejected — full-code plans (status quo):** decisions all land before the gate
 and cross-task names are pinned, but it costs the plan length above, puts code
@@ -54,7 +58,9 @@ where an implementation has to be built. The small lane defaults to Haiku.
 **Rejected — a per-task `**Mode:** transcription | build` field in the plan:**
 explicit and visible at the plan gate, but one more field to keep right and to
 argue about with the red-team, for a case the middle variant makes rare. The
-existing per-dispatch model override already covers it.
+existing per-dispatch model override already covers it. Each dispatch's model
+goes into the ledger note (`model=haiku|sonnet`), so fix rounds can be read per
+model when the experiment is judged.
 
 ## D3 — Reviewing implementation the brief does not fix
 

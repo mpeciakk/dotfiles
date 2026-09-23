@@ -18,13 +18,15 @@
 - Skill and agent prose is English; keep each file's existing voice, heading style and line wrapping (~80 columns).
 - Surgical: change only the passages each task names. No rewording of neighbouring sections.
 - Model names are exactly `Sonnet 5`, `Haiku 4.5`, `Opus 5.5`; agent frontmatter uses the aliases `sonnet`, `haiku`, `opus`.
-- After every task, `bash .claude/hooks/flow-guard-test` still ends `124 passed, 0 failed`.
+- After every task, `bash .claude/hooks/flow-guard-test` still ends `124 passed, 0 failed`. It includes a wall-clock assertion: a latency-only failure gets one re-run before it counts.
 
 ---
 
 ### Task 1: `writing-plans` — the plan fixes the contract, not the implementation
 
 This task is written the middle-variant way on purpose: the check and the required content are fixed, the prose is yours.
+
+**Controller:** dispatch this task with `model: "sonnet"` — the agent definitions load from the main checkout, so this run still has the Haiku default and the old reviewer rules; the new ones take effect only after merge. Expect the task-reviewer to raise prose-preference findings here (D3 is not live yet) and weigh them yourself. Tasks 2 and 3 are fully specified: dispatch them with `model: "haiku"`.
 
 **Files:**
 - Modify: `.claude/skills/writing-plans/SKILL.md` — `## Overview` (line 10), a new section placed directly before `## Task Right-Sizing` (line 80), `## Task Structure` Step 3 (lines 162-167), `## No Placeholders` (lines 182-192)
@@ -41,8 +43,10 @@ Save as `/tmp/claude-1000/-home-m-dotfiles--claude/d2fa4c06-9a89-4a4c-9ce4-5cb19
 #!/usr/bin/env bash
 cd "$(git rev-parse --show-toplevel)"
 f=.claude/skills/writing-plans/SKILL.md; fail=0
-has()   { grep -qF -- "$1" "$f" || { echo "MISSING: $1"; fail=1; }; }
-hasnt() { ! grep -qF -- "$1" "$f" || { echo "STILL PRESENT: $1"; fail=1; }; }
+# Normalise whitespace: wrapped prose splits phrases across lines.
+flat() { tr '\n' ' ' < "$f" | tr -s ' '; }
+has()   { flat | grep -qF -- "$1" || { echo "MISSING: $1"; fail=1; }; }
+hasnt() { ! flat | grep -qF -- "$1" || { echo "STILL PRESENT: $1"; fail=1; }; }
 has   '## What the Plan Fixes, and What It Leaves to the Implementer'
 has   'a reviewer would reject a reasonable alternative'
 has   '- [ ] **Step 3: Implement**'
@@ -65,13 +69,13 @@ Expected: exit 1, printing `MISSING: ## What the Plan Fixes…`, `MISSING: a rev
 
 Approach — four edits, each making the check's line for it pass:
 
-1. **Overview** (line 10): the list "which files to touch for each task, code, testing, docs…" becomes one that names the contract — files, interfaces, the tests in full, exact values, the pattern to follow, how to test it. Keep the rest of the paragraph.
+1. **Overview** (line 10): the list "which files to touch for each task, code, testing, docs…" becomes one that names the contract — files, interfaces, the tests in full, exact values, the pattern to follow, how to test it. "Assuming … questionable taste" becomes: assume they do not know this codebase's patterns, so every approach names the one to follow. Keep the rest of the paragraph.
 2. **New section** `## What the Plan Fixes, and What It Leaves to the Implementer`, before `## Task Right-Sizing`. Must carry, in this file's voice:
    - a two-column table — *always in full*: interface signatures (Produces/Consumes), full test code for every RED with its expected failure, exact values (names, constants, messages, formats, paths), verified external API shapes; *only when the implementation is itself a decision*: implementation code;
    - the criterion, containing the exact phrase `a reviewer would reject a reasonable alternative` — examples: algorithm, storage format, lock order, a specific error-handling contract;
-   - otherwise: the approach in 1–3 sentences plus the existing pattern to follow as `file:line` or a symbol;
+   - otherwise: the approach in 1–3 sentences plus the pattern to follow — an existing `file:line` or symbol, or a symbol from an earlier task's Produces line; when no pattern exists at all, the first instance is itself a decision and gets full code;
    - why, briefly: full-code plans ran 8–22k words, which slowed red-team and review, sat in the controller's context for the whole run, and froze code written before earlier tasks existed and without ever being run; the test is the contract the reviewer holds the implementation to, which is why it stays in full;
-   - a pointer to the design record `.flow/specs/2026-09-23-plan-granularity-design.md` in the dotfiles repo for the rejected options.
+   - a pointer to the design record `~/dotfiles/.flow/specs/2026-09-23-plan-granularity-design.md` for the rejected options (absolute — this skill is loaded in every repo).
 3. **Task Structure template**: `- [ ] **Step 3: Write minimal implementation**` and its code block become `- [ ] **Step 3: Implement**` with an approach line and a `Follow:` line naming a pattern (e.g. `` `src/path/existing.py:40-62` (`parse_header`) ``), then a short note that a code block goes here only when the implementation is a decision per the new section. Steps 1, 2, 4, 5 stay as they are.
 4. **No Placeholders**: replace the bullet "Steps that describe what to do without showing how (code blocks required for code steps)" with one saying test code is always shown, implementation code when it is a decision, and that an approach with no pattern to follow, or with nothing concrete in it, is a placeholder — it must contain the exact phrase `an approach with no pattern to follow`. Change "Similar to Task N" (repeat the code …) to say repeat the test code and values.
 
@@ -81,32 +85,6 @@ Leave `## Bite-Sized Task Granularity`, the header template, Self-Review, Red-Te
 
 Run: `bash /tmp/claude-1000/-home-m-dotfiles--claude/d2fa4c06-9a89-4a4c-9ce4-5cb1963cfa32/scratchpad/check-task1.sh && bash .claude/hooks/flow-guard-test | tail -1`
 Expected: `PASS`, then `124 passed, 0 failed`.
-
-Then confirm `task-brief` still extracts a new-format task. Run:
-
-```bash
-d=$(mktemp -d); cat > "$d/p.md" <<'EOF'
-# X Plan
-
-## Global Constraints
-
-- None.
-
----
-
-### Task 1: One
-
-- [ ] **Step 3: Implement**
-
-Approach: do the thing.
-Follow: `a.py:1` (`f`).
-
-### Task 2: Two
-EOF
-~/.claude/skills/subagent-driven-development/scripts/task-brief "$d/p.md" 1 "$d/b.md" 2>/dev/null && cat "$d/b.md"; rm -r "$d"
-```
-
-Expected: the brief contains `## Global Constraints`, `### Task 1: One`, `Follow:`, and no `### Task 2`.
 
 - [ ] **Step 5: Commit**
 
@@ -122,7 +100,7 @@ git commit -m "writing-plans: plans fix the contract, implementation only when i
 **Files:**
 - Modify: `.claude/agents/implementer.md:4` (frontmatter)
 - Modify: `.claude/skills/subagent-driven-development/SKILL.md:98-99` (loop step 3) and `:187-188` (Dispatching)
-- Modify: `.claude/skills/development-workflow/SKILL.md:93` (model table) and `:174-176` (Small Lane step 5)
+- Modify: `.claude/skills/development-workflow/SKILL.md:87-88` (dispatch-override sentence), `:93` (model table) and `:174-176` (Small Lane step 5)
 - Modify: `.claude/README.md:36` (Model & effort)
 
 **Interfaces:**
@@ -136,8 +114,10 @@ Save as `/tmp/claude-1000/-home-m-dotfiles--claude/d2fa4c06-9a89-4a4c-9ce4-5cb19
 ```bash
 #!/usr/bin/env bash
 cd "$(git rev-parse --show-toplevel)/.claude"; fail=0
-has()   { grep -qF -- "$2" "$1" || { echo "MISSING in $1: $2"; fail=1; }; }
-hasnt() { ! grep -qF -- "$2" "$1" || { echo "STILL PRESENT in $1: $2"; fail=1; }; }
+# Normalise whitespace: wrapped prose splits phrases across lines.
+flat() { tr '\n' ' ' < "$1" | tr -s ' '; }
+has()   { flat "$1" | grep -qF -- "$2" || { echo "MISSING in $1: $2"; fail=1; }; }
+hasnt() { ! flat "$1" | grep -qF -- "$2" || { echo "STILL PRESENT in $1: $2"; fail=1; }; }
 has   agents/implementer.md 'model: sonnet'
 has   agents/implementer.md 'effort: high'
 hasnt agents/implementer.md 'model: haiku'
@@ -145,6 +125,9 @@ has   skills/subagent-driven-development/SKILL.md 'Haiku is the rule, not the ex
 has   skills/subagent-driven-development/SKILL.md '`haiku` for a small, surgical or fully-specified implementer task'
 has   skills/development-workflow/SKILL.md '| `implementer` | agent definition | Sonnet 5 · high — override to Haiku 4.5 for every small, surgical or fully-specified task (subagent-driven-development, step 3) |'
 has   skills/development-workflow/SKILL.md 'dispatched with `model: "haiku"`'
+hasnt skills/development-workflow/SKILL.md 'only to override the definition for one case'
+has   skills/subagent-driven-development/SKILL.md 'model=haiku'
+
 has   README.md 'overridden to **Haiku 4.5** for small, surgical or'
 [ $fail = 0 ] && echo PASS || exit 1
 ```
@@ -152,7 +135,7 @@ has   README.md 'overridden to **Haiku 4.5** for small, surgical or'
 - [ ] **Step 2: Run it to verify it fails**
 
 Run: `bash /tmp/claude-1000/-home-m-dotfiles--claude/d2fa4c06-9a89-4a4c-9ce4-5cb1963cfa32/scratchpad/check-task2.sh`
-Expected: exit 1 with eight lines — `MISSING in agents/implementer.md: model: sonnet`, `MISSING in agents/implementer.md: effort: high`, `STILL PRESENT in agents/implementer.md: model: haiku`, and one `MISSING` for each of the other five strings.
+Expected: exit 1 with ten lines — `MISSING in agents/implementer.md: model: sonnet`, `MISSING in agents/implementer.md: effort: high`, `STILL PRESENT in agents/implementer.md: model: haiku`, `STILL PRESENT in skills/development-workflow/SKILL.md: only to override the definition for one case`, and one `MISSING` for each of the other six strings.
 
 - [ ] **Step 3: Implement**
 
@@ -180,8 +163,9 @@ with
    runs Sonnet 5; pass `model: "haiku"` for every task that is small, surgical
    or fully specified — a spec sync, a config or one-value change, a task whose
    brief already holds the complete change. Haiku is the rule, not the
-   exception: Sonnet is for tasks where an implementation has to be built. In
-   doubt, Haiku — a BLOCKED report is the escalation path (Implementer status).
+   exception: Sonnet is for tasks where an implementation has to be built.
+   Record the model in the ledger note (`flow-state task N started
+   "base=… model=haiku"`), so fix rounds can be read per model later.
 ```
 
 `skills/subagent-driven-development/SKILL.md`, Dispatching — replace
@@ -197,6 +181,20 @@ with
 Pass `model:` only to override a definition's default — `haiku` for a small,
 surgical or fully-specified implementer task (step 3), `opus` for a
 task-reviewer on a hard diff or for one genuinely hard implementer task.
+```
+
+`skills/development-workflow/SKILL.md`, Model & effort — replace
+
+```
+Agent tool call itself takes `model` but no effort. Pass `model:` on a dispatch
+only to override the definition for one case.
+```
+
+with
+
+```
+Agent tool call itself takes `model` but no effort. Pass `model:` on a dispatch
+to override the definition — routinely `haiku` for surgical implementer tasks.
 ```
 
 `skills/development-workflow/SKILL.md`, model table — replace the row
@@ -241,7 +239,7 @@ with
 small, surgical or fully-specified tasks; fixer and task-reviewer **Sonnet 5 · high**
 ```
 
-and append to the end of that same paragraph (after "Full table in `development-workflow`."):
+and add, as a new paragraph directly after that one:
 
 ```
 Plans fix the contract — interfaces, full tests, exact values — and carry
@@ -281,7 +279,8 @@ Save as `/tmp/claude-1000/-home-m-dotfiles--claude/d2fa4c06-9a89-4a4c-9ce4-5cb19
 ```bash
 #!/usr/bin/env bash
 cd "$(git rev-parse --show-toplevel)/.claude"; fail=0
-has() { grep -qF -- "$2" "$1" || { echo "MISSING in $1: $2"; fail=1; }; }
+flat() { tr '\n' ' ' < "$1" | tr -s ' '; }
+has() { flat "$1" | grep -qF -- "$2" || { echo "MISSING in $1: $2"; fail=1; }; }
 has agents/implementer.md 'Where the brief gives an approach instead of code, the implementation is yours'
 has agents/task-reviewer.md '"not how I would have done it" is not a finding'
 [ $fail = 0 ] && echo PASS || exit 1
