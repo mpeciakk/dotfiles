@@ -55,6 +55,12 @@ changes (spec sync, config, one value, a task whose brief already holds the
 complete change). Haiku is the rule for those, not an exception — Sonnet only
 where an implementation has to be built. The small lane defaults to Haiku.
 
+Narrowed at the branch review (user decision): "complete change" means
+paste-ready text — config, one value, spec sync, prose to insert as given. A
+brief that carries decision code (algorithm, format, lock order, the first
+instance of a pattern) goes to Sonnet: under D1 that is exactly the code most
+likely to be wrong, and transcribing it is where the error gets caught.
+
 **Rejected — a per-task `**Mode:** transcription | build` field in the plan:**
 explicit and visible at the plan gate, but one more field to keep right and to
 argue about with the red-team, for a case the middle variant makes rare. The
