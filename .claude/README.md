@@ -34,7 +34,8 @@ Artifacts: specs → `.flow/specs/`, plans → `.flow/plans/`, execution scratch
 Session default **Sonnet 5 · xhigh**; inline stages escalate to **Opus 5.5 ·
 xhigh** only for a genuinely hard case. Dispatched roles carry their model in
 `agents/`: implementer **Sonnet 5 · high**, overridden to **Haiku 4.5** for
-small, surgical or fully-specified tasks; fixer and task-reviewer **Sonnet 5 · high**
+small, surgical or paste-ready tasks (decision code stays on Sonnet); fixer and
+task-reviewer **Sonnet 5 · high**
 (Opus 5.5 override for non-trivial / security / concurrency diffs),
 branch-reviewer **Opus 5.5 · high**, plan-red-team **Opus 5.5 · xhigh**. Full
 table in `development-workflow`.

@@ -87,22 +87,25 @@ state file and `git log` over your recollection.
    The brief carries the task's full text plus the plan's Global Constraints,
    and it is the single source of requirements — exact values, magic strings,
    signatures and test cases live there and nowhere else.
-2. **Record the base** before dispatching, in the ledger — a compaction between
-   dispatch and review would otherwise lose it, and `HEAD~1` silently drops all
-   but the last commit of a multi-commit task:
+2. **Record the base and the model** before dispatching, in the ledger — a
+   compaction between dispatch and review would otherwise lose the base, and
+   `HEAD~1` silently drops all but the last commit of a multi-commit task. Pick
+   the model first (step 3's rule) and record it every time, `sonnet` included,
+   so fix rounds can be read per model. One `started` entry per task: a second
+   `task N` call replaces the first and drops `base=`.
 
    ```bash
    BASE=$(git rev-parse HEAD)
-   ~/.claude/hooks/flow-state task N started "base=$BASE"
+   ~/.claude/hooks/flow-state task N started "base=$BASE model=<haiku|sonnet>"
    ```
 3. **Dispatch the implementer** — `subagent_type: "implementer"`. See Dispatching
-   below for what the prompt carries. **Pick the model first.** The definition
-   runs Sonnet 5; pass `model: "haiku"` for every task that is small, surgical
-   or fully specified — a spec sync, a config or one-value change, a task whose
-   brief already holds the complete change. Haiku is the rule, not the
-   exception: Sonnet is for tasks where an implementation has to be built.
-   Record the model in the ledger note (`flow-state task N started
-   "base=… model=haiku"`), so fix rounds can be read per model later.
+   below for what the prompt carries. The definition runs Sonnet 5; pass
+   `model: "haiku"` for every task that is small, surgical or paste-ready — a
+   spec sync, a config or one-value change, a brief whose complete change is
+   text to insert as given. Haiku is the rule for those, not the exception.
+   Sonnet takes tasks where an implementation has to be built, and tasks whose
+   brief carries decision code (an algorithm, a format, a lock order, the first
+   instance of a pattern): transcribing that is where a wrong plan gets caught.
 4. **Handle the status** (below).
 5. **Review package.** `PKG=$($SDD/review-package "$BASE" HEAD)` writes the
    commit list, stat summary, and full diff with context to one file and prints
@@ -191,7 +194,7 @@ and tool restrictions, so you do not paste a role description into a prompt: the
 reviewers cannot edit files at all (the harness withholds Edit/Write from them),
 and the implementer and fixer get the test-driven-development skill preloaded.
 Pass `model:` only to override a definition's default — `haiku` for a small,
-surgical or fully-specified implementer task (step 3), `opus` for a
+surgical or paste-ready implementer task (step 3), `opus` for a
 task-reviewer on a hard diff or for one genuinely hard implementer task.
 
 Your prompt supplies only what varies per dispatch:
