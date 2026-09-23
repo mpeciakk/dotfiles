@@ -3,190 +3,73 @@ name: receiving-code-review
 description: Use when receiving code review feedback, before implementing suggestions — especially when feedback seems unclear, incorrect, or technically questionable
 ---
 
-# Code Review Reception
+# Receiving Code Review
 
-## Overview
+Review feedback is a set of claims to verify, not orders to follow. Tone is
+CLAUDE.md's candor section — no performative agreement, no thanks, disagreement
+first. This skill covers what candor does not: how to process the findings.
 
-Code review requires technical evaluation, not emotional performance.
+## The pattern
 
-**Core principle:** Verify before implementing. Ask before assuming. Technical correctness over social comfort.
+1. **Read all of it** before acting on any of it.
+2. **Restate** each item as a technical requirement — or ask, if you cannot.
+3. **Verify** against the code: does the problem exist here, in this codebase?
+4. **Evaluate:** is the suggested fix right for this stack, these callers, this
+   plan?
+5. **Respond** with the fix or with reasoned pushback.
+6. **Implement** in order (below), each item tested.
 
-## The Response Pattern
+## Unclear items block everything
 
-```
-WHEN receiving code review feedback:
+If any item is unclear, implement nothing yet and ask about the unclear ones
+first. Items are often related; a partial understanding produces a partial,
+wrong fix. "I understand 1, 2, 3, 6 — need clarification on 4 and 5."
 
-1. READ: Complete feedback without reacting
-2. UNDERSTAND: Restate requirement in own words (or ask)
-3. VERIFY: Check against codebase reality
-4. EVALUATE: Technically sound for THIS codebase?
-5. RESPOND: Technical acknowledgment or reasoned pushback
-6. IMPLEMENT: One item at a time, test each
-```
+## By source
 
-## Forbidden Responses
+- **The user** — implement once you understand it, but still verify: a
+  suggestion from the user is where agreeing without checking is most tempting.
+  Ask when scope is unclear.
+- **A reviewer subagent** (task-reviewer, branch-reviewer) — its findings are
+  claims about a diff it read, not about code it could not see. You hold the
+  cross-task context it lacks; check each finding against it. A finding that
+  contradicts what the plan mandates is the user's call — show both, ask which
+  governs (subagent-driven-development).
+- **External reviewers** — check: correct for this codebase? breaks existing
+  behaviour? is there a reason for the current implementation? all
+  platforms/versions? If you cannot verify, say what you would need: "I can't
+  verify this without X — investigate, ask, or proceed?"
 
-**NEVER:**
-- "You're absolutely right!" (explicit instruction-file violation)
-- "Great point!" / "Excellent feedback!" (performative)
-- "Let me implement that now" (before verification)
+## Scope is not the reviewer's to grant
 
-**INSTEAD:**
-- Restate the technical requirement
-- Ask clarifying questions
-- Push back with technical reasoning if wrong
-- Just start working (actions > words)
+"Implement this properly" for a feature nothing calls → check actual usage
+(cbm `trace_path`). Unused: propose removing it (YAGNI). A reviewer's authority
+does not extend to scope — CLAUDE.md's "nic ponad to, o co proszono".
 
-## Handling Unclear Feedback
+## Order of work
 
-```
-IF any item is unclear:
-  STOP - do not implement anything yet
-  ASK for clarification on unclear items
+1. Clarify anything unclear.
+2. Blocking issues (breakage, security) → simple fixes → complex fixes.
+3. Test each fix; check for regressions.
 
-WHY: Items may be related. Partial understanding = wrong implementation.
-```
+"One at a time" is the order of work, not the number of dispatches: inside a
+plan run the whole Critical/Important list goes to ONE `fixer`, which works it
+in this order. A fixer per finding rebuilds context and re-runs the suite each
+time.
 
-**Example:**
-```
-Reviewer: "Fix 1-6"
-You understand 1,2,3,6. Unclear on 4,5.
+## Push back when
 
-❌ WRONG: Implement 1,2,3,6 now, ask about 4,5 later
-✅ RIGHT: "I understand items 1,2,3,6. Need clarification on 4 and 5 before proceeding."
-```
+The suggestion breaks existing behaviour, the reviewer lacks context, it adds an
+unused feature, it is wrong for this stack, compatibility requires the current
+form, or it conflicts with a decision the user made. Push back with the code or
+test that proves it; bring architectural conflicts to the user.
 
-## Source-Specific Handling
+Correct feedback gets "Fixed — [what changed, where]", or just the fix. If your
+pushback turns out wrong: "Checked [X] — it does [Y]. Fixing." No apology, no
+defence of the pushback.
 
-### From the user
-- **Trusted** - implement after understanding
-- **Still ask** if scope unclear
-- **No performative agreement**
-- **Skip to action** or technical acknowledgment
+## GitHub
 
-### From External Reviewers
-```
-BEFORE implementing:
-  1. Check: Technically correct for THIS codebase?
-  2. Check: Breaks existing functionality?
-  3. Check: Reason for current implementation?
-  4. Check: Works on all platforms/versions?
-  5. Check: Does reviewer understand full context?
-
-IF suggestion seems wrong:
-  Push back with technical reasoning
-
-IF can't easily verify:
-  Say so: "I can't verify this without [X]. Should I [investigate/ask/proceed]?"
-
-IF conflicts with the user's prior decisions:
-  Stop and discuss with them first
-```
-
-**The rule:** external feedback is skeptically checked, not taken on trust.
-
-## YAGNI Check for "Professional" Features
-
-```
-IF reviewer suggests "implementing properly":
-  grep codebase for actual usage
-
-  IF unused: "This endpoint isn't called. Remove it (YAGNI)?"
-  IF used: Then implement properly
-```
-
-**The rule:** a reviewer's authority does not extend to scope. An unused feature stays unbuilt no matter who asked for it — CLAUDE.md's code discipline, "nic ponad to, o co proszono".
-
-## Implementation Order
-
-```
-FOR multi-item feedback:
-  1. Clarify anything unclear FIRST
-  2. Then implement in this order:
-     - Blocking issues (breaks, security)
-     - Simple fixes (typos, imports)
-     - Complex fixes (refactoring, logic)
-  3. Test each fix individually
-  4. Verify no regressions
-```
-
-**"One at a time" is the order of work, not the number of dispatches.** Inside a
-plan run the whole finding list goes to ONE `fixer`, which then works them in this
-order — one fixer per finding rebuilds context and re-runs the suite each time,
-which subagent-driven-development measured as costing more than all of a run's
-tasks combined.
-
-## When To Push Back
-
-Push back when:
-- Suggestion breaks existing functionality
-- Reviewer lacks full context
-- Violates YAGNI (unused feature)
-- Technically incorrect for this stack
-- Legacy/compatibility reasons exist
-- Conflicts with the user's architectural decisions
-
-**How to push back:**
-- Use technical reasoning, not defensiveness
-- Ask specific questions
-- Reference working tests/code
-- Involve the user if architectural
-
-**If you're uncomfortable pushing back out loud:** name the tension and state the issue anyway. CLAUDE.md's candor rules make the disagreement the deliverable, not the risk.
-
-## Acknowledging Correct Feedback
-
-When feedback IS correct:
-```
-✅ "Fixed. [Brief description of what changed]"
-✅ "[Specific issue] was real — fixed in [location]."
-✅ [Just fix it and show in the code]
-
-❌ "You're absolutely right!"
-❌ "Great point!"
-❌ "Thanks for catching that!"
-❌ "Thanks for [anything]"
-❌ ANY gratitude expression
-```
-
-**Why no thanks:** Actions speak. Just fix it. The code itself shows you heard the feedback.
-
-**If you catch yourself about to write "Thanks":** DELETE IT. State the fix instead.
-
-## Gracefully Correcting Your Pushback
-
-If you pushed back and were wrong:
-```
-✅ "You were right - I checked [X] and it does [Y]. Implementing now."
-✅ "Verified this and you're correct. My initial understanding was wrong because [reason]. Fixing."
-
-❌ Long apology
-❌ Defending why you pushed back
-❌ Over-explaining
-```
-
-State the correction factually and move on.
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Performative agreement | State requirement or just act |
-| Blind implementation | Verify against codebase first |
-| Batch without testing | One at a time, test each |
-| Assuming reviewer is right | Check if breaks things |
-| Avoiding pushback | Technical correctness > comfort |
-| Partial implementation | Clarify all items first |
-| Can't verify, proceed anyway | State limitation, ask for direction |
-
-## GitHub Thread Replies
-
-When replying to inline review comments on GitHub, reply in the comment thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment.
-
-## The Bottom Line
-
-**External feedback = suggestions to evaluate, not orders to follow.**
-
-Verify. Question. Then implement.
-
-No performative agreement. Technical rigor always.
+Reply to inline review comments in their thread
+(`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a
+top-level PR comment.

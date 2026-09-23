@@ -10,7 +10,7 @@ invokes its own skill; read that skill when you reach the stage. Run
 continuously between the user gates (✋); never pause to ask "should I
 continue?".
 
-## Four rules that decide whether a run succeeds
+## Five rules that decide whether a run succeeds
 
 **1. Triage first — not every change earns the pipeline.** Trivial → just do
 it: edit, verify, done. Trivial means ALL of: one obviously-correct outcome,
@@ -50,20 +50,17 @@ agents (exploration, review, independent diagnosis), issued in one response.
 Two agents writing in one tree collide on the index and the lock. Nothing
 enforces this one, so it is on you.
 
-**5. The project's living spec is context in and output out.** Most projects here
-keep a `spec.md` (root, or per-component in a monorepo) stating what the project
-is, which decisions are in force, and what is open. Read it before you ask the
-user anything, and leave it true: the decision goes in at the design gate, the
-sections describing state get updated by the plan's last task. Nothing enforces
-this either — and the evidence says it is the rule most likely to lapse, since
-five of seven specs here went over a month untouched while their code moved.
+**5. The project's living spec is context in and output out** (CLAUDE.md rule
+6): read it before asking anything; the decision goes in at the design gate, the
+state sections via the plan's last task (writing-plans). Nothing enforces this
+one either, and it is the rule most likely to lapse.
 
 ## The Pipeline
 
 | # | Stage | Skill | State when the stage completes | Output | User gate |
 |---|-------|-------|----------------|--------|-----------|
 | 0 | Bootstrap — **once per project**, only when it has no living spec | writing-specs | — (no run state; this is not a code change) | `spec.md` interviewed into existence and committed | ✋ review the spec |
-| 1 | Understand + design | brainstorming (grill-gate embedded) | `stage=design spec=<living spec.md>` | decision recorded in the project's living spec + deliberation record in `.flow/specs/`, one commit | ✋ approve design, then review what was written |
+| 1 | Understand + design | brainstorming (grill-gate embedded) | `stage=design spec=<living spec.md>` | decision recorded in the project's living spec + deliberation record in `.flow/specs/`, one commit | ✋ approve design (the written record is shown again at the plan gate) |
 | 2 | Plan | writing-plans (red-team on non-trivial plans) | `stage=plan plan=<path>` | plan of 2-5 min tasks with TDD steps → `.flow/plans/` | ✋ approve plan ("go") |
 | 3 | Isolate | using-git-worktrees | `stage=isolate worktree= branch= base=` | worktree + clean test baseline | — |
 | 4 | Implement | subagent-driven-development | `stage=implement`, plus a ledger entry per task | fresh implementer per task (strict TDD), per-task review, fix loop, final whole-branch review | — |
@@ -77,9 +74,9 @@ skill: name the command that proves it, run it, quote the output.
 
 ## Model & effort per stage
 
-Session default is **Sonnet 5 · high** — the baseline for every stage you run
-**inline**. Escalate to **Opus 5 · xhigh** only for a stage that is genuinely
-complex or demanding (a hard design call, a gnarly debug, a plan with many
+Session default is **Sonnet 5 · xhigh** (`settings.json` → `modelSettings`) — the
+baseline for every stage you run **inline**. Escalate to **Opus 5.5 · xhigh**
+only for a stage that is genuinely complex or demanding (a hard design call, a gnarly debug, a plan with many
 interacting parts), not as the default cost of doing design or planning at all.
 Ten review rounds and a milestone eating a full day in real runs were partly a
 symptom of running everything at maximum depth by default instead of reserving
@@ -92,12 +89,12 @@ only to override the definition for one case.
 
 | Role | Where it is set | Default |
 |---|---|---|
-| Brainstorm / grill / planning / debugging (inline) | session | Sonnet 5 · high (Opus 5 · xhigh for a genuinely hard case) |
+| Brainstorm / grill / planning / debugging (inline) | session | Sonnet 5 · xhigh (Opus 5.5 · xhigh for a genuinely hard case) |
 | `implementer` | agent definition | Haiku 4.5, no effort setting (override to Sonnet 5 for a genuinely hard task) |
-| `fixer` | agent definition | Sonnet 5 · high (override to Opus for one genuinely hard task) |
-| `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus for non-trivial / security / concurrency) |
-| `branch-reviewer` | agent definition | Opus 5 · high |
-| `plan-red-team` | agent definition | Opus 5 · xhigh |
+| `fixer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for one genuinely hard task) |
+| `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for non-trivial / security / concurrency) |
+| `branch-reviewer` | agent definition | Opus 5.5 · high |
+| `plan-red-team` | agent definition | Opus 5.5 · xhigh |
 | Read-only exploration (`Explore`) | dispatch | Haiku 4.5 |
 | Finish (tests, git, diff summary) | inline or Haiku 4.5 | — |
 
@@ -118,8 +115,7 @@ prose — a reviewer that can fix things stops reporting them.
   it. `git cat-file -t <sha>` costs a second and is the difference between
   "this session made it up" and "this session read the wrong state" — a hash
   written down before it was read has, in a real run, turned out not to exist.
-- **Code discipline.** Simplicity, surgical changes, no guessing — CLAUDE.md
-  and the karpathy-guidelines skill.
+- **Code discipline.** Simplicity, surgical changes, no guessing — CLAUDE.md.
 
 ## Triage — does this even need the pipeline?
 

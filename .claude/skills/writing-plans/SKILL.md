@@ -71,8 +71,7 @@ sections**, listing them by heading, alongside the code that made them true. It
 is a normal task: dispatched, diffed, reviewed with the change it describes. That
 is the whole mechanism — a spec updated in the same branch, by the same review,
 is a spec that stays true; a "remember to update the docs" note at the end is how
-five of this user's seven specs went a month without a touch while their code
-moved on.
+specs here went stale while their code moved on.
 
 Skip that task when the change genuinely alters nothing the spec states (a
 bugfix restoring documented behaviour, an internal refactor). Say so in one line
@@ -214,23 +213,24 @@ Save the plan, record it, run the red-team pass, then present a short summary
 (plan location, task count, red-team verdict) and **wait for the user's "go"**.
 This is a gate — do not start execution on your own.
 
+This is also where the user sees what brainstorming wrote — there is no separate
+spec-review gate before it. Name the design commit (`git log -1 --format='%h %s'
+-- <spec>`), the living spec's path with the decision it gained, and the
+deliberation record's path, so one "go" approves the written design and the plan
+together. An objection to the written design gets fixed first (brainstorming's
+self-review), then the plan is amended if the fix touches it.
+
 ```bash
 git add .flow/plans/<filename>.md && git commit -m "plan: <feature>"
 ~/.claude/hooks/flow-state set stage=plan plan="$(git rev-parse --show-toplevel)/.flow/plans/<filename>.md"
 ```
-
-**Commit the plan before execution starts.** The worktree branches from HEAD, so
-an uncommitted plan is absent from the workspace the implementers work in, and
-the first `task-brief` call fails with "no such plan file". Record the path
-absolute — a repo-relative one breaks the moment a command runs from a
-subdirectory.
 
 Note for the user in your summary: this commit and the spec commit land on the
 branch they are on now (often `main`), before any worktree exists. That is
 deliberate — the worktree branches from HEAD and needs them — but say it rather
 than leaving them to discover two commits on main.
 
-Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] Say 'go' to execute."
+Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] [Design commit, spec decision, record path.] Say 'go' to execute."
 
 **Once the user approves, unless they ask otherwise:**
 - **REQUIRED SUB-SKILL (first):** using-git-worktrees — isolated workspace, recorded in the run state, clean test baseline, before any task runs.

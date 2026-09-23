@@ -32,13 +32,13 @@ Check one observable thing first: **did the user hand you a written spec / requi
   2. Run the **grill gate against their spec** (step 3): scan it for open decision points, ambiguities, contradictions, missing requirements, and undefined edge cases. If the spec is complete and unambiguous, the grill stays silent — proceed straight on. If it has real gaps, grill them one question at a time (each with a recommended default), and fold the resolved decisions back into the spec.
   3. Spec self-review (step 7): placeholders, internal consistency, scope, ambiguity — fix inline.
   4. Commit their spec into the repository and record it (step 6's tail). If the spec lives outside the repo (an attachment, `/tmp/spec.md`), copy it into `.flow/specs/` first — `git add` refuses a path outside the working tree. Then `git commit` and `~/.claude/hooks/flow-state set spec="$(git rev-parse --show-toplevel)/.flow/specs/<file>.md"` (absolute, so it still resolves from a subdirectory). The worktree branches from HEAD, so an uncommitted spec is absent from the workspace every implementer works in.
-  5. Get the user's sign-off on the spec (step 8), then invoke writing-plans pointed at their spec file (step 9).
+  5. Invoke writing-plans pointed at their spec file (step 8). The user signs off on the spec — including every change the grill folded into it — at the plan gate, where it is shown beside the plan.
 
-The HARD-GATE holds on both paths: no implementation until the spec is validated and the user has approved. With a provided spec you *validate their document* instead of authoring one — you never silently start coding just because a spec was attached. When the spec is solid, this path is nearly frictionless: grill stays quiet, self-review passes, sign-off, plan.
+The HARD-GATE holds on both paths: no implementation until the spec is validated and the user has approved it (at the design gate, or for a provided spec at the plan gate). With a provided spec you *validate their document* instead of authoring one — you never silently start coding just because a spec was attached. When the spec is solid, this path is nearly frictionless: grill stays quiet, self-review passes, plan.
 
 ## Checklist
 
-You MUST create a task for each of these items and complete them in order:
+Work through these items in order; none is optional:
 
 0. **Open the run** — `~/.claude/hooks/flow-state init <task-slug>` (if development-workflow's triage has not already) and `set stage=design`. The run state is what later stages and the pipeline's guards read; a run nobody opened is a run that loses its worktree.
 1. **Explore project context** — **read the project's living spec first** (see The Project Spec below); it states what the project is, which decisions are already in force, and what is still open, and it is the one document that makes your questions non-redundant. Then cbm (`get_architecture` for structure, `search_graph`/`search_code` to find relevant code), then docs and recent commits; Grep/Read only for non-code
@@ -48,8 +48,7 @@ You MUST create a task for each of these items and complete them in order:
 5. **Present design** — one message, sections scaled to complexity, then ask for approval once. Pause mid-design only when a section's answer changes the sections after it (that is a grill-gate dependency, not a checkpoint)
 6. **Record the design in two places** — the deliberation record and the living spec. See The Project Spec below for exactly what goes where, then commit both in one commit and record the living spec's path: `~/.claude/hooks/flow-state set spec="<absolute path to the project's spec.md>"` (absolute — a relative path breaks from any subdirectory)
 7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-8. **User reviews written spec** — ask user to review the spec file before proceeding
-9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+8. **Transition to implementation** — invoke writing-plans skill to create implementation plan. There is no separate "review the written spec" gate: what you wrote restates what the user just approved, so it is shown to them at the plan gate (commit + paths) instead of costing a round-trip of its own
 
 Two loops inside that order: the grill gate sends you back to questions while
 open decisions remain, and a design section the user rejects gets revised
@@ -121,7 +120,7 @@ effect of this change — say so and offer the writing-specs skill, which
 interviews for one and writes it. If the answer is no, the deliberation record
 alone is the output, exactly as before.
 
-**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+**The terminal state is invoking writing-plans.** Do NOT invoke any implementation or domain skill from here. The ONLY skill you invoke after brainstorming is writing-plans.
 
 ## The Process
 
@@ -171,6 +170,6 @@ After writing the spec document, look at it with fresh eyes:
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
 
-Fix any issues inline. No need to re-review — just fix and move on. Then ask the
-user to review the written spec (unless told to auto-accept); if they request
-changes, make them and re-run this review. Only then invoke writing-plans.
+Fix any issues inline. No need to re-review — just fix and move on, then invoke
+writing-plans. If the user objects to the written record at the plan gate, fix it,
+re-run this review, and amend the plan if the fix touches it.

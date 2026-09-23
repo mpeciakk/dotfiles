@@ -13,7 +13,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -59,42 +58,6 @@
       }
     ],
     "SessionStart": [
-      {
-        "matcher": "startup",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/cbm-session-reminder"
-          }
-        ]
-      },
-      {
-        "matcher": "resume",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/cbm-session-reminder"
-          }
-        ]
-      },
-      {
-        "matcher": "clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/cbm-session-reminder"
-          }
-        ]
-      },
-      {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/cbm-session-reminder"
-          }
-        ]
-      },
       {
         "matcher": "*",
         "hooks": [
@@ -148,12 +111,10 @@
   },
   "enabledPlugins": {
     "claude-code-wakatime@wakatime": true,
-    "andrej-karpathy-skills@karpathy-skills": true,
     "context7@context7-marketplace": true,
     "github@claude-plugins-official": false,
     "document-skills@anthropic-agent-skills": false,
     "frontend-design@claude-plugins-official": false,
-    "skill-creator@claude-plugins-official": true,
     "cloudflare@cloudflare": true
   },
   "extraKnownMarketplaces": {
@@ -167,12 +128,6 @@
       "source": {
         "source": "github",
         "repo": "upstash/context7"
-      }
-    },
-    "karpathy-skills": {
-      "source": {
-        "source": "github",
-        "repo": "forrestchang/andrej-karpathy-skills"
       }
     },
     "wakatime": {

@@ -24,7 +24,7 @@ Build prompts one at a time, ready to paste.
   - **Graph of Thought** -- requires an external graph engine not present in most tools
   - **Universal Self-Consistency** -- requires independent sampling passes
   - **Prompt chaining as a layered technique** -- compounds fabrication risk across longer chains
-- Do not add Chain of Thought to reasoning-native models (Claude Opus 5 / Sonnet 5 with extended thinking or an effort level, o3, o4-mini, DeepSeek-R1, Qwen3 thinking mode) — they think internally, CoT degrades output
+- Do not add Chain of Thought to reasoning-native models (Claude Opus 5.5 / Sonnet 5 / Fable 5.1 with extended thinking or an effort level, o3, o4-mini, DeepSeek-R1, Qwen3 thinking mode) — they think internally, CoT degrades output
 - Do not ask more than 3 clarifying questions before producing a prompt
 - Do not pad output with explanations the user did not request
 
@@ -67,9 +67,9 @@ Identify the tool and route accordingly. Read full templates from [references/te
 
 ---
 
-**Claude (claude.ai, Claude API, Claude 4.x)**
+**Claude (claude.ai, Claude API, Claude 5.x / 4.x)**
 
-Current default is **Opus 4.8**. Opus 4.7 is still selectable — keep its notes, but assume 4.8 unless the user names a specific version.
+Current models: **Opus 5.5**, **Sonnet 5**, **Fable 5.1**, **Haiku 4.5**. The version notes below were written for the 4.x generation; the durable ones still apply, but assume a current model unless the user names an older version.
 
 *Durable across Claude 4.x (4.6 / 4.7 / 4.8):*
 - Be explicit and specific — Claude 4.x follows instructions literally. It does exactly what you say, nothing more. Missing context = narrow literal output, not a smart guess.
@@ -81,12 +81,12 @@ Current default is **Opus 4.8**. Opus 4.7 is still selectable — keep its notes
 - Do NOT add "think step by step" or fixed thinking-budget instructions — Opus 4.x uses adaptive thinking and calibrates depth automatically. To influence depth: "Think carefully before responding" (more) or "Prioritize responding quickly" (less).
 - Use Template M for agentic or multi-step tasks.
 
-*Opus 4.8 (current default):*
+*Opus 4.8 (previous generation):*
 - Shares 4.7's literalism and adaptive thinking — the same front-loading discipline applies. Treat the first turn as the only turn for complex work: intent, scope, constraints, acceptance criteria up front.
 - 1M-token context window — large multi-file context can go in a single prompt, but keep it relevant; padding still dilutes attention.
 - Effort/thinking depth is calibrated automatically — do not specify an effort level or thinking budget.
 
-*Opus 4.7 (still selectable):*
+*Opus 4.7 (older):*
 - More literal than 4.6 — vague first turns produce narrower results. Front-load intent, file scope, constraints, and acceptance criteria.
 
 ---
@@ -173,7 +173,7 @@ Current default is **Opus 4.8**. Opus 4.7 is still selectable — keep its notes
 - Agentic — runs tools, edits files, executes commands autonomously
 - Starting state + target state + allowed actions + forbidden actions + stop conditions + checkpoints
 - Stop conditions are MANDATORY — runaway loops are the biggest credit killer
-- Default model is Opus 4.8 (4.7 still selectable). Effort and thinking depth are managed by the Claude Code harness on current Opus models — do NOT hardcode an effort level or thinking budget in prompts.
+- Current models are Opus 5.5 / Sonnet 5 / Fable 5.1 / Haiku 4.5. Effort and thinking depth are managed by the Claude Code harness on current models — do NOT hardcode an effort level or thinking budget in prompts.
 - Opus 4.7 and 4.8 are more literal than 4.6 — vague first turns produce narrower results. Front-load everything: intent, file scope, constraints, acceptance criteria, session strategy.
 - Opus 4.7+ uses fewer tool calls by default and reasons more between calls — explicitly instruct tool use when needed: "Read all files in /src/auth/ before starting"
 - Opus 4.7+ spawns fewer subagents by default — explicitly request when needed: "Use a subagent to investigate X so it stays out of main context"

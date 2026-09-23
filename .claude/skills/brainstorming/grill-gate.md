@@ -52,13 +52,14 @@ Do not proceed to approaches until the scan is clean.
 
 ## Recording decisions
 
-When the grill runs, fold every resolved decision into the design doc you write
-later — under a short **Decisions** heading (decision → chosen option → one-line
-rationale). This keeps the "why" next to the "what" for the next session and for
-the plan.
+When the grill runs, every resolved decision lands where brainstorming's "The
+Project Spec" puts decisions: the chosen option and its one-line rationale in the
+living spec (its decision table, or the section it governs); the branch the user
+turned down, and why, in the deliberation record. On the spec-intake path, fold
+it back into the provided spec. Nothing gets a third copy.
 
 A decision point where both branches lead to materially the same
-implementation is not open: pick one, record it under Decisions, and move on.
+implementation is not open: pick one, record it the same way, and move on.
 
 ## Anti-patterns
 

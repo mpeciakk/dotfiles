@@ -16,8 +16,8 @@ Every code task starts at the **`development-workflow`** skill, which **triages*
 
 | # | Stage | Skill | Gate |
 |---|-------|-------|------|
-| 1 | Understand + design | `brainstorming` (grill-gate embedded) | ✋ approve design, then review the written spec |
-| 2 | Plan | `writing-plans` (+ red-team pre-mortem on non-trivial plans) | ✋ approve plan ("go") |
+| 1 | Understand + design | `brainstorming` (grill-gate embedded) | ✋ approve design (the written record is shown again at the plan gate) |
+| 2 | Plan | `writing-plans` (+ red-team pre-mortem on non-trivial plans) | ✋ approve plan + written design ("go") |
 | 3 | Isolate | `using-git-worktrees` | — |
 | 4 | Implement | `subagent-driven-development` — fresh subagent per task, strict TDD, per-task review (spec + quality), fix loop, final whole-branch review | — |
 | 5 | Finish | `finishing-a-development-branch` | ✋ merge / PR / discard |
@@ -26,15 +26,16 @@ Artifacts: specs → `.flow/specs/`, plans → `.flow/plans/`, execution scratch
 
 **Always-on discipline** (fires on trigger, any stage): `test-driven-development`,
 `systematic-debugging` (independent failures investigated in parallel),
-`receiving-code-review`. Candor (anti-sycophancy) and code discipline (Karpathy)
-live always-on in `CLAUDE.md`.
+`receiving-code-review`. Candor (anti-sycophancy) and code discipline
+(Karpathy-style) live always-on in `CLAUDE.md`.
 
 ## Model & effort
 
-Session default **Sonnet 5**. Thinking stages you run inline (brainstorm, plan,
-debug) → **Opus 4.8 / xhigh** via the manual session lever. Dispatched subagents
-(implementer / reviewer / fix) → **Sonnet 5 / high** at dispatch — Opus for
-non-trivial / security / concurrency diffs, Haiku for pure transcription. Full
+Session default **Sonnet 5 · xhigh**; inline stages escalate to **Opus 5.5 ·
+xhigh** only for a genuinely hard case. Dispatched roles carry their model in
+`agents/`: implementer **Haiku 4.5**, fixer and task-reviewer **Sonnet 5 · high**
+(Opus 5.5 override for non-trivial / security / concurrency diffs),
+branch-reviewer **Opus 5.5 · high**, plan-red-team **Opus 5.5 · xhigh**. Full
 table in `development-workflow`.
 
 ## codebase-memory (cbm)
@@ -42,8 +43,9 @@ table in `development-workflow`.
 Code navigation uses the [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
 graph **before** Grep/Read (`search_graph`, `trace_path`, `get_code_snippet`,
 `get_architecture`), wired into brainstorming, planning, the implementer/reviewer
-prompts, and debugging. Enforced by a PreToolUse augmenter + SessionStart /
-SubagentStart reminder hooks. The graph indexes the main checkout, not worktrees,
+prompts, and debugging. The protocol itself lives in `CLAUDE.md` rule 2 (loaded
+every session and after compaction); a PreToolUse augmenter adds graph context to
+Grep/Glob and a SubagentStart hook reminds subagents. The graph indexes the main checkout, not worktrees,
 so `finishing` re-indexes after merge.
 
 ## How this differs from obra/superpowers

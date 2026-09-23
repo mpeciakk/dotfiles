@@ -1,6 +1,6 @@
 ---
 name: requesting-code-review
-description: Use when you want a fresh reviewer on completed work — "review my changes", "code review this", "review the branch", before merging to main, or for the whole-branch review at the end of subagent-driven-development. Per-task review inside a plan run uses subagent-driven-development's own reviewer template.
+description: Use when you want a fresh reviewer on completed work — "review my changes", "code review this", "review the branch", before merging to main, or for the whole-branch review at the end of subagent-driven-development. Per-task review inside a plan run is the task-reviewer agent, not this skill.
 ---
 
 # Requesting Code Review

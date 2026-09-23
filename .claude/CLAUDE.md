@@ -15,8 +15,11 @@ Zasady:
    TDD) PRZED domenowymi.
 2. Nawigacja po kodzie — cbm MCP PRZED Grep/Read. Szukasz symbolu/funkcji/klasy →
    search_graph; kto-co-woła / łańcuch wywołań → trace_path; źródło symbolu →
-   get_code_snippet; struktura projektu → get_architecture. Grep/Glob/Read tylko do
-   tekstu, configów i plików nie-kodu (oraz zawsze Read przed edycją pliku).
+   get_code_snippet; struktura projektu → get_architecture; tekst w kodzie →
+   search_code. Projekt bez indeksu → najpierw index_repository. Graf indeksuje
+   main checkout, nie worktree — kod nowy na gałęzi czytasz Read'em.
+   Grep/Glob/Read tylko do tekstu, configów i plików nie-kodu (oraz zawsze Read
+   przed edycją pliku).
 3. Każda biblioteka/API → context7 (/docs); każdy fakt sprawdzalny narzędziem
    (SHA, stan gałęzi, wynik komendy, istnienie symbolu) → sprawdź, nie zgaduj
    z pamięci.
@@ -94,4 +97,3 @@ Candor — szczerość ponad komfort (zawsze; dla reviews, planów, decyzji, oce
   pochlebstwa.
 
 Pełny opis pipeline'u i bramek: skill `development-workflow`.
-Pełne guidelines dyscypliny kodu: skill karpathy-guidelines.
