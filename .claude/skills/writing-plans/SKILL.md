@@ -7,7 +7,7 @@ description: Use when you have a spec or requirements for a multi-step task, bef
 
 ## Overview
 
-A plan is complete when an implementer with no session history can execute each task from the task text alone. Complete, not comprehensive — nothing in it that a task does not need. Write it assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+A plan is complete when an implementer with no session history can execute each task from the task text alone. Complete, not comprehensive — nothing in it that a task does not need. Write it assuming the engineer has zero context for our codebase and does not know its patterns, so every approach names the one to follow. Document everything they need to know: files, interfaces, the tests in full, exact values, the pattern to follow, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
 
 Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
 
@@ -76,6 +76,40 @@ specs here went stale while their code moved on.
 Skip that task when the change genuinely alters nothing the spec states (a
 bugfix restoring documented behaviour, an internal refactor). Say so in one line
 in the plan rather than leaving it ambiguous.
+
+## What the Plan Fixes, and What It Leaves to the Implementer
+
+A plan fixes the contract every task must satisfy; it does not have to fix
+how each task gets there. Some things belong in the task text in full,
+always — they are what a reviewer checks the diff against. Everything else
+stays fixed only when getting it wrong would be a defensible mistake rather
+than a bug.
+
+| Always in full | Only when the implementation is itself a decision |
+|---|---|
+| Interface signatures (Produces/Consumes) | Implementation code |
+| Full test code for every RED, with its expected failure | |
+| Exact values — names, constants, messages, formats, paths | |
+| Verified external API shapes | |
+
+The line between the two columns: implementation code belongs in the task
+when a reviewer would reject a reasonable alternative — an algorithm, a
+storage format, a lock order, a specific error-handling contract. Get one of
+those wrong and the diff is a bug, not a style choice.
+
+Otherwise, give the approach in 1–3 sentences plus the pattern to follow —
+an existing `file:line` or symbol, or a symbol from an earlier task's
+Produces line. When no pattern exists at all, the first instance of it is
+itself a decision, and gets full code.
+
+Why, briefly: full-code plans ran 8–22k words, which slowed red-team and
+review, sat in the controller's context for the whole run, and froze code
+written before earlier tasks existed and without ever being run. The test is
+the contract the reviewer holds the implementation to, which is why it stays
+in full regardless.
+
+For the rejected options, see the design record:
+`~/dotfiles/.flow/specs/2026-09-23-plan-granularity-design.md`.
 
 ## Task Right-Sizing
 
@@ -159,12 +193,14 @@ NameError or a collection error. A test that fails only because the code does
 not exist yet proves nothing about behaviour, and goes green the moment the
 symbol appears, whatever it does.
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **Step 3: Implement**
 
-```python
-def function(input):
-    return expected
-```
+[The approach, 1–3 sentences.]
+
+Follow: `src/path/existing.py:40-62` (`parse_header`)
+
+A code block goes here only when the implementation is itself a decision
+(see "What the Plan Fixes, and What It Leaves to the Implementer" above).
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -187,8 +223,11 @@ Every step must contain the actual content an engineer needs. These are **plan f
 - "Write tests for the above" (without actual test code)
 - An expected RED that is an ImportError, NameError or collection error — the
   failure must be the assertion, or the test does not discriminate
-- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
-- Steps that describe what to do without showing how (code blocks required for code steps)
+- "Similar to Task N" (repeat the test code and values — the engineer may be reading tasks out of order)
+- Test code is always shown in full; implementation code only when it is a
+  decision (see "What the Plan Fixes, and What It Leaves to the
+  Implementer") — an approach with no pattern to follow, or with nothing
+  concrete in it, is a placeholder
 - References to types, functions, or methods not defined in any task
 
 ## Self-Review
