@@ -26,8 +26,10 @@ Artifacts: specs → `.flow/specs/`, plans → `.flow/plans/`, execution scratch
 
 **Always-on discipline** (fires on trigger, any stage): `test-driven-development`,
 `systematic-debugging` (independent failures investigated in parallel),
-`receiving-code-review`. Candor (anti-sycophancy) and code discipline
-(Karpathy-style) live always-on in `CLAUDE.md`.
+`receiving-code-review`. Candor (anti-sycophancy), code discipline
+(Karpathy-style) and response shape (adapted from
+[ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)) live always-on in
+`CLAUDE.md`.
 
 ## Model & effort
 
