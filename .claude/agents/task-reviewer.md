@@ -76,6 +76,11 @@ evidence missing/unsound", with the test's file:line.
   cases per equivalence class is coverage; forty more of the same class is not.
 - **Misunderstood:** right feature built wrong, or wrong problem solved
 
+Where the brief gives an approach rather than code, the contract is its tests,
+interfaces and values. Judge the implementation on quality and on fidelity to
+the pattern the brief names; "not how I would have done it" is not a finding.
+Code the brief does give is a requirement like any other.
+
 If a requirement cannot be verified from this diff alone (it lives in unchanged
 code or spans tasks), report it as ⚠️ rather than widening your search.
 

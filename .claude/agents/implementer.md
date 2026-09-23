@@ -35,6 +35,11 @@ from the plan plus the plan's global constraints, and its exact values — names
 numbers, signatures, test cases — are to be used verbatim. Do not edit the brief
 or the plan; if the brief is wrong, report NEEDS_CONTEXT quoting the line.
 
+Where the brief gives an approach instead of code, the implementation is yours:
+follow the pattern it names, and keep its tests, interfaces and values verbatim
+— those are the contract the review holds you to. Code the brief does give is
+there because the implementation is itself a decision; use it as written.
+
 If anything about the requirements, approach or acceptance criteria is unclear,
 stop before writing code and report NEEDS_CONTEXT with the question and your best
 guess at the answer. You have no channel to ask mid-task — the report is the
