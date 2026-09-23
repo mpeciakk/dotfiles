@@ -190,3 +190,118 @@ All verification checks pass:
 ### Concerns
 
 None. The fix successfully rewraps the Candor first bullet to exactly match the brief's Step 3 specification while maintaining the ~80-column formatting constraint.
+
+## Branch Review Findings: Response Shape Wording Fixes
+
+### Findings Applied
+
+Three Minor findings from whole-branch review approved by user.
+
+#### Finding 1: Dygresje (Digression) Bullet - Lines 111-113
+
+**Change:** Updated wording for consistency with the broader response shape guidance
+- Old: "je rozstrzygnąć sam — rozstrzygasz i wplatasz"
+- New: "je sprawdzić sam (narzędziem, w kodzie) — sprawdzasz i wplatasz"
+
+**Rationale:** "Rozstrzygnąć" (resolve/settle) implies a decision, while "sprawdzić" (check/verify) more accurately describes what the responder should do with procedural/technical questions that arise during work.
+
+#### Finding 2: Listy (Lists) Bullet - Lines 118-119
+
+**Change:** Extended the bullet to clarify that lists present data but never cut analysis or procedure steps
+
+Old text:
+```
+- Listy: najwyżej 5 pozycji na grupę, najważniejsze pierwsze, reszta na
+  żądanie. To prezentacja — nigdy nie ucina analizy ani listy ustaleń.
+```
+
+New text:
+```
+- Listy: najwyżej 5 pozycji na grupę, najważniejsze pierwsze, reszta na
+  żądanie. To prezentacja — nigdy nie ucina analizy, listy ustaleń ani kroków
+  procedury (grupuj zamiast ucinać).
+```
+
+**Rationale:** Clarifies that lists are a presentation format, not content reduction - cut length by grouping, never by omitting steps or findings.
+
+#### Finding 3: Subagent Reports Exemption - Line 126
+
+**Change:** Simplified the reference to who determines subagent report format
+
+Old: `- Nie dotyczy raportów subagentów — ich format ustalają definicje w `agents/`.`
+
+New:
+```
+- Nie dotyczy raportów subagentów — ich format ustala dispatcher albo
+  definicja w `agents/`.
+```
+
+**Rationale:** Clearer that report format is determined either by the dispatcher's instructions or by the agent definition in `agents/`.
+
+### Verification Commands and Output
+
+#### Verification 1: Finding 1 text
+```bash
+grep -c -F 'sprawdzasz i wplatasz' .claude/CLAUDE.md
+```
+Output: `1` ✓
+
+#### Verification 2: Finding 2 text
+```bash
+grep -c -F 'grupuj zamiast ucinać' .claude/CLAUDE.md
+```
+Output: `1` ✓
+
+#### Verification 3: Finding 3 text
+```bash
+grep -c -F 'ustala dispatcher' .claude/CLAUDE.md
+```
+Output: `1` ✓
+
+#### Verification 4: Line length constraint (UTF-8, ≤80 chars)
+```bash
+awk 'NR>=100 && NR<=130 && length>80' .claude/CLAUDE.md
+```
+Output: (no output - all lines within 80-character limit) ✓
+
+#### Verification 5: Changed file scope
+```bash
+git diff --stat
+```
+Output:
+```
+.claude/CLAUDE.md | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+```
+✓ Only `.claude/CLAUDE.md` changed (as required)
+
+### Commit
+
+**Command:**
+```bash
+git add .claude/CLAUDE.md && git commit -m "$(cat <<'MSGEOF'
+claude: response shape wording fixes from branch review
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+MSGEOF
+)"
+```
+
+**Output:**
+```
+[worktree-feat+adhd-output-rules ...] claude: response shape wording fixes from branch review
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+```
+
+### Test Summary
+
+All verification checks pass (5/5):
+- ✓ Finding 1 text verified in .claude/CLAUDE.md
+- ✓ Finding 2 text verified in .claude/CLAUDE.md
+- ✓ Finding 3 text verified in .claude/CLAUDE.md
+- ✓ All modified lines ≤ 80 characters
+- ✓ Only .claude/CLAUDE.md changed
+
+### Concerns
+
+None. All three findings applied successfully with correct wording and formatting.
