@@ -96,7 +96,13 @@ state file and `git log` over your recollection.
    ~/.claude/hooks/flow-state task N started "base=$BASE"
    ```
 3. **Dispatch the implementer** — `subagent_type: "implementer"`. See Dispatching
-   below for what the prompt carries.
+   below for what the prompt carries. **Pick the model first.** The definition
+   runs Sonnet 5; pass `model: "haiku"` for every task that is small, surgical
+   or fully specified — a spec sync, a config or one-value change, a task whose
+   brief already holds the complete change. Haiku is the rule, not the
+   exception: Sonnet is for tasks where an implementation has to be built.
+   Record the model in the ledger note (`flow-state task N started
+   "base=… model=haiku"`), so fix rounds can be read per model later.
 4. **Handle the status** (below).
 5. **Review package.** `PKG=$($SDD/review-package "$BASE" HEAD)` writes the
    commit list, stat summary, and full diff with context to one file and prints
@@ -184,8 +190,9 @@ The roles live in `~/.claude/agents/` — `implementer`, `task-reviewer`, `fixer
 and tool restrictions, so you do not paste a role description into a prompt: the
 reviewers cannot edit files at all (the harness withholds Edit/Write from them),
 and the implementer and fixer get the test-driven-development skill preloaded.
-Pass `model:` only to override a definition's default — e.g. `opus` for a
-task-reviewer on a hard diff, or for one genuinely hard implementer task.
+Pass `model:` only to override a definition's default — `haiku` for a small,
+surgical or fully-specified implementer task (step 3), `opus` for a
+task-reviewer on a hard diff or for one genuinely hard implementer task.
 
 Your prompt supplies only what varies per dispatch:
 

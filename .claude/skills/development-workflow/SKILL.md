@@ -85,12 +85,12 @@ it for what actually needed it.
 **Dispatched roles carry their own model and effort** in their definition under
 `~/.claude/agents/` — that is where per-role thinking depth lives, since the
 Agent tool call itself takes `model` but no effort. Pass `model:` on a dispatch
-only to override the definition for one case.
+to override the definition — routinely `haiku` for surgical implementer tasks.
 
 | Role | Where it is set | Default |
 |---|---|---|
 | Brainstorm / grill / planning / debugging (inline) | session | Sonnet 5 · xhigh (Opus 5.5 · xhigh for a genuinely hard case) |
-| `implementer` | agent definition | Haiku 4.5, no effort setting (override to Sonnet 5 for a genuinely hard task) |
+| `implementer` | agent definition | Sonnet 5 · high — override to Haiku 4.5 for every small, surgical or fully-specified task (subagent-driven-development, step 3) |
 | `fixer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for one genuinely hard task) |
 | `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for non-trivial / security / concurrency) |
 | `branch-reviewer` | agent definition | Opus 5.5 · high |
@@ -171,9 +171,10 @@ them.
 4. **Isolate** (using-git-worktrees) — but the baseline is the tests covering
    what you are touching, not the whole suite. The full suite runs at finish,
    which is where it decides anything.
-5. **One implementer, one review** (subagent-driven-development, single task).
-   Skip the whole-branch review: with one task, the task review already saw the
-   whole branch.
+5. **One implementer, one review** (subagent-driven-development, single task),
+   the implementer dispatched with `model: "haiku"` — a one-decision change is
+   the surgical case. Skip the whole-branch review: with one task, the task
+   review already saw the whole branch.
 6. **Finish** (finishing-a-development-branch) — full suite, then the options.
 
 Two dispatches, two gates, one artifact. If the work turns out to have a second
