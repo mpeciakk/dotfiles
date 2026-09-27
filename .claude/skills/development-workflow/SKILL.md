@@ -89,7 +89,7 @@ to override the definition — routinely `haiku` for surgical implementer tasks.
 | Role | Where it is set | Default |
 |---|---|---|
 | Brainstorm / grill / planning (inline) | session | Opus 5.5 · high — then /clear + /model sonnet at "go" |
-| Controller from "go" on, debugging (inline) | session | Sonnet 5 · high |
+| Controller from "go" on, debugging (inline) | session | Sonnet 5 · high (Opus 5.5 · high for a genuinely hard debug) |
 | `implementer` | agent definition | Sonnet 5 · high — override to Haiku 4.5 for every small, surgical or paste-ready task — decision code in a brief stays on Sonnet (subagent-driven-development, step 3) |
 | `fixer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for one genuinely hard task) |
 | `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for non-trivial / security / concurrency) |
