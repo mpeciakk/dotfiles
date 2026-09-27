@@ -1,6 +1,6 @@
 ---
 name: writing-specs
-description: Use when a project has no living spec and needs one — a new project starting from an idea, or existing code whose purpose, decisions and open questions live only in someone's head. Triggers on "napisz spec", "stwórz spec.md", "zbierz wymagania", "write a spec for this project", "co ten projekt właściwie robi", and on reaching a project with no spec at the start of pipeline work. Not for amending an existing spec — brainstorming does that per change.
+description: Use when a project has no living spec and needs one — a new project starting from an idea, or existing code whose purpose, decisions and open questions live only in someone's head. Triggers on "napisz spec", "stwórz spec.md", "zbierz wymagania", "write a spec for this project", "co ten projekt właściwie robi", and on reaching a project with no spec at the start of pipeline work, or an existing spec has passed 40 KB and needs splitting into docs/. Otherwise this skill does not amend an existing spec — brainstorming does that per change.
 ---
 
 # Writing Specs
@@ -39,6 +39,10 @@ What follows from that:
 - **Number the sections and keep the numbers stable.** Both readers cite them
   ("§5.2", "D14"); silent renumbering breaks every reference in plans, briefs and
   commit messages.
+- **Cite code by path and symbol, never by line.** `src/harmonia/store.py`
+  (`pool_upsert`) rather than `store.py:104-106`. Line numbers go stale with the
+  next unrelated edit and turn every spec sync into a citation hunt. harmonia's
+  spec carried 411 of them.
 - **Rationale earns its place.** The "why" behind a decision is what stops either
   reader reopening it — the one kind of prose that pays for itself with both.
 - **Nothing purely decorative.** A paragraph that motivates but decides nothing
@@ -133,6 +137,52 @@ answered. Overshoot and say why, rather than deciding something to look concise.
 
 A 300-line description of a 20-file project is a document nobody will maintain,
 and an unmaintained spec is worse than none: it lies with authority.
+
+40 KB, not the line count, is what triggers a split — see
+`## Splitting a spec past 40 KB` below.
+
+## Splitting a spec past 40 KB
+
+**When:** any spec file (`spec.md` or a topic file) over 40 KB by `wc -c`.
+
+**Why:** an implementer reads the spec in full on every task that touches it.
+harmonia's 302 KB spec ran spec-sync implementers at 330–342K context, 3–5×
+the cost of a code task.
+
+**Shape:** `spec.md` becomes the index.
+
+- It holds `Cel`, `Zakres`, and one line per `docs/<topic>.md`: the path, what
+  the file holds, its section numbers and its D numbers.
+- It also holds the next free D number.
+- It keeps the headings of the decision and open-points sections as pointers
+  to where their rows went.
+
+**Decisions and open points:** the decision table and the open-points section
+are dissolved. Each D row and each open point moves, with its number, to the
+topic file that holds the section it governs. A row that governs several
+topics goes with its primary section and is linked from the others. The
+reason: one `decisions.md` would put 72 KB in front of every design gate, the
+option D1 rejected.
+
+**Numbering stays global:** a moved §7 stays §7, and D numbers continue one
+sequence. Whoever adds a D row or a section updates the index's next free D
+number and that file's line in the same commit.
+
+**Choosing topics:** group by what one change reads together, not by heading
+order.
+
+- A topic file that would pass 40 KB splits again.
+- A single section over 40 KB splits at its `###` headings.
+- A section with no `###` headings stays alone in its own file, and the index
+  flags it as over the limit.
+
+**The act:** its own commit. Content is moved, not rewritten, with one
+exception: `file:line` citations are converted to path + symbol. Every
+section except the dissolved two lands in exactly one file, and so does
+every D row.
+
+**Scope:** this is a writing-specs job, never a side effect of a feature
+change.
 
 ## What does not belong in it
 
