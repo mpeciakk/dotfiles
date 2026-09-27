@@ -127,7 +127,10 @@ state file and `git log` over your recollection.
    context and re-run suites, which in a real session cost more than all its
    tasks combined. Its report must contain the covering tests, the command and
    the output before you re-dispatch the review. Minor findings go into the
-   ledger note and get handed to the final review to triage.
+   ledger note and get handed to the final review to triage. An Approved review
+   whose findings are all Minor, with every ⚠️ resolved, ends the task: its
+   Minor findings go to the ledger, never to a fixer. Why: 15 of 147 fixers ran
+   after an Approved review.
 
    **Circuit breaker: two rounds, not five — and the third is denied by the
    guard.** If a second fix-and-re-review still does not reach Approved, stop.
@@ -149,7 +152,8 @@ state file and `git log` over your recollection.
 
 After the last task, run the whole-branch review — requesting-code-review owns
 how to bound the diff and which template to fill; pass it the Minor findings you
-accumulated. Skip it in one case only: a single-task run on development-workflow's
+accumulated. Acting on its findings follows requesting-code-review, step 4.
+Skip it in one case only: a single-task run on development-workflow's
 small lane (the run slug starts with `small/`), where the task review already
 covered the entire branch. Two tasks or more, or any doubt: run it. Then record that the gate ran, because a compaction after the last
 task otherwise leaves a state that looks finished when the branch was never
@@ -249,7 +253,9 @@ Fixer: removed --json, added progress reporting, extracted PROGRESS_INTERVAL, 8/
 
 - Skip the task review, or accept a report missing either verdict.
 - Move to the next task with unfixed Critical/Important findings, or skip the
-  re-review after a fix.
+  re-review after a fix — except a Minor-only fix after the branch review
+  (requesting-code-review, step 4).
+- Dispatch a fixer after an Approved task review whose findings are all Minor.
 - Dispatch a third fixer for one task. Two rounds is the budget; past it,
   escalate instead of patching (step 7).
 - Dispatch a fixer without the brief path in its prompt — 18% of the fixer
