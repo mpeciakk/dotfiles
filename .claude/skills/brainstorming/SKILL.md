@@ -41,7 +41,7 @@ The HARD-GATE holds on both paths: no implementation until the spec is validated
 Work through these items in order; none is optional:
 
 0. **Open the run** — `~/.claude/hooks/flow-state init <task-slug>` (if development-workflow's triage has not already) and `set stage=design`. The run state is what later stages and the pipeline's guards read; a run nobody opened is a run that loses its worktree.
-1. **Explore project context** — **read the project's living spec first** (see The Project Spec below); it states what the project is, which decisions are already in force, and what is still open, and it is the one document that makes your questions non-redundant. Then cbm (`get_architecture` for structure, `search_graph`/`search_code` to find relevant code), then docs and recent commits; Grep/Read only for non-code
+1. **Explore project context** — **read the project's living spec first** (for a split spec: the index and the topic files this change touches) (see The Project Spec below); it states what the project is, which decisions are already in force, and what is still open, and it is the one document that makes your questions non-redundant. Then cbm (`get_architecture` for structure, `search_graph`/`search_code` to find relevant code), then docs and recent commits; Grep/Read only for non-code
 2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 3. **Grill gate** — scan for open decision points; if any remain, grill one question at a time until none do; if none, stay silent and move on. See `~/.claude/skills/brainstorming/grill-gate.md`
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
@@ -70,6 +70,17 @@ points (named "Punkty otwarte", "Otwarte kwestie i flagi", "Otwarte decyzje" —
 whatever that file already calls it). One spec records decisions in a numbered
 table with a rationale column; most record them inside the section they belong
 to. Match the file, do not impose a format on it.
+
+**A split spec** treats `spec.md` as an index over `docs/<topic>.md` topic
+files — see writing-specs' `## Splitting a spec past 40 KB` for how and when a
+spec gets split. When it's split, read the index plus only the topic files
+this change touches, not the whole spec. The decision row and any open point
+go into the topic file that owns the section, not into the index. The D
+number comes from the index's next free D number, and the same commit that
+adds the row updates that number and the file's line in the index. When the
+file you write into is over 40 KB (`wc -c`), say so in one sentence at the
+design gate as a separate writing-specs job, then carry on — it does not
+block this change.
 
 Two documents with **disjoint jobs**, which is what keeps them from drifting:
 
@@ -103,7 +114,8 @@ resolved, and the spec entry names the record.
    records decisions**: a row in its decision table if it has one (continue its
    numbering, keep its columns), otherwise a sentence in the section the decision
    governs, dated. Any new unknown goes into its open-points section; an unknown
-   this change *closes* gets struck there, dated.
+   this change *closes* gets struck there, dated. In the row and anywhere else
+   in the spec, cite code by path and symbol, never by line.
 
 If the spec has no decision record at all, propose adding one — a table with
 what/choice/why is the strongest form and the one spec here that has it is the

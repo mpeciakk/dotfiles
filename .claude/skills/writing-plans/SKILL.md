@@ -67,11 +67,16 @@ the spec says about **state** — architecture, data model, API contracts,
 behaviour it documents — because none of it existed when the design was approved.
 
 **If this change alters any of that, the plan's last task updates those spec
-sections**, listing them by heading, alongside the code that made them true. It
-is a normal task: dispatched, diffed, reviewed with the change it describes. That
-is the whole mechanism — a spec updated in the same branch, by the same review,
-is a spec that stays true; a "remember to update the docs" note at the end is how
-specs here went stale while their code moved on.
+sections**, listing each by file and heading (`docs/player.md` §7.2, not "the
+player section"), alongside the code that made them true. For a split spec:
+that task's implementer reads those files only, never the whole spec; cite
+code by path and symbol, never by line; and when a file it writes into is over
+40 KB, the task says so in one line, and splitting stays a separate
+writing-specs job. It is a normal task: dispatched, diffed, reviewed with the
+change it describes. That is the whole mechanism — a spec updated in the same
+branch, by the same review, is a spec that stays true; a "remember to update
+the docs" note at the end is how specs here went stale while their code moved
+on.
 
 Skip that task when the change genuinely alters nothing the spec states (a
 bugfix restoring documented behaviour, an internal refactor). Say so in one line
@@ -145,8 +150,9 @@ independently testable deliverable.
 **Tech Stack:** [Key technologies/libraries]
 
 **Spec:** [absolute path to the project's living spec.md, and the decision
-number this change added to it — e.g. `spec.md` D18. Omit only if the project
-has no living spec.]
+number this change added to it — e.g. `spec.md` D18. For a split spec, the
+index plus the topic files this change touches. Omit only if the project has
+no living spec.]
 
 **Design record:** [path to `.flow/specs/<date>-<topic>-design.md`]
 
