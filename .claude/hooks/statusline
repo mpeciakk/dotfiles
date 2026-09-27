@@ -9,7 +9,7 @@ require, so this has nothing left to lose.
 Renders one line normally, two while a pipeline run is open:
 
     ~/dotfiles  main*   Opus 5 · xhigh   ctx 38%   $0.42  +156/-23
-    flow  json-export · implement · 2/5 tasks · feat/json
+    flow  json-export · plan · 0/5 tasks · go → /clear · /model sonnet · go
 
 Input schema is the documented statusLine payload (model, workspace, cost,
 context_window, effort). Every field is optional here: a missing one drops its
@@ -131,10 +131,30 @@ def plan_total(path):
     return len(numbers) or None
 
 
-def flow_line(state):
+OPUS_STAGES = {"design"}
+SONNET_STAGES = {"isolate", "implement", "finish"}
+
+
+def model_hint(stage, payload):
+    """What to switch to, if this stage wants a different model (design D2)."""
+    model = (payload.get("model") or {}).get("id") or ""
+    if not model:
+        return None
+    opus = "opus" in model.lower()
+    if stage in OPUS_STAGES and not opus:
+        return f"{YELLOW}⚠ /model opus{RESET}"
+    if stage == "plan" and opus:
+        return f"{CYAN}go → /clear · /model sonnet · go{RESET}"
+    if stage in SONNET_STAGES and opus:
+        return f"{YELLOW}⚠ /clear · /model sonnet{RESET}"
+    return None
+
+
+def flow_line(state, payload):
     if not state:
         return None
-    bits = [f"{CYAN}{state.get('task') or 'run'}{RESET}", state.get("stage") or "?"]
+    stage = state.get("stage")
+    bits = [f"{CYAN}{state.get('task') or 'run'}{RESET}", stage or "?"]
     tasks = [t for t in (state.get("tasks") or []) if isinstance(t, dict)]
     # The ledger gains an entry the moment a task starts, so its length is
     # "tasks touched so far", never the run's size — only the plan knows that.
@@ -150,6 +170,9 @@ def flow_line(state):
         bits.append(state["branch"])
     if not state.get("worktree"):
         bits.append(f"{RED}no workspace{RESET}")
+    hint = model_hint(stage, payload)
+    if hint:
+        bits.append(hint)
     return f"{DIM}flow{RESET}  " + f"{DIM} · {RESET}".join(bits)
 
 
@@ -170,7 +193,7 @@ def main():
             segments.append(segment)
     print(f"{DIM}   {RESET}".join(segments))
 
-    line = flow_line(run_state(cwd))
+    line = flow_line(run_state(cwd), payload)
     if line:
         print(line)
 
