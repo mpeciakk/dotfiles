@@ -52,4 +52,6 @@ Your final message IS the report.
 2. The single simpler alternative worth considering, if one exists
 3. One-line verdict: PROCEED / PROCEED WITH CHANGES / RETHINK. Any blocking or
    serious objection rules out PROCEED; with minor objections only, the verdict
-   is PROCEED and the minor ones are listed under it as edits to apply.
+   is PROCEED and the minor ones are listed under it as edits to apply. RETHINK
+   when fixing a blocking objection means a different approach, not edits to
+   this plan; otherwise PROCEED WITH CHANGES.

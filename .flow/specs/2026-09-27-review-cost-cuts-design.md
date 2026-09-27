@@ -64,6 +64,16 @@ That is behaviour change landing unreviewed.
 objection. Minor-only → PROCEED plus a list. The controller applies the list to
 the plan without a gate and names it in one line at the plan gate.
 
+## D4a — RETHINK vs PROCEED WITH CHANGES
+
+**Chosen:** RETHINK when fixing a blocking objection means a different approach,
+not edits to this plan; otherwise PROCEED WITH CHANGES. Added after the
+Verification replay: with D4 in place a serious-only report could not be given
+either verdict, because plan-red-team never defined RETHINK.
+
+**Rejected:** leaving it for a separate lane. D4 is what exposed the gap, and
+closing it costs one sentence.
+
 **Out of scope:**
 - red-team effort xhigh → high (no evidence high suffices);
 - `tools:` on agents and the duplicate Cloudflare skills (separate small lane);
