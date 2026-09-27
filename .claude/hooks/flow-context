@@ -91,6 +91,11 @@ def session_context(state):
         lines.append(f"  complete: {', '.join(done)} — do NOT re-dispatch these")
     if open_tasks:
         lines.append(f"  in flight: {', '.join(open_tasks)}")
+    if state.get("stage") == "plan":
+        lines.append(
+            "The plan awaits the user's \"go\". On go: using-git-worktrees, then "
+            "subagent-driven-development — do not re-plan."
+        )
     lines.append(
         "Trust this and `git log` over recollection: resume at the first task not "
         "marked complete, and if your cwd is not the recorded worktree, re-enter it "

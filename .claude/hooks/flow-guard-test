@@ -567,6 +567,14 @@ CTX=$ROOT/ctxvocab; mkrepo "$CTX" >/dev/null || fixture_fail "ctx repo"
 c=$(context_of "$(event_payload "$CTX" SessionStart)")
 case "$c" in *"complete: 1"*) report ok "a done task is reported to subagents as complete";; *) report no "done task not reported complete" "$c";; esac
 case "$c" in *"in flight: 2"*) report ok "a started task is reported in flight";; *) report no "started task not in flight" "$c";; esac
+"$STATE" --cwd "$CTX" set stage=plan >/dev/null
+c=$(context_of "$(event_payload "$CTX" SessionStart)")
+case "$c" in *"using-git-worktrees, then subagent-driven-development"*) report ok "stage=plan: context says what go starts";;
+  *) report no "stage=plan context lacks the go handoff" "$c";; esac
+"$STATE" --cwd "$CTX" set stage=implement plan="$CTX/p.md" >/dev/null || fixture_fail "ctx stage=implement"
+c=$(context_of "$(event_payload "$CTX" SessionStart)")
+case "$c" in *"using-git-worktrees, then"*) report no "handoff line leaks past stage=plan" "$c";;
+  *) report ok "stage=implement: no go handoff line";; esac
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

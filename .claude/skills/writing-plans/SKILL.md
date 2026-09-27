@@ -275,7 +275,7 @@ branch they are on now (often `main`), before any worktree exists. That is
 deliberate — the worktree branches from HEAD and needs them — but say it rather
 than leaving them to discover two commits on main.
 
-Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] [Design commit, spec decision, record path.] Say 'go' to execute."
+Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] [Design commit, spec decision, record path.] To execute: /clear, /model sonnet, then 'go'."
 
 **Once the user approves, unless they ask otherwise:**
 - **REQUIRED SUB-SKILL (first):** using-git-worktrees — isolated workspace, recorded in the run state, clean test baseline, before any task runs.

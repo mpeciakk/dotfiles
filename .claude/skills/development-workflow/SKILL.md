@@ -74,13 +74,12 @@ skill: name the command that proves it, run it, quote the output.
 
 ## Model & effort per stage
 
-Session default is **Sonnet 5 · xhigh** (`settings.json` → `modelSettings`) — the
-baseline for every stage you run **inline**. Escalate to **Opus 5.5 · xhigh**
-only for a stage that is genuinely complex or demanding (a hard design call, a gnarly debug, a plan with many
-interacting parts), not as the default cost of doing design or planning at all.
-Ten review rounds and a milestone eating a full day in real runs were partly a
-symptom of running everything at maximum depth by default instead of reserving
-it for what actually needed it.
+Session default is **Sonnet 5 · high** (`settings.json` → `modelSettings`).
+Stages 1–2 (design, plan) run on **Opus 5.5 · high** instead. At the plan gate
+the user answers with `/clear`, `/model sonnet`, then `go` — the fresh session
+resumes from flow-state, and the status line shows the switch each stage
+wants. Why the `/clear`: the prompt cache is per model, so switching without
+it re-reads the whole design context.
 
 **Dispatched roles carry their own model and effort** in their definition under
 `~/.claude/agents/` — that is where per-role thinking depth lives, since the
@@ -89,7 +88,8 @@ to override the definition — routinely `haiku` for surgical implementer tasks.
 
 | Role | Where it is set | Default |
 |---|---|---|
-| Brainstorm / grill / planning / debugging (inline) | session | Sonnet 5 · xhigh (Opus 5.5 · xhigh for a genuinely hard case) |
+| Brainstorm / grill / planning (inline) | session | Opus 5.5 · high — then /clear + /model sonnet at "go" |
+| Controller from "go" on, debugging (inline) | session | Sonnet 5 · high |
 | `implementer` | agent definition | Sonnet 5 · high — override to Haiku 4.5 for every small, surgical or paste-ready task — decision code in a brief stays on Sonnet (subagent-driven-development, step 3) |
 | `fixer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for one genuinely hard task) |
 | `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for non-trivial / security / concurrency) |
