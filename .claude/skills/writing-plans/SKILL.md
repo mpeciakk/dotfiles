@@ -68,11 +68,11 @@ behaviour it documents — because none of it existed when the design was approv
 
 **If this change alters any of that, the plan's last task updates those spec
 sections**, listing each by file and heading (`docs/player.md` §7.2, not "the
-player section"), alongside the code that made them true. For a split spec:
-that task's implementer reads those files only, never the whole spec; cite
-code by path and symbol, never by line; and when a file it writes into is over
-40 KB, the task says so in one line, and splitting stays a separate
-writing-specs job. It is a normal task: dispatched, diffed, reviewed with the
+player section"), alongside the code that made them true. Cite code by path
+and symbol, never by line, and when a file it writes into is over 40 KB, the
+task says so in one line, and splitting stays a separate writing-specs job.
+For a split spec: that task's implementer reads those files only, never the
+whole spec. It is a normal task: dispatched, diffed, reviewed with the
 change it describes. That is the whole mechanism — a spec updated in the same
 branch, by the same review, is a spec that stays true; a "remember to update
 the docs" note at the end is how specs here went stale while their code moved
@@ -250,7 +250,7 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Red-Team Pass
 
-After self-review, before offering execution, dispatch a fresh adversarial subagent to argue the plan is wrong — see [red-team.md](red-team.md) for when to run it, when to skip it, and the dispatch. Surface its ranked objections with your own honest take on each, and resolve the blocking ones — by amending the plan or an explicit user decision — before execution starts.
+After self-review, before offering execution, dispatch a fresh adversarial subagent to argue the plan is wrong — see [red-team.md](red-team.md) for when to run it, when to skip it, and the dispatch. Any blocking or serious objection: surface its ranked objections with your own honest take on each, and resolve the blocking ones — by amending the plan or an explicit user decision — before execution starts. Minor objections only, or none at all: see red-team.md for how they get applied without a gate.
 
 ## Execution Handoff
 

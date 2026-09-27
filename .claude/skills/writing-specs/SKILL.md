@@ -9,9 +9,11 @@ A living spec states what a project **is right now**: its purpose, scope,
 architecture, the decisions in force, and what is still open. It is written once
 per project and then kept true by every change that touches it.
 
-This is a bootstrap job — one document, one sitting, its own user gate. It is not
-a stage of the pipeline and it opens no run state; a change to *code* comes
-afterwards, through development-workflow as usual.
+This is a bootstrap job — one document, one sitting, its own user gate; a
+split also ends at its own user gate, where the user approves the topic
+grouping before the commit. It is not a stage of the pipeline and it opens no
+run state; a change to *code* comes afterwards, through development-workflow
+as usual.
 
 ## Two readers, and only one of them can ask
 

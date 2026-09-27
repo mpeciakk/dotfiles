@@ -58,11 +58,14 @@ context every few minutes for nothing.
   `flow-state task branch-review started "fixbase=$(git rev-parse --short HEAD)"`.
   Outside a run, note it in your reply.
 - *Critical or Important present.* Those findings, plus any Minor you decide to
-  keep, go to ONE fix subagent with the complete list. The re-review covers
-  only the fix range (`<fixbase>..HEAD`). It is a `task-reviewer` whose brief
-  is the finding list, handed the fixer's report. That agent already has the
-  re-review semantics. A branch-reviewer given a two-commit diff would report
-  every planned requirement as missing.
+  keep, go to ONE fix subagent with the complete list. Package it with
+  `review-package <fixbase> HEAD`. The re-review covers only the fix range
+  (`<fixbase>..HEAD`). It is a `task-reviewer` whose brief is the finding list,
+  handed the fixer's report. That agent already has the re-review semantics. A
+  branch-reviewer given a two-commit diff would report every planned
+  requirement as missing. A second Needs fixes goes to the user — there is no
+  second fix round. The fixer writes its evidence to
+  `.flow/sdd/<run>/branch-review-report.md`.
 - *Kept Minor findings only.* One fixer whose report shows the full suite
   green, with no re-review.
 - *Minor findings you do not keep.* Record them; do not drop them silently.

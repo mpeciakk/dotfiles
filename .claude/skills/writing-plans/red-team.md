@@ -46,7 +46,7 @@ moving to the Execution Handoff. Blocking objections get resolved — by amendin
 the plan or by an explicit user decision to accept the risk — before execution
 starts.
 
-Minor objections only: apply the minor list to the plan yourself — no gate, no
-debate — commit the amended plan, and name what changed in one line at the plan
+No objections, or minor ones only: apply the minor list to the plan yourself
+— no gate, no debate — commit the amended plan, and name what changed in one line at the plan
 gate. Skip an item you disagree with and say which and why in that line; an item
 that needs a decision from the user goes to the plan gate as a question instead.

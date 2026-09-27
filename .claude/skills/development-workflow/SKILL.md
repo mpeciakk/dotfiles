@@ -160,7 +160,8 @@ them.
    this decision belongs in its decision table, add the row now, at the gate —
    one line, and the lane's whole point is that one line is the documentation.
    For a split spec, the row goes into the topic file that owns the section,
-   and the index's next free D number is updated in the same commit.
+   and the index's next free D number and that file's line in the index are
+   updated in the same commit.
 2. **Open the run with a `small/` slug**, so the lane is visible after
    compaction and in every guard message:
    `~/.claude/hooks/flow-state init small/<slug>`.
