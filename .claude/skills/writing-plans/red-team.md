@@ -36,11 +36,17 @@ six wakeups for one pre-mortem).
 
 ## After the pass
 
+Branch on the most severe objection in the report, not on its label — a
+PROCEED carrying a serious objection, or a report with no verdict line, is
+decided by the same rule. Any blocking or serious objection: surface as below.
+
 Surface the ranked objections to the user verbatim, with your own take on which
 you agree with and which you do not, and why. Then let the user decide before
 moving to the Execution Handoff. Blocking objections get resolved — by amending
 the plan or by an explicit user decision to accept the risk — before execution
 starts.
 
-If the verdict is PROCEED with no blocking objections, say so in one line and
-move on. Do not stage a debate the plan does not need.
+Minor objections only: apply the minor list to the plan yourself — no gate, no
+debate — commit the amended plan, and name what changed in one line at the plan
+gate. Skip an item you disagree with and say which and why in that line; an item
+that needs a decision from the user goes to the plan gate as a question instead.
