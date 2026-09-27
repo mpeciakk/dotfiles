@@ -1,0 +1,3 @@
+# Review Task 8 attack.sh
+
+- **TDD evidence missing/unsound** — `task-8-report.md:94-105`, `tests/test_attack.py` (whole file). The brief's Step 2 requires running `pytest tests/test_attack.py -v` and confirming it fails because `attack.sh` doesn't exist yet. The report shows no RED command output for that; it only asserts the RED happened "in an earlier interrupted session" and substitutes a different, incidental RED (the corrupted `leak_phone_sim.mp4`, which is orthogonal to whether the test can fail for the *stated* reason — missing script). Only a GREEN run (`4 passed in 478.95s`) is shown in this report.
