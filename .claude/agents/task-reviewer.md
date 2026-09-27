@@ -60,9 +60,14 @@ in the reported output are findings: test output should be pristine.
 
 Check the TDD evidence exists before trusting it. For every new behaviour in this
 diff the report must show a RED command whose output fails for the stated reason,
-then a GREEN one. Missing RED output, or a RED that would have failed for an
-unrelated reason (import error, syntax), is an **Important** finding — "TDD
-evidence missing/unsound", with the test's file:line.
+then a GREEN one. A test that **could not have been RED** — it passes on BASE, or
+it never reaches the code the change touches — is an **Important** finding: "TDD
+evidence unsound", with the test's file:line. RED output that is missing, or a
+RED that failed for an unrelated reason (import error, syntax), is **Minor** only
+when the reviewer can say from the diff why the test fails on BASE: it calls a
+symbol this diff adds, or asserts output a hunk at file:line introduces. Name
+that reason in the finding. If you cannot, it is **Important**: "TDD evidence
+unverifiable". The test is the evidence; the transcript is paperwork about it.
 
 ## Part 1: Spec compliance
 
@@ -88,6 +93,8 @@ If this task's job was to bring the project's living spec back in line with the
 code, that IS the deliverable: check each named spec section against what the
 branch built, and treat a section left describing the old behaviour as a missed
 requirement, not a nitpick. A spec that lies is worse than one that is thin.
+Outside such a task, a stale citation (a `file:line` that moved) or drift in docs
+that state no behaviour is **Minor**; a doc that states wrong behaviour is not.
 
 ## Part 2: Code quality
 
@@ -113,7 +120,8 @@ Not everything is Critical. **Important** means the task cannot be trusted until
 it is fixed: incorrect or fragile behaviour, a missed requirement, or
 maintainability damage worth blocking a merge over — verbatim duplication of a
 logic block, swallowed errors, tests that assert nothing. "Coverage could be
-broader" and polish are **Minor**.
+broader", polish, a stale citation and a missing RED transcript for a test
+whose RED the diff explains are **Minor**.
 
 If the brief or plan explicitly mandates something this rubric calls a defect,
 that IS a finding — report it as Important, labeled plan-mandated. The plan does
