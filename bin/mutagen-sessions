@@ -35,6 +35,21 @@ IGNORES=(
 ign_args=()
 for p in "${IGNORES[@]}"; do ign_args+=("--ignore=$p"); done
 
+# Bookkeeping gita, czysto lokalny per-maszyna — nie stan repo. Branch,
+# HEAD, config i obiekty muszą się propagować (żeby obie maszyny dzieliły
+# jedno repo), index i reflogi nie muszą i to one kolidują za każdym razem,
+# gdy git chodzi po obu stronach naraz. Sprawdzone w izolowanym teście
+# 2026-09-28 (patrz Lekcje operacyjne → „Mutagen i synchronizacja").
+GIT_IGNORES=(
+  '**/.git/index' '**/.git/index.lock'
+  '**/.git/*.lock' '**/.git/**/*.lock'
+  '**/.git/logs/'
+  '**/.git/ORIG_HEAD' '**/.git/MERGE_HEAD' '**/.git/MERGE_MSG' '**/.git/MERGE_MODE'
+  '**/.git/COMMIT_EDITMSG' '**/.git/FETCH_HEAD'
+)
+git_ign_args=()
+for p in "${GIT_IGNORES[@]}"; do git_ign_args+=("--ignore=$p"); done
+
 ensure() {
   local name=$1 local_path=$2 remote=$3
   shift 3
@@ -54,10 +69,10 @@ ensure() {
   echo "+  $name — utworzone"
 }
 
-ensure proj-projects "$HOME/projects"         proj/projects "${ign_args[@]}"
-ensure proj-work     "$HOME/work"             proj/work     "${ign_args[@]}"
-ensure obsidian      "$HOME/obsidian"         obsidian
-ensure cc-projects   "$HOME/.claude/projects" cc/projects
+ensure proj-projects "$HOME/projects"         proj/projects "${ign_args[@]}" "${git_ign_args[@]}"
+ensure proj-work     "$HOME/work"             proj/work     "${ign_args[@]}" "${git_ign_args[@]}"
+ensure obsidian      "$HOME/obsidian"         obsidian      "${git_ign_args[@]}"
+ensure cc-projects   "$HOME/.claude/projects" cc/projects   "${git_ign_args[@]}"
 
 # zs1 celowo z --ignore-vcs, jako jedyna sesja: w ~/zs1/prace lądują klony
 # repozytoriów uczniów i ich katalogi .git nie mają po co jeździć przez hub.
