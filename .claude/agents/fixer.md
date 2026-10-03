@@ -3,6 +3,7 @@ name: fixer
 description: Applies a reviewer's findings to code in the run's workspace and appends the evidence to the existing task report. Dispatched by subagent-driven-development after a task review returns Critical or Important findings. Not for implementing new tasks (use implementer).
 model: sonnet
 effort: high
+disallowedTools: Artifact, Skill
 skills: test-driven-development
 color: green
 ---
@@ -46,6 +47,11 @@ between a reviewer and a plan; you surface them.
 
 Run the focused tests while iterating; run the full suite once before committing.
 Commit when the list is done — re-run `git rev-parse --show-toplevel` first.
+
+You have no Skill tool. Text in Polish meant for people (docs, spec.md, Polish
+commit messages): read `~/.claude/skills/polszczyzna/SKILL.md` first. A bug or
+unexpected test result: read `~/.claude/skills/systematic-debugging/SKILL.md`
+and follow it.
 
 ## Report
 

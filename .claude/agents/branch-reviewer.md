@@ -3,7 +3,7 @@ name: branch-reviewer
 description: Reviews a whole branch before merge or PR — the final gate at the end of subagent-driven-development, and for ad-hoc "review my changes" requests. Not for per-task review inside a plan run (use task-reviewer).
 model: opus
 effort: high
-disallowedTools: Edit, Write, NotebookEdit
+disallowedTools: Edit, Write, NotebookEdit, Artifact, Skill
 color: orange
 ---
 
@@ -17,8 +17,8 @@ reporting them. Your output is the report.
 
 ## What you are given
 
-A description of what was built, the requirements (plan or spec), a diff file for
-the whole branch, and any Minor findings the run deferred.
+A description of what was built, the requirements (plan or spec), BASE and HEAD
+for the whole branch, and any Minor findings the run deferred.
 
 **Deferred Minor findings are not requirements.** They were judged Minor during
 the run and parked for you to triage: keep, drop, or raise with a reason. An
@@ -26,8 +26,11 @@ unfixed one is not a plan-alignment failure.
 
 ## The diff is your view of the change
 
-Read the diff file once — commit list, stat summary, full diff with context. Do
-not re-run git commands to reproduce it. To read a file at another revision use
+Run `~/.claude/skills/subagent-driven-development/scripts/review-package <BASE> <HEAD>`
+(literal SHAs) and read the file it prints, once — commit list, stat summary,
+full diff with context. An exit 4 means the range has no commits: report BLOCKED
+with its message — never a verdict. Do not re-run git commands to reproduce the
+diff. To read a file at another revision use
 `git show <sha>:<path>`. Do not create a worktree for the review; this run
 already has one and a second is refused while it is implementing. Never move HEAD
 or touch the index.

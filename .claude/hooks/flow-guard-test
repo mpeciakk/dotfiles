@@ -389,6 +389,29 @@ python3 "$ROOT/validate-agents.py" "$BAD" >/dev/null 2>&1 \
   && report no "validator accepted a reviewer that can edit" \
   || report ok "validator rejects a read-only role that can edit"
 
+AG=$(cd "$HERE/../agents" && pwd)
+fm() { awk '/^---$/{n++; next} n==1' "$AG/$1.md"; }
+for a in implementer fixer task-reviewer branch-reviewer plan-red-team; do
+  d=$(fm "$a" | grep '^disallowedTools:')
+  case "$d" in *Artifact*Skill*|*Skill*Artifact*) report ok "$a withholds Artifact and Skill";;
+    *) report no "$a withholds Artifact and Skill" "$d";; esac
+done
+for a in task-reviewer branch-reviewer; do
+  grep -q 'scripts/review-package' "$AG/$a.md" && grep -q 'exit 4' "$AG/$a.md" && grep -q 'BLOCKED' "$AG/$a.md" \
+    && report ok "$a builds its own diff package; exit 4 is BLOCKED" || report no "$a review-package step"
+done
+for a in implementer fixer; do
+  grep -q 'polszczyzna/SKILL.md' "$AG/$a.md" && grep -q 'systematic-debugging/SKILL.md' "$AG/$a.md" \
+    && report ok "$a knows the skill files it can no longer invoke" || report no "$a skill pointers"
+done
+SK=$(cd "$HERE/../skills" && pwd)
+for f in subagent-driven-development/SKILL.md requesting-code-review/SKILL.md; do
+  grep -qE 'PKG=|generate the review package|without a diff file|\[review-package|Package it with' "$SK/$f" \
+    && report no "$f still has the controller build the review package" || report ok "$f: reviewer builds the package"
+done
+grep -q 'BLOCKED' "$SK/subagent-driven-development/SKILL.md" && grep -q 'git log --all --oneline -5' "$SK/subagent-driven-development/SKILL.md" \
+  && report ok "SDD says what a reviewer BLOCKED on an empty range means" || report no "SDD reviewer BLOCKED handling"
+
 echo "=== a task gets at most two fix rounds ==="
 FR=$ROOT/fixrounds; mkrepo "$FR" >/dev/null || fixture_fail "fix-rounds repo"
 "$STATE" --cwd "$FR" init fixr >/dev/null

@@ -34,17 +34,11 @@ If both fall through — a repo whose default branch is `trunk` or `develop` —
 ask the user which branch this work forked from rather than packaging an empty
 or oversized range.
 
-**2. Package the diff as a file**, so it never enters your context and the
-reviewer reads it in one call:
-
-```bash
-PKG=$(~/.claude/skills/subagent-driven-development/scripts/review-package "$BASE_SHA" "$HEAD_SHA")
-```
-
-**3. Dispatch** `subagent_type: "branch-reviewer"`. Its role, model and read-only
-tool set live in `~/.claude/agents/branch-reviewer.md`, so your prompt carries
-only: what was built, the requirements (plan or spec path), BASE and HEAD, the
-diff-package path, and the run's deferred Minor findings **as their own block** —
+**2. Dispatch** `subagent_type: "branch-reviewer"`. Its role, model and read-only
+tool set live in `~/.claude/agents/branch-reviewer.md`, and it builds the diff
+package itself, so your prompt carries only: what was built, the requirements
+(plan or spec path), BASE and HEAD, and the run's deferred Minor findings **as
+their own block** —
 mixed into the requirements, a reviewer reads them as things the branch was
 supposed to deliver and reports each unfixed one as a spec gap.
 
@@ -52,14 +46,14 @@ Then end the turn and wait for the notification — not for a wakeup you schedul
 yourself. A branch review runs for minutes; polling it re-reads your whole
 context every few minutes for nothing.
 
-**4. Act on it.**
+**3. Act on it.**
 
 - *Before any fixer.* Record the pre-fix HEAD so a compaction cannot lose it:
   `flow-state task branch-review started "fixbase=$(git rev-parse --short HEAD)"`.
   Outside a run, note it in your reply.
 - *Critical or Important present.* Those findings, plus any Minor you decide to
-  keep, go to ONE fix subagent with the complete list. Package it with
-  `review-package <fixbase> HEAD`. The re-review covers only the fix range
+  keep, go to ONE fix subagent with the complete list. Dispatch the re-review
+  with BASE = the fix base and HEAD. The re-review covers only the fix range
   (`<fixbase>..HEAD`). It is a `task-reviewer` whose brief is the finding list,
   handed the fixer's report. That agent already has the re-review semantics. A
   branch-reviewer given a two-commit diff would report every planned

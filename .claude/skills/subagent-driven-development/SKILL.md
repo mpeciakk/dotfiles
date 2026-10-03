@@ -107,22 +107,21 @@ state file and `git log` over your recollection.
    brief carries decision code (an algorithm, a format, a lock order, the first
    instance of a pattern): transcribing that is where a wrong plan gets caught.
 4. **Handle the status** (below).
-5. **Review package.** `PKG=$($SDD/review-package "$BASE" HEAD)` writes the
-   commit list, stat summary, and full diff with context to one file and prints
-   its path. The diff never enters your context; the reviewer reads one file.
-   If it exits with "no commits in BASE..HEAD", the implementer's commits are
-   not in this tree — find them before reviewing rather than shipping an empty
-   diff to a reviewer who will approve it.
-6. **Dispatch the task reviewer** — `subagent_type: "task-reviewer"`, with
+5. **Dispatch the task reviewer** — `subagent_type: "task-reviewer"`, with
    `model: "opus"` for a non-trivial, security- or concurrency-touching diff.
-   After a fix, re-package the same range (`BASE..HEAD`, not just the fix
-   commits) so the re-review judges the task, not the patch — and pass the
-   prior findings plus the fixer's report alongside it. Without that, a fresh
-   reviewer either re-litigates ground the fixer already covered, or — hunting
-   for something to say — flags a new nitpick each round. Tell it what to treat
-   as settled; that single habit is what separated a clean second review from a
-   real run's ten-round one.
-7. **Fix loop, two rounds maximum.** Critical and Important findings go to ONE
+   It gets BASE and HEAD and builds the review package itself, so the diff
+   never enters your context. On a re-review pass the same `BASE` and the new
+   HEAD (not just the fix commits), so the re-review judges the task, not the
+   patch — and pass the prior findings plus the fixer's report alongside it.
+   Without that, a fresh reviewer either re-litigates ground the fixer already
+   covered, or — hunting for something to say — flags a new nitpick each round.
+   Tell it what to treat as settled; that single habit is what separated a
+   clean second review from a real run's ten-round one.
+
+   A reviewer BLOCKED on "no commits in BASE..HEAD" means the implementer's
+   commits are not in this tree: find them (`git log --all --oneline -5`)
+   before anything else — never re-dispatch the reviewer unchanged.
+6. **Fix loop, two rounds maximum.** Critical and Important findings go to ONE
    `fixer` dispatch with the complete list — per-finding fixers each rebuild
    context and re-run suites, which in a real session cost more than all its
    tasks combined. Its report must contain the covering tests, the command and
@@ -145,14 +144,14 @@ state file and `git log` over your recollection.
    patching escape cases one at a time. Bring it to the user — the reviewer's
    findings, what the brief actually requires, and your read on which of the
    four it is — rather than looping a third time on your own judgment.
-8. **Record it.** `flow-state task N done ...`, mark the todo done, move on
+7. **Record it.** `flow-state task N done ...`, mark the todo done, move on
    — without checking in. The approved plan is the instruction. Stop only for
    BLOCKED you cannot resolve, ambiguity the plan does not settle, or the end
    of the plan.
 
 After the last task, run the whole-branch review — requesting-code-review owns
 how to bound the diff and which template to fill; pass it the Minor findings you
-accumulated. Acting on its findings follows requesting-code-review, step 4.
+accumulated. Acting on its findings follows requesting-code-review, step 3.
 Skip it in one case only: a single-task run on development-workflow's
 small lane (the run slug starts with `small/`), where the task review already
 covered the entire branch. Two tasks or more, or any doubt: run it. Then record that the gate ran, because a compaction after the last
@@ -167,7 +166,7 @@ Then finishing-a-development-branch.
 
 ## Implementer status
 
-**DONE** → generate the review package and review.
+**DONE** → dispatch the task reviewer with BASE and HEAD.
 
 **DONE_WITH_CONCERNS** → read the concerns first. Correctness or scope
 concerns get resolved before review; observations ("this file is getting
@@ -206,9 +205,9 @@ Your prompt supplies only what varies per dispatch:
 | Role | The prompt carries |
 |---|---|
 | `implementer` | task number and name; the **worktree and branch** (`flow-state get worktree` / `get branch` — never `pwd`, which lies on a resumed session); the brief path; the report path; one line on where this task fits; interfaces and decisions from earlier tasks the brief cannot know; your resolution of any ambiguity you noticed |
-| `task-reviewer` | brief path, implementer report path, diff-package path, BASE and HEAD, and the plan's Global Constraints copied verbatim; on a re-review, also the prior findings and the fixer's report, so settled ground is named as settled |
+| `task-reviewer` | brief path, implementer report path, BASE and HEAD, and the plan's Global Constraints copied verbatim; on a re-review, also the prior findings and the fixer's report, so settled ground is named as settled |
 | `fixer` | the worktree and branch; the verbatim finding list with file:line each; the brief path; the existing report path to append to |
-| `branch-reviewer` | what was built, the requirements, the whole-branch diff-package path, and the run's deferred Minor findings as their own block |
+| `branch-reviewer` | what was built, the requirements, BASE and HEAD of the whole branch, and the run's deferred Minor findings as their own block |
 
 If `flow-state get worktree` prints nothing, stop: the run has no workspace and
 using-git-worktrees has not run. Do not dispatch into a workspace nobody recorded.
@@ -241,7 +240,7 @@ hand artifacts over as files:
 Task 2: Recovery modes
 [task-brief → dispatch implementer with brief + report paths + interfaces]
 Implementer: DONE, added verify/repair modes, 8/8 passing, 2 commits.
-[review-package a1b2c3d..e4f5g6h → dispatch task reviewer]
+[dispatch task reviewer with a1b2c3d..e4f5g6h]
 Reviewer: Spec ❌ missing progress reporting; extra --json flag. Important: magic number 100.
 [ONE fix subagent with all three findings]
 Fixer: removed --json, added progress reporting, extracted PROGRESS_INTERVAL, 8/8 passing.
@@ -254,14 +253,14 @@ Fixer: removed --json, added progress reporting, extracted PROGRESS_INTERVAL, 8/
 - Skip the task review, or accept a report missing either verdict.
 - Move to the next task with unfixed Critical/Important findings, or skip the
   re-review after a fix — except a Minor-only fix after the branch review
-  (requesting-code-review, step 4).
+  (requesting-code-review, step 3).
 - Dispatch a fixer after an Approved task review whose findings are all Minor.
 - Dispatch a third fixer for one task. Two rounds is the budget; past it,
-  escalate instead of patching (step 7).
+  escalate instead of patching (step 6).
 - Dispatch a fixer without the brief path in its prompt — 18% of the fixer
   dispatches in this setup's history carried only the finding list, which is how
   a fixer ends up satisfying a reviewer rather than the task.
-- Dispatch a reviewer without a diff file, or hand a subagent the whole plan
+- Dispatch a reviewer without BASE and HEAD, or hand a subagent the whole plan
   instead of its brief.
 - Let implementer self-review stand in for review.
 - Re-dispatch a task the state ledger already marks complete.

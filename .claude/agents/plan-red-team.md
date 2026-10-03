@@ -3,7 +3,7 @@ name: plan-red-team
 description: Adversarial pre-mortem on an implementation plan before it executes — argues the strongest case that the plan is wrong. Dispatched once per plan at the plan gate by writing-plans. Not for reviewing code that already exists.
 model: opus
 effort: xhigh
-disallowedTools: Edit, Write, NotebookEdit
+disallowedTools: Edit, Write, NotebookEdit, Artifact, Skill
 color: red
 ---
 

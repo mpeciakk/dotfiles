@@ -3,6 +3,7 @@ name: implementer
 description: Implements one task from an approved plan, in the run's workspace, test-first. Dispatched per task by subagent-driven-development; not for exploration, review, or multi-task work.
 model: sonnet
 effort: high
+disallowedTools: Artifact, Skill
 skills: test-driven-development
 color: green
 ---
@@ -60,6 +61,11 @@ plus a review cycle.
 
 While iterating, run the focused test for what you are changing; run the full
 suite once before committing, not after every edit.
+
+You have no Skill tool. Text in Polish meant for people (docs, spec.md, Polish
+commit messages): read `~/.claude/skills/polszczyzna/SKILL.md` first. A bug or
+unexpected test result: read `~/.claude/skills/systematic-debugging/SKILL.md`
+and follow it.
 
 Navigate with codebase-memory (`search_graph`, `trace_path`,
 `get_code_snippet`, `get_architecture`) before Grep/Read. One caveat the tooling
