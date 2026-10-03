@@ -17,8 +17,10 @@ Zasady:
    search_graph; kto-co-woła / łańcuch wywołań → trace_path; źródło symbolu →
    get_code_snippet; struktura projektu → get_architecture; tekst w kodzie →
    search_code. Projekt bez indeksu → najpierw index_repository. Graf indeksuje
-   main checkout, nie worktree — kod nowy na gałęzi czytasz Read'em.
-   Grep/Glob/Read tylko do tekstu, configów i plików nie-kodu (oraz zawsze Read
+   main checkout, nie worktree — kod nowy na gałęzi czytasz Read'em. Nazwa
+   projektu w cbm to ścieżka main checkoutu z myślnikami (np.
+   `home-m-projects-harmonia`), także gdy pracujesz w worktree.
+   Tekst, configi i pliki nie-kodu: grep/find przez Bash + Read (oraz zawsze Read
    przed edycją pliku).
 3. Każda biblioteka/API → context7 (/docs); każdy fakt sprawdzalny narzędziem
    (SHA, stan gałęzi, wynik komendy, istnienie symbolu) → sprawdź, nie zgaduj
@@ -26,7 +28,7 @@ Zasady:
 4. Nic nie jest „zrobione" bez uruchomienia i dowodu.
 5. Implementacja idzie do **worktree** (natywne `EnterWorktree` — to ta jawna
    instrukcja projektu, której narzędzie wymaga), a stan runu trzyma
-   `~/.claude/hooks/flow-state`. Gdy worktree jest zapisany, kodu nie piszesz
+   `~/.claude/hooks/flow-state` (dotyczy głównego wątku). Gdy worktree jest zapisany, kodu nie piszesz
    sam — dispatchujesz implementerów; szczegóły i bramki: development-workflow.
 6. Projekt ma zwykle **żywy `spec.md`** (w rootcie albo per komponent) — czym
    jest, decyzje w mocy, punkty otwarte. Czytasz go PRZED pytaniami do mnie

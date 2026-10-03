@@ -250,7 +250,7 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Red-Team Pass
 
-After self-review, before offering execution, dispatch a fresh adversarial subagent to argue the plan is wrong — see [red-team.md](red-team.md) for when to run it, when to skip it, and the dispatch. Any blocking or serious objection: surface its ranked objections with your own honest take on each, and resolve the blocking ones — by amending the plan or an explicit user decision — before execution starts. Minor objections only, or none at all: see red-team.md for how they get applied without a gate.
+After self-review, before offering execution, dispatch a fresh adversarial subagent to argue the plan is wrong — see [red-team.md](red-team.md) for when to run it, when to skip it, and the dispatch. Any blocking or serious objection: surface its ranked objections with your own honest take on each, and resolve the blocking ones — by amending the plan or an explicit user decision — before execution starts. Minor objections only, or none: verdict PROCEED; apply the list to the plan without a gate and name it in one line at the plan gate (red-team.md has the detail).
 
 ## Execution Handoff
 
@@ -275,7 +275,7 @@ branch they are on now (often `main`), before any worktree exists. That is
 deliberate — the worktree branches from HEAD and needs them — but say it rather
 than leaving them to discover two commits on main.
 
-Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] [Design commit, spec decision, record path.] To execute: /clear, /model sonnet, then 'go'."
+Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] [Design commit, spec decision, record path.] To execute: /clear, /model sonnet (session only), then 'go'."
 
 **Once the user approves, unless they ask otherwise:**
 - **REQUIRED SUB-SKILL (first):** using-git-worktrees — isolated workspace, recorded in the run state, clean test baseline, before any task runs.

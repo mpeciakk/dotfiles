@@ -33,19 +33,17 @@ Artifacts: specs → `.flow/specs/`, plans → `.flow/plans/`, execution scratch
 
 ## Model & effort
 
-Session default **Sonnet 5 · xhigh**; inline stages escalate to **Opus 5.5 ·
-xhigh** only for a genuinely hard case. Dispatched roles carry their model in
-`agents/`: implementer **Sonnet 5 · high**, overridden to **Haiku 4.5** for
-small, surgical or paste-ready tasks (decision code stays on Sonnet); fixer and
-task-reviewer **Sonnet 5 · high**
-(Opus 5.5 override for non-trivial / security / concurrency diffs),
-branch-reviewer **Opus 5.5 · high**, plan-red-team **Opus 5.5 · xhigh**. Full
-table in `development-workflow`.
+Session default **Sonnet 5.5 · high**; design and planning run on **Opus 5.5 ·
+high**. Dispatched roles carry their model in `agents/`: implementer **Sonnet
+5.5 · high**, overridden to **Haiku 4.5** for small, surgical or paste-ready
+tasks (decision code stays on Sonnet); fixer **Sonnet 5.5 · high**,
+task-reviewer **Sonnet 5.5 · high** with an Opus 5.5 override on named
+triggers, branch-reviewer **Opus 5.5 · high**, plan-red-team **Opus 5.5 ·
+xhigh**. Full table in `development-workflow`.
 
 Plans fix the contract — interfaces, full tests, exact values — and carry
-implementation code only where it is a decision; this is an experiment against
-the full-code plans of `0d2c8b3`, see
-`.flow/specs/2026-09-23-plan-granularity-design.md`.
+implementation code only where it is a decision. The middle-variant plans are
+kept (D25), see `.flow/specs/2026-09-23-plan-granularity-design.md`.
 
 ## codebase-memory (cbm)
 
@@ -53,9 +51,8 @@ Code navigation uses the [codebase-memory-mcp](https://github.com/DeusData/codeb
 graph **before** Grep/Read (`search_graph`, `trace_path`, `get_code_snippet`,
 `get_architecture`), wired into brainstorming, planning, the implementer/reviewer
 prompts, and debugging. The protocol itself lives in `CLAUDE.md` rule 2 (loaded
-every session and after compaction); a PreToolUse augmenter adds graph context to
-Grep/Glob and a SubagentStart hook reminds subagents. The graph indexes the main checkout, not worktrees,
-so `finishing` re-indexes after merge.
+every session and after compaction). The graph indexes the main checkout, not
+worktrees, so `finishing` re-indexes after merge.
 
 ## How this differs from obra/superpowers
 
