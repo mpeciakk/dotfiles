@@ -34,3 +34,11 @@ gestures {
         off
     }
 }
+
+overview {
+    consolidated-carousel {
+        reveal-zoom 0.48
+        assembled-zoom 0.22
+    }
+}
+
