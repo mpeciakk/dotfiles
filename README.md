@@ -104,13 +104,17 @@ deployed by a per-host dotter package selected in the (gitignored) `.dotter/loca
 - `hosts/pc/herdr-mirror-hosts.toml` → `~/.config/herdr-mirror/hosts.toml` (which
   machine herdr-mirror mirrors — `target` names the *other* host and its `~/.ssh/config`
   alias, so this one can never be shared).
-- `hosts/pc/etc/*` → `/etc/*` (system config: sysctl, udev rules, modprobe, resolved
-  drop-ins, `warp-split-dns.service`, zram). Deployed as root-owned copies, not
-  symlinks — they are read before `/home` is mounted. dotter elevates with `sudo`;
-  after a deploy, `sysctl --system`, `udevadm control --reload` or a `daemon-reload`
-  applies the change without a reboot. `hosts/pc/etc/doas.conf` is not deployed by
-  dotter (it must stay `0400`, which dotter can't read) — install it by hand:
-  `sudo install -m400 hosts/pc/etc/doas.conf /etc/doas.conf`.
+- `hosts/pc/etc/` — source of the pc's system config in `/etc` (sysctl, udev rules,
+  modprobe, resolved drop-ins, `warp-split-dns.service`, zram, `doas.conf`). **Not
+  deployed by dotter**: these must be root-owned copies (they are read before `/home`
+  is mounted, so symlinks would dangle), and a root-owned dotter template calls `sudo`
+  on every deploy — a deploy without a terminal then locks the account via faillock.
+  Install by hand after editing:
+  ```
+  sudo rsync -r --chmod=F644,D755 --exclude doas.conf hosts/pc/etc/ /etc/
+  sudo install -m400 hosts/pc/etc/doas.conf /etc/doas.conf
+  sudo sysctl --system && sudo udevadm control --reload && sudo systemctl daemon-reload
+  ```
 
 `.dotter/local.toml` is also read by `.claude/hooks/prompt-context`, which names
 the machine in every Claude Code session — both hosts report hostname `ciek`, so
