@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Baseline z transkryptów: rozmiar pierwszego żądania, udział cache, kompakcje.
+Użycie: python3 baseline.py [OD=2026-09-27] [DO=2099-01-01]
+Tylko odczyt ~/.claude/projects. Dedup po message.id. Maszyna z linii [CTX] albo z wersji."""
+import json, sys, glob, os, statistics as st, re
+OD = sys.argv[1] if len(sys.argv) > 1 else "2026-09-27"
+DO = sys.argv[2] if len(sys.argv) > 2 else "2099-01-01"
+ROOT = os.path.expanduser("~/.claude/projects")
+LAP = {"2.1.282", "2.1.284"}; PC = {"2.1.281", "2.1.285", "2.1.286"}
+# list $/Mtok: in, out, write5m, write1h, read
+PRICE = {"opus-5-5": (4, 20, 5, 8, .2), "opus-5": (5, 25, 6.25, 10, .5),
+         "sonnet": (2, 10, 2.5, 4, .2), "haiku": (1, 5, 1.25, 2, .1), "fable": (10, 50, 12.5, 20, .25)}
+def price(m):
+    for k in ("opus-5-5", "opus-5", "sonnet", "haiku", "fable"):
+        if k in (m or ""): return PRICE[k]
+    return PRICE["sonnet"]
+first = {}; seen = set(); tot = {"in": 0, "cw": 0, "cr": 0, "out": 0, "usd": 0.0}; comp = []
+for f in glob.glob(ROOT + "/*/*.jsonl") + glob.glob(ROOT + "/*/*/subagents/**/agent-*.jsonl", recursive=True):
+    kind = "wf" if "/workflows/" in f else ("sub" if "/subagents/" in f else "main")
+    host = None; ver = None; fr = None
+    try:
+        for line in open(f, errors="ignore"):
+            if host is None:
+                mm = re.search(r"\[CTX\] (pc|laptop)", line)
+                if mm: host = mm.group(1)
+            try: e = json.loads(line)
+            except Exception: continue
+            ts = e.get("timestamp", "")
+            if not (OD <= ts[:10] < DO): continue
+            if e.get("type") == "system" and e.get("subtype") == "compact_boundary":
+                comp.append((ts, kind, (e.get("compactMetadata") or {}).get("preTokens")))
+            if e.get("type") != "assistant": continue
+            ver = ver or e.get("version")
+            msg = e.get("message") or {}; u = msg.get("usage") or {}; mid = msg.get("id")
+            if not u or not mid or mid in seen: continue
+            seen.add(mid)
+            i, cr = u.get("input_tokens", 0), u.get("cache_read_input_tokens", 0)
+            cc = u.get("cache_creation") or {}
+            w5, w1 = cc.get("ephemeral_5m_input_tokens", 0), cc.get("ephemeral_1h_input_tokens", 0)
+            if not cc: w5 = u.get("cache_creation_input_tokens", 0)
+            o = u.get("output_tokens", 0); p = price(msg.get("model"))
+            tot["in"] += i; tot["cw"] += w5 + w1; tot["cr"] += cr; tot["out"] += o
+            tot["usd"] += (i*p[0] + o*p[1] + w5*p[2] + w1*p[3] + cr*p[4]) / 1e6
+            if fr is None: fr = i + w5 + w1 + cr
+    except OSError: continue
+    if fr is not None:
+        h = host or ("laptop" if ver in LAP else "pc" if ver in PC else "?")
+        first.setdefault((kind, h), []).append(fr)
+def q(xs, p): xs = sorted(xs); return xs[min(len(xs)-1, int(p*len(xs)))]
+print(f"Okno {OD}..{DO}")
+print("Pierwsze żądanie (tokeny): rodzaj/maszyna  n  p10  mediana  p90")
+for k in sorted(first):
+    xs = first[k]; print(f"  {k[0]:5} {k[1]:7} {len(xs):5} {q(xs,.1):7} {int(st.median(xs)):8} {q(xs,.9):7}")
+s = tot["in"] + tot["cw"] + tot["cr"]
+print(f"Tokeny wejścia: {s/1e6:.0f}M; cache read {tot['cr']/max(s,1):.1%}; list $ (bez korekty F7): {tot['usd']:.0f}")
+print(f"Kompakcje: {len(comp)}; preTokens: {sorted(c[2] for c in comp if c[2])[:3]} ... {sorted(c[2] for c in comp if c[2])[-3:]}")

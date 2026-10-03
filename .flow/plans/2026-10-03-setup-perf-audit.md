@@ -20,6 +20,8 @@
 - `CLAUDE.md` stays Polish; skills, agents and README stay English.
 - The hook test suites must end green: `/home/m/dotfiles/.claude/hooks/flow-guard-test` and `/home/m/dotfiles/.claude/hooks/prompt-context-test` (run them from the worktree path — they test the files beside them).
 - Cite code in docs by path and symbol, never by line number.
+- The repo is PUBLIC and run reports under `.flow/sdd/` get committed: never copy the contents of any `settings.local.json`, `.credentials*`, `~/.claude.json` or env values into a report, test, script or commit — key names only (`python3 -c 'import json,sys; print(sorted(json.load(open(sys.argv[1]))))' FILE`).
+- Run commands with literal paths (no `$(…)`, no `VAR=$(…) cmd $VAR`): the harness's worktree guard refuses computed commands. Throwaway check scripts live in `.flow/sdd/2026-10-03-setup-perf-audit/` and resolve their root from their own path.
 - Live config is the main checkout (`~/.claude/*` symlinks into `/home/m/dotfiles`), so nothing in the worktree takes effect until merge + `dotter deploy`; verify settings with `claude --settings <file>`.
 
 ---
@@ -37,31 +39,15 @@
 
 - [ ] **Step 1: Write the failing tests**
 
-In `flow-guard-test`, at the end of the `=== settings.json wiring ===` section (after the `statusLine points at the flow status line` check), append:
+Only structural wiring goes into the suite — values such as `model` or `modelSettings` are rewritten by the CLI itself (`/model`, `/effort`, the first Workflow approval) and would make the suite flap; they are checked once in Step 5. In `flow-guard-test`, at the end of the `=== settings.json wiring ===` section (after the `statusLine points at the flow status line` check), append:
 
 ```bash
 setting 'any(h.get("if") == "Bash(*worktree add*)" for e in cfg["hooks"]["PreToolUse"] if e.get("matcher") == "Bash" for h in e["hooks"])' \
   && report ok "flow-guard on Bash only spawns for worktree add" || report no "Bash flow-guard has no if filter"
 setting 'not any("Grep" in (e.get("matcher") or "") for e in cfg["hooks"]["PreToolUse"])' \
   && report ok "dead Grep|Glob augmenter removed" || report no "Grep|Glob augmenter still wired"
-setting 'cfg.get("model") == "sonnet"' && report ok "model = sonnet" || report no "model"
-setting 'cfg.get("modelSettings") == {"claude-sonnet-5-5": {"effortLevel": "high"}, "claude-opus-5-5": {"effortLevel": "high"}}' \
-  && report ok "modelSettings keyed by 5.5 ids" || report no "modelSettings"
-setting '"effortLevel" not in cfg' && report ok "no top-level effortLevel" || report no "top-level effortLevel"
-setting 'cfg["env"].get("CLAUDE_CODE_FORK_SUBAGENT") == "0" and cfg["env"].get("CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS") == "1"' \
-  && report ok "env: fork summaries and Explore/Plan off" || report no "env"
-setting 'cfg.get("autoCompactWindow") == 500000 and cfg.get("cleanupPeriodDays") == 90' \
-  && report ok "autoCompactWindow 500000, cleanupPeriodDays 90" || report no "compaction/retention"
-setting 'cfg.get("enableArtifact") is False and cfg.get("promptSuggestionEnabled") is False and cfg.get("agentPushNotifEnabled") is False and "skipWorkflowUsageWarning" not in cfg' \
-  && report ok "artifact, suggestions, push off; workflow warning kept" || report no "feature toggles"
-setting 'cfg["permissions"].get("deny") == ["ReportFindings", "ShareOnboardingGuide"]' \
-  && report ok "dead built-in tools denied" || report no "permissions.deny"
-setting '[d["serverName"] for d in cfg.get("deniedMcpServers", [])] == ["claude.ai Claude Docs", "claude.ai Canva", "claude.ai Microsoft 365"]' \
-  && report ok "unused claude.ai connectors denied" || report no "deniedMcpServers"
-setting 'cfg["enabledPlugins"].get("cloudflare@cloudflare") is False and cfg["enabledPlugins"].get("claude-code-wakatime@wakatime") is False and cfg["enabledPlugins"].get("cowork-plugin-management@synced") is False and cfg["enabledPlugins"].get("context7@context7-marketplace") is True' \
-  && report ok "plugins: cloudflare, wakatime, cowork off; context7 on" || report no "enabledPlugins"
-setting 'len(cfg.get("skillOverrides", {})) == 26 and cfg["skillOverrides"]["anthropic-skills:wrangler"] == "off" and cfg["skillOverrides"]["dataviz"] == "name-only" and cfg["skillOverrides"]["init"] == "user-invocable-only"' \
-  && report ok "skillOverrides: 26 entries" || report no "skillOverrides"
+[ ! -e "$HERE/cbm-code-discovery-gate" ] && [ ! -e "$HERE/cbm-subagent-reminder" ] \
+  && report ok "removed cbm hook files are gone" || report no "cbm hook files still present"
 ```
 
 In `prompt-context-test`, replace the `wired SubagentStart "" cbm-subagent-reminder` check (3 lines) with:
@@ -75,18 +61,18 @@ wired SubagentStart "" cbm-subagent-reminder \
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `.claude/hooks/flow-guard-test | grep -E '^FAIL'; .claude/hooks/prompt-context-test | grep -E '^FAIL'`
-Expected: FAIL lines for each new check above (e.g. `FAIL  Bash flow-guard has no if filter`, `FAIL  model`) and `FAIL  cbm-subagent-reminder is still wired (removed by D13)` — assertion failures, not a harness crash.
+Expected: `FAIL  Bash flow-guard has no if filter`, `FAIL  Grep|Glob augmenter still wired`, `FAIL  cbm hook files still present` and `FAIL  cbm-subagent-reminder is still wired (removed by D13)` — assertion failures, not a harness crash.
 
 - [ ] **Step 3: Implement**
 
-Edit `.claude/settings.json` (the working tree already contains the uncommitted `"model": "sonnet"`, `"agentPushNotifEnabled": true`, `"skipWorkflowUsageWarning": true` — the target below supersedes them):
+Edit `.claude/settings.json`. The worktree is cut from HEAD, which has no `model`, `agentPushNotifEnabled` or `skipWorkflowUsageWarning` keys (those exist only as uncommitted edits in the laptop main checkout) — so below "add" means add:
 - `env`: add `"CLAUDE_CODE_FORK_SUBAGENT": "0"` and `"CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS": "1"`.
 - `permissions`: add `"deny": ["ReportFindings", "ShareOnboardingGuide"]` after `allow`.
-- `"model": "sonnet"` (keep it right after `permissions`).
+- Add `"model": "sonnet"` right after `permissions`.
 - `hooks.PreToolUse`: delete the `Grep|Glob` entry; on the `Bash` entry's flow-guard handler add `"if": "Bash(*worktree add*)"`. `hooks.SubagentStart`: delete the `cbm-subagent-reminder` handler (keep `flow-context` and `prompt-context`).
 - `enabledPlugins`: `"claude-code-wakatime@wakatime": false`, `"cloudflare@cloudflare": false`, add `"cowork-plugin-management@synced": false`; others unchanged.
 - Replace `"effortLevel"` and `"modelSettings"` with `"modelSettings": {"claude-sonnet-5-5": {"effortLevel": "high"}, "claude-opus-5-5": {"effortLevel": "high"}}`.
-- Remove `"skipWorkflowUsageWarning"`; set `"agentPushNotifEnabled": false`.
+- Add `"agentPushNotifEnabled": false` (an explicit false blocks server-side hydration); do not add `skipWorkflowUsageWarning`.
 - Add, before `"tui"`:
 
 ```json
@@ -136,17 +122,16 @@ Then `git rm .claude/hooks/cbm-code-discovery-gate .claude/hooks/cbm-subagent-re
 Run: `python3 -m json.tool .claude/settings.json >/dev/null && .claude/hooks/flow-guard-test | tail -1 && .claude/hooks/prompt-context-test | tail -1`
 Expected: both suites print `N passed, 0 failed`.
 
-- [ ] **Step 5: Verify the knobs against the real CLI (external dependency)**
+- [ ] **Step 5: Verify values and knobs against the real CLI (external dependency)**
 
-Several keys are undocumented or documented as enterprise-only (`deniedMcpServers`). Check them in a real headless session — cheap, Haiku:
+Several keys are undocumented or documented as enterprise-only (`deniedMcpServers`), and the `if` filter gates the one-workspace guard — check them deterministically, not by asking a model. Use the literal worktree path printed by `~/.claude/hooks/flow-state get worktree` (written `<WT>` below).
 
-```bash
-cd /tmp && claude -p --model haiku --settings "$WT/.claude/settings.json" \
-  'List, one per line and nothing else: every tool name you have that equals Artifact, ReportFindings, ShareOnboardingGuide or starts with mcp__claude_ai_ or mcp__plugin_cloudflare; then every skill name starting with anthropic-skills: or cloudflare: or equal to dataviz, init, code-review. Write NONE if a group is empty.'
-```
+1. Values: `python3 -c 'import json; c=json.load(open("<WT>/.claude/settings.json")); print(c["model"], c["modelSettings"], c["env"], c["autoCompactWindow"], c["cleanupPeriodDays"], c["enableArtifact"], c["promptSuggestionEnabled"], c["agentPushNotifEnabled"], "skipWorkflowUsageWarning" in c, c["permissions"]["deny"], c["deniedMcpServers"], c["enabledPlugins"], len(c["skillOverrides"]))'` — expect `sonnet`, both 5.5 keys at high, the two new env vars, `500000 90 False False False False`, the deny list, three denied servers, cloudflare/wakatime/cowork `false`, `26`.
+2. Init event: from `/tmp`, `claude -p --model haiku --settings <WT>/.claude/settings.json --output-format stream-json --verbose 'reply ok' > /tmp/sp-after.jsonl`, and the same without `--settings` into `/tmp/sp-before.jsonl`. From each file's `{"type":"system","subtype":"init"}` event list `tools`, `mcp_servers`, `plugins`, `skills`. Expected after: no `Artifact`, `ReportFindings`, `ShareOnboardingGuide`; no `claude.ai Claude Docs`/`Canva`/`Microsoft 365` server; ClickUp present; no cloudflare plugin, MCP server or skills; no wakatime or cowork plugin; `init`/`code-review` still user-invocable. The before file shows them.
+3. Skill listing as the model sees it: in the transcript of the after-run (`~/.claude/projects/-tmp/<session>.jsonl`, newest file), the skill-listing attachment has no `anthropic-skills:cloudflare`, `wrangler`, `google-workspace`, `import-memory`; `dataviz` and `anthropic-skills:docx` appear without a description; `code-review`, `init`, `anthropic-skills:the-humanizer` are absent.
+4. The `if` filter: in a scratch repo (`git init /tmp/if-check && git -C /tmp/if-check commit --allow-empty -m x`), run `claude -p --model haiku --settings <WT>/.claude/settings.json --debug 'run the shell command: ls'` and `… 'run the shell command: git -C /tmp/if-check worktree add /tmp/if-check-wt'`; the debug output shows the flow-guard hook skipped (`Skipping hook due to if condition`) for `ls` and executed for `git … worktree add`. Remove `/tmp/if-check*` afterwards.
 
-(`$WT` = the worktree path from `flow-state get worktree`.) Run the same prompt once without `--settings` as the control.
-Expected with `--settings`: no `Artifact`, `ReportFindings`, `ShareOnboardingGuide`, no `mcp__claude_ai_Claude_Docs__*`/`Canva`/`Microsoft_365`, no `mcp__plugin_cloudflare*`, no `cloudflare:*` skills, no `anthropic-skills:cloudflare`/`wrangler`/`google-workspace`; `mcp__claude_ai_ClickUp__*` still present; `dataviz` present (name-only), `init`/`code-review` absent. The control shows them all. Paste both outputs into the report. If a knob did not take effect, report DONE_WITH_CONCERNS naming the key — do not invent a substitute.
+Paste the relevant lines (names only, no env values) into the report. If a knob did not take effect, report DONE_WITH_CONCERNS naming the key — do not invent a substitute.
 
 - [ ] **Step 6: Commit**
 
@@ -160,21 +145,23 @@ git commit -m "settings: audit config package (D2-D9, D11, D13-D16)"
 ### Task 2: Cloudflare plugin per repository
 
 **Files (outside the repo — mutagen-synced to both machines; not committed anywhere):**
-- Create or modify `.claude/settings.local.json` in: `/home/m/obsidian`, `/home/m/work/kid-aid-recordings-worker`, `/home/m/work/knowledge-base`, `/home/m/projects/ernest`, `/home/m/work/justom-static`, `/home/m/work/kid-aid-website-2026`, `/home/m/projects/cloud`, `/home/m/work/infrastructure-cloud`
+- Create or modify `.claude/settings.local.json` in: `/home/m/obsidian`, `/home/m/work/kid-aid-recordings-worker`, `/home/m/work/knowledge-base`, `/home/m/projects/ernest`, `/home/m/work/justom-static`, `/home/m/work/kid-aid-website-2026`, `/home/m/projects/cloud` (7 directories — `~/work/infrastructure-cloud` from the record does not exist)
 
 **Interfaces:**
 - Consumes: Task 1's `"cloudflare@cloudflare": false` at user scope.
 - Produces: nothing later tasks use.
 
-- [ ] **Step 1: Write the failing check** — save as `$WT/.flow/sdd/cf-check.py` (`.flow/sdd` is the run's scratch area):
+- [ ] **Step 1: Write the failing check** — save as `.flow/sdd/2026-10-03-setup-perf-audit/cf-check.py` in the worktree:
 
 ```python
 import json, os, sys
 DIRS = ["/home/m/obsidian", "/home/m/work/kid-aid-recordings-worker", "/home/m/work/knowledge-base",
         "/home/m/projects/ernest", "/home/m/work/justom-static", "/home/m/work/kid-aid-website-2026",
-        "/home/m/projects/cloud", "/home/m/work/infrastructure-cloud"]
+        "/home/m/projects/cloud"]
 bad = []
 for d in DIRS:
+    if not os.path.isdir(d):
+        print(f"skip (missing): {d}"); continue
     p = os.path.join(d, ".claude", "settings.local.json")
     try:
         cfg = json.load(open(p))
@@ -182,23 +169,23 @@ for d in DIRS:
         bad.append(f"{p}: {e}"); continue
     if cfg.get("enabledPlugins", {}).get("cloudflare@cloudflare") is not True:
         bad.append(f"{p}: cloudflare not enabled")
-print("\n".join(bad) or "all 8 enabled")
+print("\n".join(bad) or "all present directories enabled")
 sys.exit(1 if bad else 0)
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `python3 $WT/.flow/sdd/cf-check.py`
-Expected: exit 1, lines naming the directories without the key. First record which of the 8 files already exist and their full content (`cat`) in the report — existing keys must survive.
+Run (from the worktree): `python3 .flow/sdd/2026-10-03-setup-perf-audit/cf-check.py`
+Expected: exit 1, lines naming the directories without the key. Record in the report which files already exist and their **top-level key names only** — at least one holds an API key in `env`; never `cat` these files (Global Constraints).
 
-- [ ] **Step 3: Implement** — for each directory, load the existing `settings.local.json` if present (else `{}`), set `enabledPlugins["cloudflare@cloudflare"] = true` keeping every other key, write back with 2-space indent. Skip a directory that does not exist and say so.
+- [ ] **Step 3: Implement** — for each existing directory, load `settings.local.json` if present (else `{}`), set `enabledPlugins["cloudflare@cloudflare"] = true` keeping every other key and value untouched, write back with 2-space indent. Before writing, copy each pre-existing file to `<file>.bak-2026-10-03` beside it.
 
 - [ ] **Step 4: Run it to verify it passes**
 
-Run: `python3 $WT/.flow/sdd/cf-check.py`
-Expected: `all 8 enabled`, exit 0; a `diff` of each pre-existing file shows only the added key.
+Run: `python3 .flow/sdd/2026-10-03-setup-perf-audit/cf-check.py`
+Expected: `all present directories enabled`, exit 0. For each pre-existing file, compare with its backup in python: the loaded dicts differ only in `enabledPlugins["cloudflare@cloudflare"]` (print `same except enabledPlugins` — never the values). Then delete the backups.
 
-- [ ] **Step 5: Commit** — nothing in this repo changes; `git add .flow/sdd/cf-check.py && git commit -m "chore: cloudflare per-repo enablement check (D11)"`.
+- [ ] **Step 5: Commit** — `git add .flow/sdd/2026-10-03-setup-perf-audit/cf-check.py && git commit -m "chore: cloudflare per-repo enablement check (D11)"`.
 
 ---
 
@@ -213,10 +200,9 @@ Expected: `all 8 enabled`, exit 0; a `diff` of each pre-existing file shows only
 - Consumes: `review-package BASE HEAD` (existing; exit 4 = empty range).
 - Produces: reviewers' prompts now carry BASE and HEAD instead of a diff-package path.
 
-- [ ] **Step 1: Write the failing tests** — append to `flow-guard-test` before the final summary line:
+- [ ] **Step 1: Write the failing tests** — append to the end of the existing `=== agent definitions ===` section of `flow-guard-test` (no second header):
 
 ```bash
-echo "=== agent definitions ==="
 AG=$(cd "$HERE/../agents" && pwd)
 fm() { awk '/^---$/{n++; next} n==1' "$AG/$1.md"; }
 for a in implementer fixer task-reviewer branch-reviewer plan-red-team; do
@@ -228,24 +214,32 @@ for a in task-reviewer branch-reviewer; do
   grep -q 'scripts/review-package' "$AG/$a.md" && grep -q 'exit 4' "$AG/$a.md" && grep -q 'BLOCKED' "$AG/$a.md" \
     && report ok "$a builds its own diff package; exit 4 is BLOCKED" || report no "$a review-package step"
 done
-grep -q 'polszczyzna/SKILL.md' "$AG/implementer.md" && grep -q 'polszczyzna/SKILL.md' "$AG/fixer.md" \
-  && report ok "writers know where the Polish style rules are" || report no "polszczyzna pointer"
+for a in implementer fixer; do
+  grep -q 'polszczyzna/SKILL.md' "$AG/$a.md" && grep -q 'systematic-debugging/SKILL.md' "$AG/$a.md" \
+    && report ok "$a knows the skill files it can no longer invoke" || report no "$a skill pointers"
+done
 SK=$(cd "$HERE/../skills" && pwd)
-grep -q 'PKG=\$(\$SDD/review-package' "$SK/subagent-driven-development/SKILL.md" \
-  && report no "SDD controller still builds the review package" || report ok "SDD controller no longer builds the package"
+for f in subagent-driven-development/SKILL.md requesting-code-review/SKILL.md; do
+  grep -qE 'PKG=|generate the review package|without a diff file|\[review-package|Package it with' "$SK/$f" \
+    && report no "$f still has the controller build the review package" || report ok "$f: reviewer builds the package"
+done
+grep -q 'BLOCKED' "$SK/subagent-driven-development/SKILL.md" && grep -q 'git log --all --oneline -5' "$SK/subagent-driven-development/SKILL.md" \
+  && report ok "SDD says what a reviewer BLOCKED on an empty range means" || report no "SDD reviewer BLOCKED handling"
 ```
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `.claude/hooks/flow-guard-test | grep -A0 -E 'Artifact and Skill|diff package|polszczyzna|builds the package'`
-Expected: FAIL for all five agents, both reviewers, the pointer, and the SDD check.
+Run: `.claude/hooks/flow-guard-test | grep -E 'Artifact and Skill|diff package|skill pointers|knows the skill|review package|builds the package|BLOCKED'`
+Expected: FAIL for all five agents, both reviewers, both writers' pointers, both skills, and the BLOCKED check.
 
 - [ ] **Step 3: Implement**
 - Frontmatter: implementer and fixer get `disallowedTools: Artifact, Skill` (they have none today); task-reviewer, branch-reviewer, plan-red-team become `disallowedTools: Edit, Write, NotebookEdit, Artifact, Skill`. `skills: test-driven-development` stays — preloading does not need the Skill tool.
-- implementer.md and fixer.md: one sentence where they describe writing docs/text — "Text in Polish meant for people (docs, spec.md, commit messages in Polish): read `~/.claude/skills/polszczyzna/SKILL.md` first; you have no Skill tool."
+- implementer.md and fixer.md: two sentences — "You have no Skill tool. Text in Polish meant for people (docs, spec.md, Polish commit messages): read `~/.claude/skills/polszczyzna/SKILL.md` first. A bug or unexpected test result: read `~/.claude/skills/systematic-debugging/SKILL.md` and follow it."
 - task-reviewer.md, section "The diff is your view of the change": first instruction becomes "Your prompt gives BASE and HEAD. Run `~/.claude/skills/subagent-driven-development/scripts/review-package <BASE> <HEAD>` (literal SHAs) and read the file it prints, once. Exit 4 means the range has no commits: report BLOCKED with its message — never APPROVED." Replace "If the file is missing, fall back to…" accordingly. Same for branch-reviewer.md ("What you are given" says BASE and HEAD instead of "a diff file").
 - SDD per-task loop: delete step 5 (Review package) and renumber; step 6 (now 5) says the reviewer gets BASE and HEAD and builds the package itself; on a re-review pass the same `BASE` and the new HEAD. In the "Your prompt supplies" table, task-reviewer: "brief path, implementer report path, BASE and HEAD…" (drop "diff-package path"); branch-reviewer: "…BASE and HEAD…" (drop the package path).
-- requesting-code-review: delete step 2 (Package the diff) and renumber; step 3 (now 2) prompt carries BASE and HEAD, no package path.
+- SDD, the other places that still have the controller package the diff: "Implementer status — **DONE** → generate the review package and review" becomes "→ dispatch the task reviewer with BASE and HEAD"; the Example line `[review-package … → dispatch task reviewer]` becomes `[dispatch task reviewer with BASE..HEAD]`; the "Never" item "Dispatch a reviewer without a diff file" becomes "Dispatch a reviewer without BASE and HEAD".
+- SDD, after the reviewer step: "A reviewer BLOCKED on 'no commits in BASE..HEAD' means the implementer's commits are not in this tree: find them (`git log --all --oneline -5`) before anything else — never re-dispatch the reviewer unchanged." This replaces the empty-range guidance that lived in the deleted step 5.
+- requesting-code-review: delete step 2 (Package the diff) and renumber; step 3 (now 2) prompt carries BASE and HEAD, no package path; step 4's "Package it with `review-package <fixbase> HEAD`" becomes "dispatch the re-review with BASE = the fix base and HEAD".
 
 - [ ] **Step 4: Run to verify it passes**
 
@@ -271,7 +265,7 @@ git commit -m "agents: no Artifact/Skill; reviewers build their own diff package
 
 **Interfaces:**
 - Consumes: nothing new.
-- Produces: `flow-state set worktree=. branch=. base=HEAD` (resolved against `--cwd`/cwd: worktree → `git rev-parse --show-toplevel`, branch → `git branch --show-current`, base → `git rev-parse HEAD`); `flow-state task N STATUS "base=HEAD …"` stores the resolved SHA in the note; `task-brief N` (one argument) reads the plan from `flow-state get plan`.
+- Produces: `flow-state set worktree=. branch=. base=HEAD` (resolved against `--cwd`/cwd: worktree → `git rev-parse --show-toplevel`, branch → `git branch --show-current`, base → `git rev-parse HEAD`); `flow-state task N STATUS "base=HEAD …"` (and `fixbase=HEAD`) stores the resolved SHA in the note; `task-brief N` (one argument) reads the plan from `flow-state get plan`.
 
 - [ ] **Step 1: Write the failing tests** — append to `flow-guard-test` before the final summary line:
 
@@ -290,6 +284,10 @@ LIT=$ROOT/literal; mkrepo "$LIT" >/dev/null || fixture_fail "literal repo"
 note=$("$STATE" --cwd "$LIT" get tasks | python3 -c 'import json,sys; t=json.load(sys.stdin); print(t[0].get("note","") if t else "")')
 [ "$note" = "base=$(git -C "$LIT" rev-parse HEAD) model=sonnet" ] \
   && report ok "task note base=HEAD is stored resolved" || report no "task note" "$note"
+"$STATE" --cwd "$LIT" task branch-review started "fixbase=HEAD" >/dev/null 2>&1
+note=$("$STATE" --cwd "$LIT" get tasks | python3 -c 'import json,sys; print([t.get("note","") for t in json.load(sys.stdin) if t["n"]=="branch-review"][0])')
+[ "$note" = "fixbase=$(git -C "$LIT" rev-parse HEAD)" ] \
+  && report ok "task note fixbase=HEAD is stored resolved" || report no "fixbase note" "$note"
 out=$("$STATE" --cwd "$LIT" set worktree=relative/path 2>&1)
 case "$out" in *'worktree=.'*) report ok "relative-worktree error suggests worktree=.";;
   *) report no "relative-worktree hint" "$out";; esac
@@ -310,12 +308,13 @@ Expected: FAIL on each (today `worktree=.` dies with "worktree must be absolute"
 
 - [ ] **Step 3: Implement**
 - `flow-state` `set`: before validation, map literal values — `worktree=.` → toplevel of the effective cwd (use the module's `git(cwd, "rev-parse", "--show-toplevel")`), `branch=.` → `git(cwd, "branch", "--show-current")`, `base=HEAD` → `git(cwd, "rev-parse", "HEAD")`; die with a clear message if git fails. Relative-worktree error hint becomes: ``worktree must be absolute — the hooks compare realpaths: use `worktree=.` from inside the worktree``.
-- `flow-state` `task`: in the note, replace a `base=HEAD` token with `base=<resolved sha>` from the effective cwd.
+- `flow-state` `task`: in the note, replace a `base=HEAD` or `fixbase=HEAD` token with the resolved full SHA from the effective cwd.
 - `task-brief`: accept `task-brief N [OUTFILE]` when the first argument is all digits — then `plan=$(<.claude>/hooks/flow-state get plan)` where the hooks dir is resolved from the script's realpath (`readlink -f "$0"` → `scripts` → `subagent-driven-development` → `skills` → `.claude`); keep the existing `PLAN N [OUTFILE]` form. Update the usage line and header comment.
 - using-git-worktrees Step 1: move the ignore check **before** `EnterWorktree`, run in the main checkout as literal commands: `mkdir -p .claude/worktrees && git check-ignore -q .claude/worktrees || { echo '.claude/worktrees/' >> .gitignore && git add .gitignore && git commit -m "chore: ignore worktrees"; }` (the directory exists, so check-ignore answers correctly; the commit lands on HEAD before the branch is cut). Drop the `MAIN=$(…)` block and the paragraph about running the check after creation.
 - using-git-worktrees Step 2: `~/.claude/hooks/flow-state set stage=isolate worktree=. branch=. base=HEAD`.
 - SDD per-task loop step 1: `~/.claude/skills/subagent-driven-development/scripts/task-brief N` (prints the brief path); step 2: `~/.claude/hooks/flow-state task N started "base=HEAD model=<haiku|sonnet>"`, then read the base back with `~/.claude/hooks/flow-state get tasks` when the reviewer needs it.
-- requesting-code-review step 1: `~/.claude/hooks/flow-state get base` and `git rev-parse HEAD` as two separate literal commands; fall back to `git merge-base HEAD main` as its own command; pass the printed SHAs on.
+- requesting-code-review step 1: `~/.claude/hooks/flow-state get base` and `git rev-parse HEAD` as two separate literal commands; fall back to `git merge-base HEAD main` as its own command; pass the printed SHAs on. Step 4 (the fix range): `flow-state task branch-review started "fixbase=$(git rev-parse --short HEAD)"` becomes `~/.claude/hooks/flow-state task branch-review started "fixbase=HEAD"`.
+- Add to the Step 1 tests: `grep -qE '\$\(' "$SK/using-git-worktrees/SKILL.md" "$SK/requesting-code-review/SKILL.md" && report no "skills still prescribe \$(…) commands" || report ok "worktree/review skills prescribe literal commands"` (with `SK=$(cd "$HERE/../skills" && pwd)` if not yet defined in that section); in SDD check only the per-task loop: `awk '/^## The per-task loop/,/^## Implementer status/' "$SK/subagent-driven-development/SKILL.md" | grep -q '\$(' && report no "SDD loop still uses \$(…)" || report ok "SDD loop is literal"`.
 
 - [ ] **Step 4: Run to verify it passes**
 
@@ -404,16 +403,18 @@ git commit -m "statusline: limits and absolute context, no dollars; lazy traceba
 - Modify: `.claude/skills/development-workflow/SKILL.md` (`## Model & effort per stage`, `## Triage`)
 - Modify: `.claude/skills/finishing-a-development-branch/SKILL.md` (the closing "Finally, end the run" line)
 - Modify: `.claude/agents/task-reviewer.md` (section "What you are given")
+- Modify: `.claude/skills/writing-plans/red-team.md` (`## Dispatch`)
+- Modify: `.claude/hooks/statusline` (`model_hint`), test `.claude/hooks/flow-guard-test` (`hint_case` lines)
 
 **Interfaces:**
 - Consumes: Task 3's renumbered SDD loop and reviewer prompt contents.
 - Produces: nothing code depends on.
 
-- [ ] **Step 1: Write the failing checks** — save as `$WT/.flow/sdd/text-check.sh`:
+- [ ] **Step 1: Write the failing checks** — save as `.flow/sdd/2026-10-03-setup-perf-audit/text-check.sh` in the worktree:
 
 ```bash
 #!/usr/bin/env bash
-S=/home/m/dotfiles/.claude/skills; A=/home/m/dotfiles/.claude/agents; [ -n "$WT" ] && S=$WT/.claude/skills A=$WT/.claude/agents
+R=$(cd "$(dirname "$0")/../../.." && pwd)/.claude; S=$R/skills; A=$R/agents
 f=0; chk() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; f=1; fi; }
 chk "SDD dispatches in background" "grep -q 'run_in_background: true' $S/subagent-driven-development/SKILL.md"
 chk "review skill dispatches in background" "grep -q 'run_in_background: true' $S/requesting-code-review/SKILL.md"
@@ -425,12 +426,16 @@ chk "triage asks for /clear after a finished run" "grep -q '120K' $S/development
 chk "finishing ends with /clear" "grep -q '/clear' $S/finishing-a-development-branch/SKILL.md"
 chk "no second Global Constraints paste (SDD)" "! grep -q 'Global Constraints copied verbatim' $S/subagent-driven-development/SKILL.md"
 chk "reviewer reads constraints from the brief" "grep -q 'brief already carries' $A/task-reviewer.md"
+chk "red-team dispatched in background" "grep -q 'run_in_background: true' $S/writing-plans/red-team.md"
+chk "model switches are session-only" "grep -q 'session only' $S/development-workflow/SKILL.md && ! grep -qE 'answers with .?/clear.?, .?/model sonnet.?, then' $S/development-workflow/SKILL.md"
+chk "no stale 'runs Sonnet 5;'" "! grep -q 'runs Sonnet 5;' $S/subagent-driven-development/SKILL.md"
+chk "statusline hints are session-only" "grep -q 'session only' $R/hooks/statusline"
 exit $f
 ```
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `WT=$(~/.claude/hooks/flow-state get worktree) bash $WT/.flow/sdd/text-check.sh`
+Run (from the worktree): `bash .flow/sdd/2026-10-03-setup-perf-audit/text-check.sh`
 Expected: FAIL on every line.
 
 - [ ] **Step 3: Implement**
@@ -439,17 +444,20 @@ Expected: FAIL on every line.
 - development-workflow `## Model & effort per stage`: "Sonnet 5" → "Sonnet 5.5" throughout (session default Sonnet 5.5 · high via `modelSettings` keyed `claude-sonnet-5-5`); task-reviewer row → "Sonnet 5.5 · high (Opus 5.5 on the named triggers in subagent-driven-development)"; delete the `Read-only exploration (Explore)` row.
 - development-workflow `## Triage`: add a paragraph before "Small, with one decision": "**A finished run still in context.** If this conversation already carried a run through finish and the context is above ~120K, ask for `/clear` (or a handoff) before opening the next run — every request of the new run would otherwise re-read the old one."
 - finishing: the closing line becomes "Finally, end the run: `~/.claude/hooks/flow-state clear` — and tell the user the next step is `/clear` before the next change."
+- Model switches are session-only (the CLI's `/model` otherwise writes the pick into the tracked `settings.json`): development-workflow's "the user answers with `/clear`, `/model sonnet`, then `go`" becomes "the user answers with `/clear`, `/model sonnet` choosing *session only* in the picker (or a fresh `claude`, whose committed default is Sonnet), then `go`"; the Opus switch for stages 1–2 likewise names `/model opus` (session only) or `claude --model opus`. `statusline` `model_hint`: every `/model X` hint gains ` (session only)` (e.g. `⚠ /model opus (session only)`, `go → /clear · /model sonnet (session only) · go`); update the matching expected strings in the `hint_case` lines of `flow-guard-test`.
+- red-team.md `## Dispatch`: add "dispatch with `run_in_background: true`" before "Then end the turn".
+- SDD step 3: "The definition runs Sonnet 5;" → "The definition runs Sonnet 5.5;". Statusline module docstring example: drop `$0.42`, show `ctx 412K` and a `5h 40%  7d 12%` limits segment.
 - SDD "Your prompt supplies" table, task-reviewer row: drop "and the plan's Global Constraints copied verbatim"; task-reviewer.md "What you are given": the brief already carries the plan's Global Constraints — name only the ones the diff touches.
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `WT=$(~/.claude/hooks/flow-state get worktree) bash $WT/.flow/sdd/text-check.sh && .claude/hooks/flow-guard-test | tail -1`
+Run (from the worktree): `bash .flow/sdd/2026-10-03-setup-perf-audit/text-check.sh && .claude/hooks/flow-guard-test | tail -1`
 Expected: all PASS, exit 0; suite `0 failed`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add .claude/skills .claude/agents/task-reviewer.md .flow/sdd/text-check.sh
+git add .claude/skills .claude/agents/task-reviewer.md .claude/hooks/statusline .claude/hooks/flow-guard-test .flow/sdd/2026-10-03-setup-perf-audit/text-check.sh
 git commit -m "skills: background dispatch, named Opus triggers, Sonnet 5.5 table, /clear at run end (D5, D16, D19, D23, D24)"
 ```
 
@@ -468,14 +476,14 @@ git commit -m "skills: background dispatch, named Opus triggers, Sonnet 5.5 tabl
 - Consumes: Task 1 (models, hooks removed), Task 6 (model table).
 - Produces: nothing code depends on.
 
-- [ ] **Step 1: Write the failing checks** — save as `$WT/.flow/sdd/text-check-2.sh`:
+- [ ] **Step 1: Write the failing checks** — save as `.flow/sdd/2026-10-03-setup-perf-audit/text-check-2.sh` in the worktree:
 
 ```bash
 #!/usr/bin/env bash
-R=${WT:-/home/m/dotfiles}/.claude; M=/home/m/.claude/projects/-home-m-dotfiles/memory
+R=$(cd "$(dirname "$0")/../../.." && pwd)/.claude; M=/home/m/.claude/projects/-home-m-dotfiles/memory
 f=0; chk() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; f=1; fi; }
-chk "grill rule inline in brainstorming" "grep -q 'each with a recommended' $R/skills/brainstorming/SKILL.md"
-chk "minor-objection rule inline in writing-plans" "awk '/^## Red-Team Pass/,/^## Execution/' $R/skills/writing-plans/SKILL.md | grep -q 'without a gate'"
+chk "grill rule inline in brainstorming checklist" "grep -qE '^3\. \*\*Grill gate\*\*.*recommended default and why' $R/skills/brainstorming/SKILL.md"
+chk "minor-objection rule inline in writing-plans" "awk '/^## Red-Team Pass/,/^## Execution/' $R/skills/writing-plans/SKILL.md | grep -q 'verdict PROCEED'"
 chk "rule 2 names grep/find via Bash" "grep -q 'grep/find' $R/CLAUDE.md && ! grep -q 'Grep/Glob/Read tylko' $R/CLAUDE.md"
 chk "rule 2 names the cbm project convention" "grep -q 'home-m-projects-' $R/CLAUDE.md"
 chk "rule 5 marked main-thread" "grep -q 'dotyczy głównego wątku' $R/CLAUDE.md"
@@ -487,11 +495,11 @@ exit $f
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `WT=$(~/.claude/hooks/flow-state get worktree) bash $WT/.flow/sdd/text-check-2.sh`
+Run (from the worktree): `bash .flow/sdd/2026-10-03-setup-perf-audit/text-check-2.sh`
 Expected: FAIL on every line.
 
 - [ ] **Step 3: Implement**
-- brainstorming Checklist item 3: state the rule inline — "grill one question at a time, each with a recommended default and why" — keeping the pointer to `grill-gate.md` for the rest.
+- brainstorming Checklist item 3 (the line starting `3. **Grill gate**`): state the rule inline on that line — "grill one question at a time, each with a recommended default and why" — keeping the pointer to `grill-gate.md` for the rest.
 - writing-plans `## Red-Team Pass`: inline the minor-only rule from `red-team.md` — "Minor objections only, or none: verdict PROCEED; apply the list to the plan without a gate and name it in one line at the plan gate."
 - CLAUDE.md rule 2 (Polish): replace "Grep/Glob/Read tylko do tekstu…" with grep/find przez Bash + Read for text, configs and non-code; add one sentence: nazwa projektu w cbm to ścieżka main checkoutu z myślnikami (np. `home-m-projects-harmonia`), także gdy pracujesz w worktree. Keep "Projekt bez indeksu → najpierw index_repository". Rule 5: append "(dotyczy głównego wątku)" to its first sentence.
 - README: `## Model & effort` → session default Sonnet 5.5 · high, design/plan Opus 5.5 · high, roles as in development-workflow's table, task-reviewer Opus on named triggers; `## codebase-memory (cbm)` → drop the PreToolUse augmenter and the SubagentStart reminder sentence (the protocol lives in CLAUDE.md rule 2); plan-granularity paragraph → the middle-variant plans are kept (D25).
@@ -499,13 +507,13 @@ Expected: FAIL on every line.
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `WT=$(~/.claude/hooks/flow-state get worktree) bash $WT/.flow/sdd/text-check-2.sh`
+Run (from the worktree): `bash .flow/sdd/2026-10-03-setup-perf-audit/text-check-2.sh`
 Expected: all PASS, exit 0.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add .claude/skills/brainstorming/SKILL.md .claude/skills/writing-plans/SKILL.md .claude/CLAUDE.md .claude/README.md .flow/sdd/text-check-2.sh
+git add .claude/skills/brainstorming/SKILL.md .claude/skills/writing-plans/SKILL.md .claude/CLAUDE.md .claude/README.md .flow/sdd/2026-10-03-setup-perf-audit/text-check-2.sh
 git commit -m "docs: inline grill/red-team rules, CLAUDE.md rules 2 and 5, README to current config (D20, D21, D24, D25)"
 ```
 
@@ -514,7 +522,7 @@ git commit -m "docs: inline grill/red-team rules, CLAUDE.md rules 2 and 5, READM
 ### Task 8: `bin/claude-baseline` — the before/after measurement
 
 **Files:**
-- Create: `bin/claude-baseline` (from `/tmp/claude-1001/-home-m-dotfiles--claude/f9748903-f1c0-4838-af51-fde336b0d30c/scratchpad/review/baseline.py`)
+- Modify: `bin/claude-baseline` (committed verbatim with the plan from the audit's `baseline.py`; this task edits it in place)
 
 **Interfaces:**
 - Consumes: nothing.
@@ -522,10 +530,10 @@ git commit -m "docs: inline grill/red-team rules, CLAUDE.md rules 2 and 5, READM
 
 - [ ] **Step 1: Write the failing check**
 
-Run: `test -x bin/claude-baseline && bin/claude-baseline 2026-09-27 2026-10-03 | grep -q .`
-Expected: exit 1 (file does not exist).
+Run: `grep -q 'lastModelUsage' bin/claude-baseline`
+Expected: exit 1 (the analysis rules are not in the header yet).
 
-- [ ] **Step 2: Implement** — copy the script, `chmod +x`, and extend its docstring (keep it Polish, like the file) with the analysis rules (F7): output tokens of subagents since 2.1.280 are ~3× under-reported in transcripts — use `~/.claude.json` `lastModelUsage` / cost state for output; window by entry `timestamp`, never file mtime; machine from the `[CTX]` line, else version; keep accounts apart if more than one shows up. Replace the hard-coded version sets with a comment saying they need updating when either machine upgrades.
+- [ ] **Step 2: Implement** — extend its docstring (keep it Polish, like the file) with the analysis rules (F7): output tokens of subagents since 2.1.280 are ~3× under-reported in transcripts — use `~/.claude.json` `lastModelUsage` / cost state for output; window by entry `timestamp`, never file mtime; machine from the `[CTX]` line, else version; keep accounts apart if more than one shows up. Keep the `LAP`/`PC` version sets (they are the host fallback) and add a comment above them that they need updating when either machine upgrades.
 
 - [ ] **Step 3: Run to verify it works**
 
@@ -536,11 +544,13 @@ Expected: prints first-request medians for main/sub by machine (laptop main ~49K
 
 ```bash
 git add bin/claude-baseline
-git commit -m "bin: claude-baseline, transcript baseline for before/after (D28)"
+git commit -m "bin: claude-baseline analysis rules (D28)"
 ```
 
 ---
 
 No living-spec sync task: the dotfiles have no `spec.md`; README (Task 7) is the state document.
+
+Before the finish merge (laptop main checkout): it carries uncommitted edits to `.claude/settings.json` that Task 1 supersedes, which would make `git merge` refuse — run `git -C /home/m/dotfiles checkout -- .claude/settings.json` (that one path only; never `stash` or `checkout .`, which would sweep the user's `config/` and `hosts/` edits).
 
 After merge (by the user, both machines, not part of execution): on pc `git -C ~/dotfiles checkout .claude/settings.json` before `pull` (D1); `dotter deploy` on both machines (removes the deleted hooks' symlinks, links `bin/claude-baseline`); then the manual items from the design record — mutagen force-poll (D26), cbm watcher off in `~/obsidian` and `~/work/knowledge-base` (D27), pc Cloudflare skill copies (A7).
