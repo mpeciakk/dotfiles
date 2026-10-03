@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Baseline z transkryptów: rozmiar pierwszego żądania, udział cache, kompakcje.
 Użycie: python3 baseline.py [OD=2026-09-27] [DO=2099-01-01]
-Tylko odczyt ~/.claude/projects. Dedup po message.id. Maszyna z linii [CTX] albo z wersji."""
+Tylko odczyt ~/.claude/projects. Dedup po message.id. Maszyna z linii [CTX] albo z wersji.
+Okno: timestamp wpisów, nigdy mtime pliku. Konta osobno jeśli więcej niż jedno.
+UWAGA: tokeny wyjścia z subagentów od v2.1.280 niedoraportowane w transkryptach (~3×).
+Dla dokładnych wartości output_tokens użyj ~/.claude.json lastModelUsage / cost."""
 import json, sys, glob, os, statistics as st, re
 OD = sys.argv[1] if len(sys.argv) > 1 else "2026-09-27"
 DO = sys.argv[2] if len(sys.argv) > 2 else "2099-01-01"
 ROOT = os.path.expanduser("~/.claude/projects")
+# Wersje fallback dla laptop/pc — zaktualizuj gdy maszyna się zmienia
 LAP = {"2.1.282", "2.1.284"}; PC = {"2.1.281", "2.1.285", "2.1.286"}
 # list $/Mtok: in, out, write5m, write1h, read
 PRICE = {"opus-5-5": (4, 20, 5, 8, .2), "opus-5": (5, 25, 6.25, 10, .5),
