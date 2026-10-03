@@ -59,8 +59,8 @@ def subagent_context(state, agent_type):
 
     if agent_type in READ_ONLY_AGENTS:
         return (
-            f"This run's workspace is {where}. That is the tree the diff you were "
-            "given came from. Read-only: report what you find, do not change it."
+            f"This run's workspace is {where}. That is the tree BASE..HEAD lives "
+            "in. Read-only: report what you find, do not change it."
         )
 
     checks = "`git rev-parse --show-toplevel`" + (

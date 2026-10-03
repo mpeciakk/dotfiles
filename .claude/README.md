@@ -48,7 +48,7 @@ kept (D25), see `.flow/specs/2026-09-23-plan-granularity-design.md`.
 ## codebase-memory (cbm)
 
 Code navigation uses the [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
-graph **before** Grep/Read (`search_graph`, `trace_path`, `get_code_snippet`,
+graph **before** grep/find via Bash (`search_graph`, `trace_path`, `get_code_snippet`,
 `get_architecture`), wired into brainstorming, planning, the implementer/reviewer
 prompts, and debugging. The protocol itself lives in `CLAUDE.md` rule 2 (loaded
 every session and after compaction). The graph indexes the main checkout, not

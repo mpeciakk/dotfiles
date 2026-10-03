@@ -670,5 +670,41 @@ grep -qE '\$\(' "$SK/using-git-worktrees/SKILL.md" "$SK/requesting-code-review/S
 awk '/^## The per-task loop/,/^## Implementer status/' "$SK/subagent-driven-development/SKILL.md" | grep -q '\$(' \
   && report no "SDD loop still uses \$(…)" || report ok "SDD loop is literal"
 
+echo "=== branch-review fixes ==="
+out=$(cd "$LIT" && "$TB" 1 "$ROOT/out-a.md" "$ROOT/out-b.md" 2>&1; echo "rc=$?")
+case "$out" in *usage:*rc=2*) report ok "task-brief N OUTFILE EXTRA is refused with the usage line";;
+  *) report no "task-brief silently drops a third user argument" "$out";; esac
+[ -e "$ROOT/out-a.md" ] && report no "refused task-brief still wrote OUTFILE" \
+  || report ok "refused task-brief wrote nothing"
+DET=$ROOT/detached; mkrepo "$DET" >/dev/null || fixture_fail "detached repo"
+git -C "$DET" checkout -q --detach || fixture_fail "detach"
+"$STATE" --cwd "$DET" init det >/dev/null
+out=$("$STATE" --cwd "$DET" set branch=. 2>&1)
+case "$out" in *"detached HEAD"*) report ok "branch=. on a detached HEAD says so";;
+  *) report no "branch=. on detached HEAD gives a misleading error" "$out";; esac
+c=$(context_of "$(python3 -c '
+import json, sys
+print(json.dumps({"hook_event_name": "SubagentStart", "cwd": sys.argv[1],
+                  "agent_id": "r1", "agent_type": "task-reviewer"}))' "$WT")")
+case "$c" in *"BASE..HEAD lives in"*) report ok "reviewer context names the tree BASE..HEAD lives in";;
+  *) report no "reviewer workspace wording" "$c";; esac
+sl_far() { python3 -c '
+import json, sys
+print(json.dumps({"workspace": {"current_dir": sys.argv[1], "project_dir": sys.argv[1]},
+  "rate_limits": {"five_hour": {"used_percentage": 41.0, "resets_at": float(sys.argv[2])},
+                  "seven_day": {"used_percentage": 12.0, "resets_at": 1790500000}}}))' "$@"; }
+line=$(sl_far "$COLD" 1e30 | "$SL" | head -1)
+case "$line" in *"5h "*"41%"*) report ok "absurd resets_at keeps the 5h percentage";; *) report no "absurd resets_at blanks the bar" "$line";; esac
+case "$line" in *"7d "*"12%"*) report ok "absurd resets_at keeps the 7d percentage";; *) report no "7d dropped" "$line";; esac
+line=$(sl_far "$COLD" 1790000000 | "$SL" | head -1)
+printf '%s' "$line" | grep -qE '→[0-9]{2}:[0-9]{2}' \
+  && report ok "normal resets_at shows →HH:MM" || report no "reset time missing" "$line"
+
+grep -q 'archive sdd reports for \$(' "$SK/finishing-a-development-branch/SKILL.md" \
+  && report no "archive commit still nests \$(…) inside git commit" \
+  || report ok "archive commit is two literal steps"
+awk '/^6\. \*\*Fix loop/,/^7\./' "$SK/subagent-driven-development/SKILL.md" | grep -q 'run_in_background: true' \
+  && report ok "SDD fixer dispatch runs in the background" || report no "fixer dispatch lacks run_in_background"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

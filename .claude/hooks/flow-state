@@ -74,7 +74,8 @@ def resolve_literal(cwd, key, value):
         return value
     resolved = git(cwd, *query)
     if not resolved:
-        die(f"cannot resolve {key}={value}: git {' '.join(query)} failed in {cwd}")
+        hint = " (detached HEAD?)" if key == "branch" else ""
+        die(f"cannot resolve {key}={value}: git {' '.join(query)} failed in {cwd}{hint}")
     return resolved
 
 

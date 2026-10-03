@@ -132,7 +132,8 @@ state file and `git log` over your recollection.
    commits are not in this tree: find them (`git log --all --oneline -5`)
    before anything else — never re-dispatch the reviewer unchanged.
 6. **Fix loop, two rounds maximum.** Critical and Important findings go to ONE
-   `fixer` dispatch with the complete list — per-finding fixers each rebuild
+   `fixer` dispatch with the complete list, with `run_in_background: true`
+   (then end the turn, as in step 3) — per-finding fixers each rebuild
    context and re-run suites, which in a real session cost more than all its
    tasks combined. Its report must contain the covering tests, the command and
    the output before you re-dispatch the review. Minor findings go into the

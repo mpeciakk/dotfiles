@@ -48,7 +48,7 @@ case $1 in
     ;;
 esac
 
-if [ $# -lt 2 ]; then
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
   echo "$usage" >&2
   exit 2
 fi

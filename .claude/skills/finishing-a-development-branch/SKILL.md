@@ -31,11 +31,15 @@ does not exist anywhere else, unlike the diff packages there (`*.diff`), which
 while the worktree is still whole:
 
 ```bash
+~/.claude/hooks/flow-state get plan
 git add .flow/sdd
-git commit -m "docs: archive sdd reports for $(basename "$(~/.claude/hooks/flow-state get plan)" .md)"
+git commit -m "docs: archive sdd reports for <plan basename>"
 ```
 
-No-op if there is nothing to add. Skipping this is exactly how a real run lost
+Read the plan's basename (no directory, no `.md`) from the first command's
+output and write it in place of `<plan basename>` — two literal commands, not a
+nested `$(…)`, which the worktree guard cannot verify inside a worktree. No-op
+if there is nothing to add. Skipping this is exactly how a real run lost
 ten rounds of review findings: the reports sat gitignored inside the worktree,
 and `git worktree remove --force` at Step 6 deleted them along with everything
 else — the only things that survived were the living spec and whatever

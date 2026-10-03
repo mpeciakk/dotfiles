@@ -12,7 +12,7 @@ Renders one line normally, two while a pipeline run is open:
     flow  json-export · plan · 0/5 tasks · no workspace · go → /clear · /model sonnet (session only) · go
 
 Input schema is the documented statusLine payload (model, workspace, cost,
-context_window, effort). Every field is optional here: a missing one drops its
+context_window, effort, rate_limits). Every field is optional here: a missing one drops its
 segment instead of breaking the bar. Claude Code debounces renders at 300ms and
 cancels a render still running when the next one arrives, so this stays cheap —
 one git call for branch and dirt, one for the run state.
@@ -115,7 +115,10 @@ def limits_segment(payload):
         bit = f"{label} {colour}{int(pct)}%{RESET}"
         resets = window.get("resets_at")
         if key == "five_hour" and isinstance(resets, (int, float)):
-            bit += f" {DIM}→{datetime.fromtimestamp(resets):%H:%M}{RESET}"
+            try:
+                bit += f" {DIM}→{datetime.fromtimestamp(resets):%H:%M}{RESET}"
+            except (OverflowError, OSError, ValueError):
+                pass  # an unusable reset time drops only the suffix
         bits.append(bit)
     return "  ".join(bits) or None
 
