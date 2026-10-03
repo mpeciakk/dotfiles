@@ -15,4 +15,5 @@ chk "red-team dispatched in background" "grep -q 'run_in_background: true' $S/wr
 chk "model switches are session-only" "grep -q 'session only' $S/development-workflow/SKILL.md && ! grep -qE 'answers with .?/clear.?, .?/model sonnet.?, then' $S/development-workflow/SKILL.md"
 chk "no stale 'runs Sonnet 5;'" "! grep -q 'runs Sonnet 5;' $S/subagent-driven-development/SKILL.md"
 chk "statusline hints are session-only" "grep -q 'session only' $R/hooks/statusline"
+chk "reviewer model recorded on done, never a second started call" "grep -q 'never a second .started. call' $S/subagent-driven-development/SKILL.md && grep -q 'review clean, model=opus reason=<trigger>' $S/subagent-driven-development/SKILL.md"
 exit $f
