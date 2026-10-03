@@ -58,7 +58,8 @@ depends = []
 # System config in /etc. Deployed as root-owned COPIES (template), not symlinks like
 # logid/keyd: sysctl, udev, modprobe and resolved read these before /home is mounted,
 # so a symlink into ~/dotfiles would dangle at that point of boot.
-"hosts/pc/etc/doas.conf" = { target = "/etc/doas.conf", type = "template", owner = "root" }
+# hosts/pc/etc/doas.conf is deliberately NOT mapped: it stays 0400 and dotter reads the
+# target as the user before writing, so it cannot manage it (install manually, README).
 "hosts/pc/etc/sysctl.d/70-settings.conf" = { target = "/etc/sysctl.d/70-settings.conf", type = "template", owner = "root" }
 "hosts/pc/etc/modprobe.d/nvidia.conf" = { target = "/etc/modprobe.d/nvidia.conf", type = "template", owner = "root" }
 "hosts/pc/etc/modprobe.d/blacklist-ucsi-ccg.conf" = { target = "/etc/modprobe.d/blacklist-ucsi-ccg.conf", type = "template", owner = "root" }

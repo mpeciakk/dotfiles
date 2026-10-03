@@ -105,10 +105,12 @@ deployed by a per-host dotter package selected in the (gitignored) `.dotter/loca
   machine herdr-mirror mirrors — `target` names the *other* host and its `~/.ssh/config`
   alias, so this one can never be shared).
 - `hosts/pc/etc/*` → `/etc/*` (system config: sysctl, udev rules, modprobe, resolved
-  drop-ins, `warp-split-dns.service`, zram, `doas.conf`). Deployed as root-owned copies,
-  not symlinks — they are read before `/home` is mounted. dotter elevates with `sudo`;
+  drop-ins, `warp-split-dns.service`, zram). Deployed as root-owned copies, not
+  symlinks — they are read before `/home` is mounted. dotter elevates with `sudo`;
   after a deploy, `sysctl --system`, `udevadm control --reload` or a `daemon-reload`
-  applies the change without a reboot.
+  applies the change without a reboot. `hosts/pc/etc/doas.conf` is not deployed by
+  dotter (it must stay `0400`, which dotter can't read) — install it by hand:
+  `sudo install -m400 hosts/pc/etc/doas.conf /etc/doas.conf`.
 
 `.dotter/local.toml` is also read by `.claude/hooks/prompt-context`, which names
 the machine in every Claude Code session — both hosts report hostname `ciek`, so
