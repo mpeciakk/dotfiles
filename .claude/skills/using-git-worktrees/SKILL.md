@@ -46,26 +46,21 @@ settings.json — with the harness default `"fresh"` it would branch from
 branch the implementers build on and from its history, and the spec is not there
 for anyone reading the branch later.
 
+**Also before creating it, confirm the worktree directory is ignored** — in the
+main checkout, which is where an unignored worktree directory shows up in `git
+status` and where `git add -A` would stage it as an embedded repository. Run
+this in the main checkout, as is:
+
+```bash
+mkdir -p .claude/worktrees && git check-ignore -q .claude/worktrees || { echo '.claude/worktrees/' >> .gitignore && git add .gitignore && git commit -m "chore: ignore worktrees"; }
+```
+
+The `mkdir` makes the directory exist, so `check-ignore` answers correctly; the
+commit lands on HEAD before the branch is cut, so the worktree contains it.
+
 Call `EnterWorktree` with a name derived from the work (`feat/json-export`). It
 creates the worktree under `.claude/worktrees/`, switches this session into it,
 and lets the harness handle cleanup.
-
-Once it exists, confirm it is ignored **in the main checkout** — that is where
-an unignored worktree directory shows up in `git status` and where `git add -A`
-would stage it as an embedded repository:
-
-```bash
-MAIN=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
-git -C "$MAIN" check-ignore -q .claude/worktrees || {
-  echo '.claude/worktrees/' >> "$MAIN/.gitignore"
-  git -C "$MAIN" add .gitignore && git -C "$MAIN" commit -m "chore: ignore worktrees"
-}
-```
-
-Both the edit and the commit need `-C "$MAIN"`: run from inside the worktree they
-land on the feature branch and leave the main checkout still dirty. Run the check
-*after* creation — `check-ignore` calls a directory that does not exist yet
-not-ignored even when the pattern covers it.
 
 Fallback, only if `EnterWorktree` is unavailable: `git worktree add
 .worktrees/<branch> -b <branch>` (same ignore check), and then
@@ -77,12 +72,12 @@ on a sandbox permission error, say so and work in place.
 ## Step 2 — record the workspace
 
 ```bash
-~/.claude/hooks/flow-state set \
-  stage=isolate \
-  worktree="$(git rev-parse --show-toplevel)" \
-  branch="$(git branch --show-current)" \
-  base="$(git rev-parse HEAD)"
+~/.claude/hooks/flow-state set stage=isolate worktree=. branch=. base=HEAD
 ```
+
+`flow-state` resolves the three literals itself, from the current directory:
+`worktree=.` is the toplevel, `branch=.` the current branch, `base=HEAD` the
+SHA. Run it from inside the worktree.
 
 If that prints "no run state", nobody opened the run: `flow-state init
 <task-slug>` and re-run the block. An unrecorded workspace silently disables

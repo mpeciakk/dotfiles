@@ -79,12 +79,11 @@ state file and `git log` over your recollection.
    absolute path — your cwd is the worktree:
 
    ```bash
-   SDD=~/.claude/skills/subagent-driven-development/scripts
-   PLAN=$(~/.claude/hooks/flow-state get plan)
-   BRIEF=$($SDD/task-brief "$PLAN" N)     # stdout is the path, nothing else
+   ~/.claude/skills/subagent-driven-development/scripts/task-brief N
    ```
 
-   The brief carries the task's full text plus the plan's Global Constraints,
+   It reads the plan from the run state and prints the brief's path, nothing
+   else — use that path in the dispatch. The brief carries the task's full text plus the plan's Global Constraints,
    and it is the single source of requirements — exact values, magic strings,
    signatures and test cases live there and nowhere else.
 2. **Record the base and the model** before dispatching, in the ledger — a
@@ -95,9 +94,11 @@ state file and `git log` over your recollection.
    `task N` call replaces the first and drops `base=`.
 
    ```bash
-   BASE=$(git rev-parse HEAD)
-   ~/.claude/hooks/flow-state task N started "base=$BASE model=<haiku|sonnet>"
+   ~/.claude/hooks/flow-state task N started "base=HEAD model=<haiku|sonnet>"
    ```
+
+   `flow-state` stores `base=HEAD` as the SHA. When the reviewer needs the base,
+   read it back with `~/.claude/hooks/flow-state get tasks`.
 3. **Dispatch the implementer** — `subagent_type: "implementer"`. See Dispatching
    below for what the prompt carries. The definition runs Sonnet 5; pass
    `model: "haiku"` for every task that is small, surgical or paste-ready — a

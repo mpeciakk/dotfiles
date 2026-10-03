@@ -25,14 +25,15 @@ fork point, or the commit you recorded before starting. Never `HEAD~1`: it
 silently drops all but the last commit of multi-commit work.
 
 ```bash
-BASE_SHA=$(~/.claude/hooks/flow-state get base)          # the run records it
-[ -n "$BASE_SHA" ] || BASE_SHA=$(git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null)
-HEAD_SHA=$(git rev-parse HEAD)
+~/.claude/hooks/flow-state get base      # the run records it
+git rev-parse HEAD
 ```
 
-If both fall through — a repo whose default branch is `trunk` or `develop` —
-ask the user which branch this work forked from rather than packaging an empty
-or oversized range.
+If `get base` prints nothing, fall back to the fork point, as its own command:
+`git merge-base HEAD main` (or `master`). Pass the printed SHAs on as BASE and
+HEAD. If both fall through — a repo whose default branch is `trunk` or
+`develop` — ask the user which branch this work forked from rather than
+packaging an empty or oversized range.
 
 **2. Dispatch** `subagent_type: "branch-reviewer"`. Its role, model and read-only
 tool set live in `~/.claude/agents/branch-reviewer.md`, and it builds the diff
@@ -49,7 +50,7 @@ context every few minutes for nothing.
 **3. Act on it.**
 
 - *Before any fixer.* Record the pre-fix HEAD so a compaction cannot lose it:
-  `flow-state task branch-review started "fixbase=$(git rev-parse --short HEAD)"`.
+  `~/.claude/hooks/flow-state task branch-review started "fixbase=HEAD"`.
   Outside a run, note it in your reply.
 - *Critical or Important present.* Those findings, plus any Minor you decide to
   keep, go to ONE fix subagent with the complete list. Dispatch the re-review

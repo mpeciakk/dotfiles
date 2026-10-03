@@ -19,7 +19,8 @@
 # failing — the implementer invents the missing steps and the reviewer grades
 # the same truncated text.
 #
-# Usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
+# Usage: task-brief TASK_NUMBER [OUTFILE]            (plan from `flow-state get plan`)
+#        task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
 # Default OUTFILE: <repo-root>/.flow/sdd/<plan-basename>/task-<N>-brief.md
 # (namespaced per plan, so two plans in one working tree cannot overwrite
 # each other's briefs).
@@ -28,8 +29,27 @@
 # is safe; notes and warnings go to stderr.
 set -euo pipefail
 
-if [ $# -lt 2 ] || [ $# -gt 3 ]; then
-  echo "usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]" >&2
+usage="usage: task-brief TASK_NUMBER [OUTFILE] | task-brief PLAN_FILE TASK_NUMBER [OUTFILE]"
+if [ $# -lt 1 ] || [ $# -gt 3 ]; then
+  echo "$usage" >&2
+  exit 2
+fi
+
+# A first argument that is all digits is the task number: the plan comes from
+# the run state. The hooks dir is found from this script's real path
+# (.claude/skills/subagent-driven-development/scripts/task-brief).
+case $1 in
+  ''|*[!0-9]*) ;;
+  *)
+    claude_dir=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")")
+    plan=$("$claude_dir/hooks/flow-state" get plan)
+    [ -n "$plan" ] || { echo "no plan recorded in the run state — pass PLAN_FILE" >&2; exit 2; }
+    set -- "$plan" "$@"
+    ;;
+esac
+
+if [ $# -lt 2 ]; then
+  echo "$usage" >&2
   exit 2
 fi
 

@@ -20,6 +20,9 @@ Usage:
   flow-state [--cwd DIR] path                   print the state file path
 
 Fields: task stage spec plan worktree branch base
+Literals, resolved against --cwd/cwd: `worktree=.` (toplevel), `branch=.`
+(current branch), `base=HEAD` (SHA); in a task note `base=HEAD` and
+`fixbase=HEAD` are stored as the SHA.
 Stages: triage design plan isolate implement inline finish
 
 Three orderings are enforced, because a stage that accepts any predecessor
@@ -30,6 +33,7 @@ lever against skipped steps; prose is not.
 
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -52,6 +56,26 @@ def git(cwd, *args):
     except (OSError, subprocess.SubprocessError):
         return None
     return result.stdout.strip() if result.returncode == 0 else None
+
+
+# Literal values a caller can pass instead of a command substitution — the
+# worktree guard refuses commands it cannot resolve statically — mapped to the
+# git query that answers them from the effective cwd.
+LITERALS = {
+    ("worktree", "."): ("rev-parse", "--show-toplevel"),
+    ("branch", "."): ("branch", "--show-current"),
+    ("base", "HEAD"): ("rev-parse", "HEAD"),
+}
+
+
+def resolve_literal(cwd, key, value):
+    query = LITERALS.get((key, value))
+    if query is None:
+        return value
+    resolved = git(cwd, *query)
+    if not resolved:
+        die(f"cannot resolve {key}={value}: git {' '.join(query)} failed in {cwd}")
+    return resolved
 
 
 def repo_root(cwd):
@@ -256,11 +280,12 @@ def main(argv):
             key, value = pair.split("=", 1)
             if key not in FIELDS:
                 die(f"unknown key: {key} (known: {' '.join(FIELDS)})")
+            value = resolve_literal(cwd, key, value)
             if key == "stage" and value and value not in STAGES:
                 die(f"unknown stage: {value} (known: {' '.join(STAGES)})")
             if key == "worktree" and value and not os.path.isabs(value):
                 die("worktree must be absolute — the hooks compare realpaths: "
-                    'use `worktree="$(git rev-parse --show-toplevel)"`')
+                    "use `worktree=.` from inside the worktree")
             touched.add(key)
             if value:
                 state[key] = value
@@ -280,7 +305,12 @@ def main(argv):
                 f"{', '.join(TASK_STATUSES)}")
         entry = {"n": args[0], "status": status}
         if len(args) > 2:
-            entry["note"] = " ".join(args[2:])
+            # `base=HEAD` / `fixbase=HEAD` are stored as the SHA they mean now.
+            entry["note"] = re.sub(
+                r"(?<!\w)((?:fix)?base)=HEAD(?!\w)",
+                lambda m: f"{m.group(1)}={resolve_literal(cwd, 'base', 'HEAD')}",
+                " ".join(args[2:]),
+            )
         existing = state.get("tasks")
         existing = existing if isinstance(existing, list) else []
         tasks = [t for t in existing if isinstance(t, dict) and t.get("n") != entry["n"]]
