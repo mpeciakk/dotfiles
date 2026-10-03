@@ -2,7 +2,7 @@
 # is parse-time, so a missing file breaks startup — on a host where a tool isn't
 # set up yet, leave an empty stub so the shell still starts (generate the real
 # init during host setup, e.g. `atuin init nu | save -f ~/.local/share/atuin/init.nu`).
-for tool in [atuin zoxide asdf] {
+for tool in [atuin zoxide] {
     let init = ($env.HOME | path join '.local/share' $tool 'init.nu')
     if not ($init | path exists) {
         mkdir ($init | path dirname)
