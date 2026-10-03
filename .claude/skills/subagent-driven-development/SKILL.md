@@ -118,7 +118,7 @@ state file and `git log` over your recollection.
    contract — or exceeds ~400 changed lines. Docs and spec-sync diffs stay on
    Sonnet, and a re-review keeps the first review's model. Record the choice in
    the `done` note of step 7, never a second `started` call (it would drop
-   `base=`): `model=opus reason=<trigger>`.
+   `base=`): `reviewer=opus reason=<trigger>`.
    It gets BASE and HEAD and builds the review package itself, so the diff
    never enters your context. On a re-review pass the same `BASE` and the new
    HEAD (not just the fix commits), so the re-review judges the task, not the
@@ -157,7 +157,7 @@ state file and `git log` over your recollection.
    four it is — rather than looping a third time on your own judgment.
 7. **Record it.** `flow-state task N done ...`, mark the todo done, move on
    — without checking in. After an Opus review the note ends with its choice:
-   `"<base7>..<head7>, review clean, model=opus reason=<trigger>"`. The approved plan is the instruction. Stop only for
+   `"<base7>..<head7>, review clean, reviewer=opus reason=<trigger>"`. The approved plan is the instruction. Stop only for
    BLOCKED you cannot resolve, ambiguity the plan does not settle, or the end
    of the plan.
 
