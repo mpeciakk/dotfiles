@@ -459,6 +459,12 @@ setting 'cfg.get("worktree",{}).get("baseRef") == "head"' \
   && report ok "worktree.baseRef = head" || report no "worktree.baseRef"
 setting 'str(cfg.get("statusLine",{}).get("command","")).endswith("statusline")' \
   && report ok "statusLine points at the flow status line" || report no "statusLine command"
+setting 'any(h.get("if") == "Bash(*worktree add*)" for e in cfg["hooks"]["PreToolUse"] if e.get("matcher") == "Bash" for h in e["hooks"])' \
+  && report ok "flow-guard on Bash only spawns for worktree add" || report no "Bash flow-guard has no if filter"
+setting 'not any("Grep" in (e.get("matcher") or "") for e in cfg["hooks"]["PreToolUse"])' \
+  && report ok "dead Grep|Glob augmenter removed" || report no "Grep|Glob augmenter still wired"
+[ ! -e "$HERE/cbm-code-discovery-gate" ] && [ ! -e "$HERE/cbm-subagent-reminder" ] \
+  && report ok "removed cbm hook files are gone" || report no "cbm hook files still present"
 
 echo "=== status line ==="
 sl_payload() { python3 -c '

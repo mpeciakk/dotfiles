@@ -2,7 +2,9 @@
   "env": {
     "CBM_ALLOWED_ROOT": "/home/m",
     "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
-    "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "CLAUDE_CODE_FORK_SUBAGENT": "0",
+    "CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS": "1"
   },
   "permissions": {
     "allow": [
@@ -11,20 +13,15 @@
       "Bash(~/.claude/skills/subagent-driven-development/scripts/review-package:*)",
       "Bash(~/.claude/skills/subagent-driven-development/scripts/sdd-workspace:*)"
     ],
+    "deny": [
+      "ReportFindings",
+      "ShareOnboardingGuide"
+    ],
     "defaultMode": "auto"
   },
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
-      {
-        "matcher": "Grep|Glob",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/cbm-code-discovery-gate",
-            "timeout": 5
-          }
-        ]
-      },
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|EnterWorktree|Agent|ScheduleWakeup",
         "hooks": [
@@ -41,6 +38,7 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/flow-guard",
+            "if": "Bash(*worktree add*)",
             "timeout": 10
           }
         ]
@@ -90,10 +88,6 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/cbm-subagent-reminder"
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/prompt-context",
             "timeout": 5
           }
@@ -110,12 +104,13 @@
     "padding": 0
   },
   "enabledPlugins": {
-    "claude-code-wakatime@wakatime": true,
+    "claude-code-wakatime@wakatime": false,
     "context7@context7-marketplace": true,
     "github@claude-plugins-official": false,
     "document-skills@anthropic-agent-skills": false,
     "frontend-design@claude-plugins-official": false,
-    "cloudflare@cloudflare": true
+    "cloudflare@cloudflare": false,
+    "cowork-plugin-management@synced": false
   },
   "extraKnownMarketplaces": {
     "claude-hud": {
@@ -150,15 +145,52 @@
     }
   },
   "feedbackDrafts": "off",
-  "effortLevel": "high",
   "modelSettings": {
-    "claude-fable-5-1": {
+    "claude-sonnet-5-5": {
       "effortLevel": "high"
     },
-    "claude-sonnet-5": {
-      "effortLevel": "xhigh"
+    "claude-opus-5-5": {
+      "effortLevel": "high"
     }
   },
+  "agentPushNotifEnabled": false,
+  "skillOverrides": {
+    "anthropic-skills:cloudflare": "off",
+    "anthropic-skills:cloudflare-email-service": "off",
+    "anthropic-skills:cloudflare-one": "off",
+    "anthropic-skills:workers-best-practices": "off",
+    "anthropic-skills:wrangler": "off",
+    "anthropic-skills:google-workspace": "off",
+    "anthropic-skills:import-memory": "off",
+    "anthropic-skills:the-humanizer": "user-invocable-only",
+    "anthropic-skills:docs": "name-only",
+    "anthropic-skills:pdf": "name-only",
+    "anthropic-skills:docx": "name-only",
+    "anthropic-skills:pptx": "name-only",
+    "anthropic-skills:xlsx": "name-only",
+    "dataviz": "name-only",
+    "update-config": "name-only",
+    "artifact-capabilities": "name-only",
+    "artifact-diagramming": "name-only",
+    "artifact-design": "name-only",
+    "schedule": "name-only",
+    "loop": "name-only",
+    "code-review": "user-invocable-only",
+    "simplify": "user-invocable-only",
+    "security-review": "user-invocable-only",
+    "keybindings-help": "user-invocable-only",
+    "fewer-permission-prompts": "user-invocable-only",
+    "init": "user-invocable-only"
+  },
+  "deniedMcpServers": [
+    {"serverName": "claude.ai Claude Docs"},
+    {"serverName": "claude.ai Canva"},
+    {"serverName": "claude.ai Microsoft 365"}
+  ],
+  "enableArtifact": false,
+  "autoCompactWindow": 500000,
+  "cleanupPeriodDays": 90,
+  "promptSuggestionEnabled": false,
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
