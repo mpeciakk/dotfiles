@@ -1,0 +1,14 @@
+[Unit]
+Description=Split DNS: local.animativ.dev przez tunel WARP do 10.200.200.153
+BindsTo=sys-subsystem-net-devices-CloudflareWARP.device
+After=sys-subsystem-net-devices-CloudflareWARP.device systemd-resolved.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/resolvectl dns CloudflareWARP 10.200.200.153
+ExecStart=/usr/bin/resolvectl domain CloudflareWARP local.animativ.dev
+ExecStart=/usr/bin/resolvectl default-route CloudflareWARP false
+
+[Install]
+WantedBy=sys-subsystem-net-devices-CloudflareWARP.device
