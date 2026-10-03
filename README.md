@@ -24,7 +24,7 @@ Core: `niri`, `uwsm`, `quickshell` (`qs`), `nushell`, `dotter`.
 Shell/session: `kitty`, `keyd` (Super→Ctrl remaps), `pipewire` + `wireplumber`,
 `polkit-gnome`, `1password` (SSH agent + autostart), `qt6ct`.
 Clipboard/media: `cliphist` + `wl-clipboard` (clipboard history), `playerctl` (media keys).
-Tools sourced by nushell: `atuin`, `zoxide`, `asdf`, `carapace`, `bat`.
+Tools sourced by nushell: `atuin`, `zoxide`, `carapace`, `bat`.
 VPN (optional): `tailscale`, `openvpn`. Fonts: a JetBrainsMono Nerd Font.
 
 No `jq` required — scripts parse JSON without it.
