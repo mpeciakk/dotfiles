@@ -506,6 +506,29 @@ sl_payload "$REPO" | "$SL" | tail -1 | grep -q "demo" \
   && report ok "flow line names the run" || report no "flow line content"
 out=$(printf 'not json' | "$SL"; echo "rc=$?")
 case "$out" in *rc=0*) report ok "status line survives junk input";; *) report no "status line on junk" "$out";; esac
+sl_rl() { python3 -c '
+import json, sys
+print(json.dumps({"workspace": {"current_dir": sys.argv[1], "project_dir": sys.argv[1]},
+  "model": {"display_name": "Sonnet 5.5"},
+  "context_window": {"used_percentage": 40, "total_input_tokens": int(sys.argv[2])},
+  "rate_limits": {"five_hour": {"used_percentage": float(sys.argv[3]), "resets_at": 1790000000},
+                  "seven_day": {"used_percentage": 12.0, "resets_at": 1790500000}},
+  "cost": {"total_cost_usd": 3.21, "total_lines_added": 9, "total_lines_removed": 2}}))' "$@"; }
+line=$(sl_rl "$COLD" 412000 93 | "$SL" | head -1)
+case "$line" in *'$'*) report no "status line still shows dollars" "$line";; *) report ok "no dollar amount on a subscription";; esac
+case "$line" in *"+9"*) report ok "lines added/removed kept";; *) report no "lines counter dropped" "$line";; esac
+case "$line" in *$'\033[31m412K'*) report ok "context in absolute tokens, red at >=300K";; *) report no "absolute context" "$line";; esac
+line=$(sl_rl "$COLD" 100000 20 | "$SL" | head -1)
+case "$line" in *$'\033[32m100K'*) report ok "context green under 150K";; *) report no "context colour" "$line";; esac
+line=$(sl_rl "$COLD" 200000 93 | "$SL" | head -1)
+case "$line" in *$'\033[33m200K'*) report ok "context yellow under 300K";; *) report no "context yellow" "$line";; esac
+case "$line" in *"5h "$'\033[31m93%'*) report ok "5h limit red at >=90%";; *) report no "5h limit" "$line";; esac
+case "$line" in *"7d "$'\033[32m12%'*) report ok "7d limit shown";; *) report no "7d limit" "$line";; esac
+line=$(sl_payload "$COLD" | "$SL" | head -1)
+case "$line" in *"5h"*) report no "limits shown without rate_limits" "$line";; *) report ok "no limits segment without rate_limits";; esac
+case "$line" in *"ctx "*"42%"*) report ok "falls back to percent without total_input_tokens";; *) report no "context fallback" "$line";; esac
+grep -q 'GIT_OPTIONAL_LOCKS' "$SL" && report ok "status line git takes no optional locks" || report no "GIT_OPTIONAL_LOCKS"
+grep -qE '^import traceback' "$HERE/prompt-context" && report no "prompt-context imports traceback eagerly" || report ok "traceback imported lazily"
 
 echo "=== ledger vocabulary ==="
 VOC=$ROOT/vocab; mkrepo "$VOC" >/dev/null || fixture_fail "vocab repo"

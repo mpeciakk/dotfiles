@@ -8,7 +8,7 @@ require, so this has nothing left to lose.
 
 Renders one line normally, two while a pipeline run is open:
 
-    ~/dotfiles  main*   Opus 5 · xhigh   ctx 38%   $0.42  +156/-23
+    ~/dotfiles  main*   Opus 5 · xhigh   ctx 38K   5h 41% →16:20  7d 12%   +156/-23
     flow  json-export · plan · 0/5 tasks · no workspace · go → /clear · /model sonnet · go
 
 Input schema is the documented statusLine payload (model, workspace, cost,
@@ -25,6 +25,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 DIM = "\033[2m"
@@ -39,7 +40,8 @@ RESET = "\033[0m"
 def git(cwd, *args):
     try:
         result = subprocess.run(["git", "-C", cwd, *args],
-                                capture_output=True, text=True, timeout=2)
+                                capture_output=True, text=True, timeout=2,
+                                env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"})
     except (OSError, subprocess.SubprocessError):
         return None
     return result.stdout if result.returncode == 0 else None
@@ -88,6 +90,10 @@ def git_segment(cwd):
 
 def context_segment(payload):
     window = payload.get("context_window") or {}
+    tokens = window.get("total_input_tokens")
+    if isinstance(tokens, int):
+        colour = GREEN if tokens < 150000 else YELLOW if tokens < 300000 else RED
+        return f"ctx {colour}{round(tokens / 1000)}K{RESET}"
     pct = window.get("used_percentage")
     if not isinstance(pct, (int, float)):
         return None
@@ -96,12 +102,27 @@ def context_segment(payload):
     return f"ctx {colour}{pct}%{RESET}"
 
 
+def limits_segment(payload):
+    """5-hour and 7-day subscription usage; either window may be missing."""
+    limits = payload.get("rate_limits") or {}
+    bits = []
+    for key, label in (("five_hour", "5h"), ("seven_day", "7d")):
+        window = limits.get(key) or {}
+        pct = window.get("used_percentage")
+        if not isinstance(pct, (int, float)):
+            continue
+        colour = GREEN if pct < 70 else YELLOW if pct < 90 else RED
+        bit = f"{label} {colour}{int(pct)}%{RESET}"
+        resets = window.get("resets_at")
+        if key == "five_hour" and isinstance(resets, (int, float)):
+            bit += f" {DIM}→{datetime.fromtimestamp(resets):%H:%M}{RESET}"
+        bits.append(bit)
+    return "  ".join(bits) or None
+
+
 def cost_segment(payload):
     cost = payload.get("cost") or {}
     bits = []
-    usd = cost.get("total_cost_usd")
-    if isinstance(usd, (int, float)) and usd > 0:
-        bits.append(f"${usd:.2f}")
     added, removed = cost.get("total_lines_added"), cost.get("total_lines_removed")
     if isinstance(added, int) and isinstance(removed, int) and (added or removed):
         bits.append(f"{GREEN}+{added}{RESET}/{RED}-{removed}{RESET}")
@@ -188,7 +209,8 @@ def main():
 
     segments = [f"{DIM}{short_path(cwd, workspace.get('project_dir'))}{RESET}"]
     for segment in (git_segment(cwd), model_segment(payload),
-                    context_segment(payload), cost_segment(payload)):
+                    context_segment(payload), limits_segment(payload),
+                    cost_segment(payload)):
         if segment:
             segments.append(segment)
     print(f"{DIM}   {RESET}".join(segments))
