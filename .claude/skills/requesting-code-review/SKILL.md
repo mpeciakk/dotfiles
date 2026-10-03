@@ -43,7 +43,9 @@ their own block** —
 mixed into the requirements, a reviewer reads them as things the branch was
 supposed to deliver and reports each unfixed one as a spec gap.
 
-Then end the turn and wait for the notification — not for a wakeup you schedule
+Dispatch with `run_in_background: true` (with `CLAUDE_CODE_FORK_SUBAGENT=0` the
+parameter is back, and a foreground dispatch would block the session), then end
+the turn and wait for the task notification — not for a wakeup you schedule
 yourself. A branch review runs for minutes; polling it re-reads your whole
 context every few minutes for nothing.
 

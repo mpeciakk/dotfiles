@@ -74,12 +74,16 @@ skill: name the command that proves it, run it, quote the output.
 
 ## Model & effort per stage
 
-Session default is **Sonnet 5 · high** (`settings.json` → `modelSettings`).
-Stages 1–2 (design, plan) run on **Opus 5.5 · high** instead. At the plan gate
-the user answers with `/clear`, `/model sonnet`, then `go` — the fresh session
-resumes from flow-state, and the status line shows the switch each stage
-wants. Why the `/clear`: the prompt cache is per model, so switching without
-it re-reads the whole design context.
+Session default is **Sonnet 5.5 · high** (`settings.json` → `modelSettings`,
+keyed `claude-sonnet-5-5`). Stages 1–2 (design, plan) run on **Opus 5.5 · high**
+instead — switch with `/model opus` (session only) or start `claude --model
+opus`. At the plan gate the user answers with `/clear`, `/model sonnet` choosing
+*session only* in the picker (or a fresh `claude`, whose committed default is
+Sonnet), then `go` — the fresh session resumes from flow-state, and the status
+line shows the switch each stage wants. Session only matters: the CLI's
+`/model` otherwise writes the pick into the tracked `settings.json`. Why the
+`/clear`: the prompt cache is per model, so switching without it re-reads the
+whole design context.
 
 **Dispatched roles carry their own model and effort** in their definition under
 `~/.claude/agents/` — that is where per-role thinking depth lives, since the
@@ -89,13 +93,12 @@ to override the definition — routinely `haiku` for surgical implementer tasks.
 | Role | Where it is set | Default |
 |---|---|---|
 | Brainstorm / grill / planning (inline) | session | Opus 5.5 · high — then /clear + /model sonnet at "go" |
-| Controller from "go" on, debugging (inline) | session | Sonnet 5 · high (Opus 5.5 · high for a genuinely hard debug) |
-| `implementer` | agent definition | Sonnet 5 · high — override to Haiku 4.5 for every small, surgical or paste-ready task — decision code in a brief stays on Sonnet (subagent-driven-development, step 3) |
-| `fixer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for one genuinely hard task) |
-| `task-reviewer` | agent definition | Sonnet 5 · high (override to Opus 5.5 for non-trivial / security / concurrency) |
+| Controller from "go" on, debugging (inline) | session | Sonnet 5.5 · high (Opus 5.5 · high for a genuinely hard debug) |
+| `implementer` | agent definition | Sonnet 5.5 · high — override to Haiku 4.5 for every small, surgical or paste-ready task — decision code in a brief stays on Sonnet (subagent-driven-development, step 3) |
+| `fixer` | agent definition | Sonnet 5.5 · high (override to Opus 5.5 for one genuinely hard task) |
+| `task-reviewer` | agent definition | Sonnet 5.5 · high (Opus 5.5 on the named triggers in subagent-driven-development) |
 | `branch-reviewer` | agent definition | Opus 5.5 · high |
 | `plan-red-team` | agent definition | Opus 5.5 · xhigh |
-| Read-only exploration (`Explore`) | dispatch | Haiku 4.5 |
 | Finish (tests, git, diff summary) | inline or Haiku 4.5 | — |
 
 Keep a reviewer at least as strong as what it reviews: a reviewer weaker than the
@@ -118,6 +121,11 @@ prose — a reviewer that can fix things stops reporting them.
 - **Code discipline.** Simplicity, surgical changes, no guessing — CLAUDE.md.
 
 ## Triage — does this even need the pipeline?
+
+**A finished run still in context.** If this conversation already carried a run
+through finish and the context is above ~120K, ask for `/clear` (or a handoff)
+before opening the next run — every request of the new run would otherwise
+re-read the old one.
 
 **Small, with one decision → the small lane.** ALL of: one or two files, a
 single real decision you can state in one sentence, one test covers it,

@@ -55,7 +55,7 @@ state file and `git log` over your recollection.
    recorded. A ledger entry `0: complete` noting a green baseline means setup and
    the suite are already done; the `worktree` field alone does not, since it is
    recorded one step before the suite runs.
-2. `~/.claude/hooks/flow-state set stage=implement plan="$PLAN"` — pass the plan
+2. `~/.claude/hooks/flow-state set stage=implement plan=<absolute plan path>` — pass the plan
    path even when writing-plans already recorded it; a plan the user handed you
    was never recorded, and `implement` without one is refused.
    **Check your tree first:** if `git rev-parse --show-toplevel` is not the
@@ -100,7 +100,10 @@ state file and `git log` over your recollection.
    `flow-state` stores `base=HEAD` as the SHA. When the reviewer needs the base,
    read it back with `~/.claude/hooks/flow-state get tasks`.
 3. **Dispatch the implementer** — `subagent_type: "implementer"`. See Dispatching
-   below for what the prompt carries. The definition runs Sonnet 5; pass
+   below for what the prompt carries. Dispatch with `run_in_background: true`,
+   then end the turn and wait for the task notification (with
+   `CLAUDE_CODE_FORK_SUBAGENT=0` the parameter is back, and a foreground
+   dispatch would block the session). The definition runs Sonnet 5.5; pass
    `model: "haiku"` for every task that is small, surgical or paste-ready — a
    spec sync, a config or one-value change, a brief whose complete change is
    text to insert as given. Haiku is the rule for those, not the exception.
@@ -109,7 +112,12 @@ state file and `git log` over your recollection.
    instance of a pattern): transcribing that is where a wrong plan gets caught.
 4. **Handle the status** (below).
 5. **Dispatch the task reviewer** — `subagent_type: "task-reviewer"`, with
-   `model: "opus"` for a non-trivial, security- or concurrency-touching diff.
+   `run_in_background: true` (then end the turn, as in step 3) and
+   `model: "opus"` when the diff touches auth, secrets or untrusted input;
+   concurrency or lock order; a data migration or storage format; a public API
+   contract — or exceeds ~400 changed lines. Docs and spec-sync diffs stay on
+   Sonnet, and a re-review keeps the first review's model. Record the choice in
+   the ledger note: `model=opus reason=<trigger>`.
    It gets BASE and HEAD and builds the review package itself, so the diff
    never enters your context. On a re-review pass the same `BASE` and the new
    HEAD (not just the fix commits), so the re-review judges the task, not the
@@ -199,14 +207,16 @@ reviewers cannot edit files at all (the harness withholds Edit/Write from them),
 and the implementer and fixer get the test-driven-development skill preloaded.
 Pass `model:` only to override a definition's default — `haiku` for a small,
 surgical or paste-ready implementer task (step 3), `opus` for a
-task-reviewer on a hard diff or for one genuinely hard implementer task.
+task-reviewer on the named triggers (step 5: auth, secrets or untrusted input;
+concurrency or lock order; a data migration or storage format; a public API
+contract; or ~400+ changed lines) or for one genuinely hard implementer task.
 
 Your prompt supplies only what varies per dispatch:
 
 | Role | The prompt carries |
 |---|---|
 | `implementer` | task number and name; the **worktree and branch** (`flow-state get worktree` / `get branch` — never `pwd`, which lies on a resumed session); the brief path; the report path; one line on where this task fits; interfaces and decisions from earlier tasks the brief cannot know; your resolution of any ambiguity you noticed |
-| `task-reviewer` | brief path, implementer report path, BASE and HEAD, and the plan's Global Constraints copied verbatim; on a re-review, also the prior findings and the fixer's report, so settled ground is named as settled |
+| `task-reviewer` | brief path, implementer report path, BASE and HEAD; on a re-review, also the prior findings and the fixer's report, so settled ground is named as settled |
 | `fixer` | the worktree and branch; the verbatim finding list with file:line each; the brief path; the existing report path to append to |
 | `branch-reviewer` | what was built, the requirements, BASE and HEAD of the whole branch, and the run's deferred Minor findings as their own block |
 

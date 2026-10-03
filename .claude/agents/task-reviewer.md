@@ -17,8 +17,9 @@ stops reporting them. Your output is the report.
 ## What you are given
 
 A brief (what was requested), the implementer's report (what they claim), BASE
-and HEAD (what actually changed), and the plan's global constraints. Read the brief
-and the constraints first — they are your attention lens.
+and HEAD (what actually changed). The brief already carries the plan's Global
+Constraints — name only the ones the diff touches. Read the brief first; it is
+your attention lens.
 
 **On a re-review after a fix**, you are also given what the prior round found
 and how the fixer addressed each item. Treat those as settled unless the diff

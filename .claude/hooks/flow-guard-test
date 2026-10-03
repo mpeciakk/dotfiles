@@ -599,16 +599,16 @@ hint_case() { # stage model_id expected_substring_or_NONE label
     case "$line" in *"$3"*) report ok "$4";; *) report no "$4" "$line";; esac
   fi
 }
-hint_case design claude-sonnet-5 "⚠ /model opus" "design on Sonnet: asks for Opus"
+hint_case design claude-sonnet-5 "⚠ /model opus (session only)" "design on Sonnet: asks for Opus"
 hint_case design "claude-opus-5-5[1m]" NONE "design on Opus: no hint"
-hint_case plan "claude-opus-5-5[1m]" "go → /clear · /model sonnet · go" "plan on Opus: shows the handoff"
+hint_case plan "claude-opus-5-5[1m]" "go → /clear · /model sonnet (session only) · go" "plan on Opus: shows the handoff"
 "$STATE" --cwd "$HNT" set plan= >/dev/null || fixture_fail "could not clear plan for negative hint case"
 hint_case plan "claude-opus-5-5[1m]" NONE "plan on Opus, no plan written yet: no handoff hint"
 "$STATE" --cwd "$HNT" set plan="$HNT/p.md" >/dev/null || fixture_fail "could not restore plan for hint fixture"
 hint_case plan claude-sonnet-5 NONE "plan on Sonnet: no hint"
-hint_case implement claude-opus-5-5 "⚠ /clear · /model sonnet" "implement on Opus: asks for Sonnet"
-hint_case isolate claude-opus-5-5 "⚠ /clear · /model sonnet" "isolate on Opus: asks for Sonnet"
-hint_case finish claude-opus-5-5 "⚠ /clear · /model sonnet" "finish on Opus: asks for Sonnet"
+hint_case implement claude-opus-5-5 "⚠ /clear · /model sonnet (session only)" "implement on Opus: asks for Sonnet"
+hint_case isolate claude-opus-5-5 "⚠ /clear · /model sonnet (session only)" "isolate on Opus: asks for Sonnet"
+hint_case finish claude-opus-5-5 "⚠ /clear · /model sonnet (session only)" "finish on Opus: asks for Sonnet"
 hint_case implement claude-sonnet-5 NONE "implement on Sonnet: no hint"
 hint_case inline claude-opus-5-5 NONE "inline: no hint"
 hint_case design "" NONE "no model in payload: no hint"

@@ -173,7 +173,8 @@ point they are scratch: the merge is verified or the discard is confirmed.
 
 **Anywhere else:** the host environment owns it. Leave it alone.
 
-Finally, end the run: `~/.claude/hooks/flow-state clear`.
+Finally, end the run: `~/.claude/hooks/flow-state clear` — and tell the user the
+next step is `/clear` before the next change.
 
 ## Never
 

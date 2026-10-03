@@ -8,8 +8,8 @@ require, so this has nothing left to lose.
 
 Renders one line normally, two while a pipeline run is open:
 
-    ~/dotfiles  main*   Opus 5 · xhigh   ctx 38K   5h 41% →16:20  7d 12%   +156/-23
-    flow  json-export · plan · 0/5 tasks · no workspace · go → /clear · /model sonnet · go
+    ~/dotfiles  main*   Opus 5 · xhigh   ctx 412K   5h 40% →16:20  7d 12%   +156/-23
+    flow  json-export · plan · 0/5 tasks · no workspace · go → /clear · /model sonnet (session only) · go
 
 Input schema is the documented statusLine payload (model, workspace, cost,
 context_window, effort). Every field is optional here: a missing one drops its
@@ -163,11 +163,11 @@ def model_hint(stage, payload, has_plan):
         return None
     opus = "opus" in model.lower()
     if stage in OPUS_STAGES and not opus:
-        return f"{YELLOW}⚠ /model opus{RESET}"
+        return f"{YELLOW}⚠ /model opus (session only){RESET}"
     if stage == "plan" and opus and has_plan:
-        return f"{CYAN}go → /clear · /model sonnet · go{RESET}"
+        return f"{CYAN}go → /clear · /model sonnet (session only) · go{RESET}"
     if stage in SONNET_STAGES and opus:
-        return f"{YELLOW}⚠ /clear · /model sonnet{RESET}"
+        return f"{YELLOW}⚠ /clear · /model sonnet (session only){RESET}"
     return None
 
 

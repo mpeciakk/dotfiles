@@ -30,7 +30,7 @@ choices; when in doubt on such a plan, run it.
 the spec path. Pass paths, never the plan text — the whole point is that the diff
 stays out of your context.
 
-Then end the turn. The red-team's completion notification arrives on its own; a
+Dispatch with `run_in_background: true`. Then end the turn. The red-team's completion notification arrives on its own; a
 wakeup scheduled to check on it is denied by the guard (the observed cost was
 six wakeups for one pre-mortem).
 
