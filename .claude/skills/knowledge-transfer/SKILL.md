@@ -50,8 +50,10 @@ Four fields. If any is missing, ask for all missing ones in **one** message.
 4. **Interview, on gaps only.** What the repo cannot tell you, you ask. One
    question carries one hypothesis from the repo for the user to confirm,
    reject or correct ("the deploy script restarts only the web service — is the
-   worker restarted somewhere else?"), never a bare "anything else?". Time pressure
-   shortens the interview to the high items; it never removes it.
+   worker restarted somewhere else?") wherever the repo or the materials
+   suggest one; where they cannot (people, external systems), ask directly.
+   Never a bare "anything else?". Time pressure shortens the interview to the
+   high items; it never removes it.
 5. **Write** `docs/kt/YYYY-MM-DD-<profil>.md` (`temat` mode: the intake path),
    by the matrix below.
 6. **Cold read**, below.
@@ -89,6 +91,7 @@ by profile (`link` = a link or one line, not a section of prose).
   explicit line in "Luki" saying it is unconfirmed. Nothing else is written —
   not an inferred schedule, not a procedure nobody described, not arithmetic
   dressed as a limit.
+- `temat`: section 0 carries the date only; no commit, report the path.
 
 ## Cold read
 
@@ -113,7 +116,8 @@ step needs its answers):
 - **Secrets: location only** — the vault, the 1Password entry, the env var
   name — never a value. Check the package for values before the cold-reader
   dispatch too, since the prompt carries the whole package. Do not open
-  `.env`-style files to see what is in them.
+  `.env`-style files to see what is in them (templates such as `.env.example`
+  are fine).
 - **Polish**, written per the `polszczyzna` skill; plain language for
   `support`.
 - **Commit only the package**, only after the final ✋.

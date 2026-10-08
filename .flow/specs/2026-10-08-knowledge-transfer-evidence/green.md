@@ -9,6 +9,12 @@ invisible otherwise). Nested `claude -p --model sonnet`, one session per run, cw
 | GREEN | `/tmp/kt-green.RnL0vc/fx` (tip `42c8bd3`; session commit `c64ddec`) | `1ee9411b-e0b0-47eb-95cd-1c9554884cc7` | `green-transcripts/turn-1..3.jsonl` | `green-package.md` | first SKILL.md |
 | refactor 1 | `/tmp/kt-green.2ZG3tx/fx` (tip `42c8bd3`; session commit `c131893`) | `6e456a7b-97cb-489a-889c-7fda1cab5d31` | `green-transcripts-r1/turn-1..3.jsonl` | `green-package-r1.md` | SKILL.md + re-run counter (below) |
 
+Evidence note: all runs above used the pre-fix SKILL.md. The branch-review edits made afterwards are wording-only:
+the interview hypothesis rule (a hypothesis wherever the repo or materials suggest one, a direct question
+otherwise, the ban on a bare "anything else?" kept), the one-line `temat` rule (section 0 date only, no commit),
+and the `.env.example` clause ("templates such as `.env.example` are fine"). The frontmatter and the section
+matrix are unchanged. The runs were not repeated.
+
 ## Checker output (verbatim)
 
 ```
@@ -47,9 +53,10 @@ In refactor 1 F5 was not given either (4 of 5, F6 and F7 given).
   read), and ended with the inventory table, 6-7 scenarios with a key, and questions; **no Write before the
   user's yes** (turn 2 starts with the `polszczyzna` skill, then Write). The two runs differ in the inventory
   (GREEN: 10 items; r1: 8 items).
-- Interview, GREEN: 7 questions. Q1-Q4 carry an explicit hypothesis ("Zakładam, że ..."), Q5-Q7 are open-ended
-  ("Do kogo Kasia dzwoni ... Szef?" offers a guess; Q6/Q7 do not). Refactor 1: 5 questions, Q1-Q3 with
-  hypotheses, Q4-Q5 open. Both interviews stayed on gaps the repo could not answer.
+- Interview, GREEN: 7 questions. Q2-Q4 carry an explicit hypothesis ("Zakładam, że ..."); Q1 states a repo fact
+  and asks, without a hypothesis; Q5-Q7 are open-ended ("Do kogo Kasia dzwoni ... Szef?" offers a guess; Q6/Q7
+  do not). Refactor 1: 5 questions, Q1-Q3 with hypotheses, Q4-Q5 open (people, external systems: the repo
+  suggests nothing). Both interviews stayed on gaps the repo could not answer.
 - Spec-versus-repo contradiction (`app.py`/`worker.py` are stubs, spec describes `outbox` and a sender): put
   into "Luki" and the final report in both runs; the spec was not edited.
 - Secrets: the token value appears in no transcript (`grep -c kt-secret-7Q9ZL4MX2P` = 0 on all six) and in
@@ -85,6 +92,11 @@ reported "Po poprawce 6 z 7 scenariuszy przeszło ... Scenariusz 5 ... nadal odp
 To prawdziwa luka". `agent-results` shows both reader results: the first has S3 as `ZGADUJĘ` (the session
 patched section 4 for it) and S5 as `NIE WIEM Z PAKIETU`; the second answers S3 from section 4 and keeps only
 S5 as `NIE WIEM Z PAKIETU`, the genuine gap.
+
+Honest note: the first GREEN package itself repeated Common-mistakes row 4 (restating the spec). Its section 1
+near-restated the spec's "Cel" sentence, nearly word for word the baseline sentence the skill quotes as a mistake,
+even though the "link to the spec instead of restating it" counter was already in SKILL.md. Refactor 1 shortened
+it to one sentence plus a link.
 
 Refactor budget used: 1 of 2. No second refactor needed.
 

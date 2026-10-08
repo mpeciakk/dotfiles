@@ -32,7 +32,7 @@ odbiorca da sobie radę.
 
 ## Sprawdzone w implementacji
 
-Agent `kt-cold-reader` z `tools: TaskStop` startuje pod Sonnet i nie widzi narzędzi (zob. EV/probe.md, GREEN).
+Agent `kt-cold-reader` z `tools: TaskStop` startuje w sesji pod Sonnet, nie woła żadnego narzędzia i nie czyta plików (zob. `.flow/specs/2026-10-08-knowledge-transfer-evidence/probe.md`, GREEN).
 
 ## Testy skilla (baseline wg writing-skills)
 
