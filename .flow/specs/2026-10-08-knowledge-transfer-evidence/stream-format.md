@@ -60,3 +60,7 @@ Linked by `parent_tool_use_id` == the Agent tool_use `id` (non-null; top-level e
 `SubagentHandback` is a harness-injected tool: every subagent calls it once to deliver its report, whatever its `tools:` list says (`kt-echo` has only `TaskStop` and was told to call nothing). It is the hand-back mechanism, not a tool the subagent chose to call, so `stream.py subagent-tools` does not list it. Without that exclusion `subagent-tools` would print `SubagentHandback` for every run and Task 2/3 checks "the subagent called no tool" could never pass. For `kt-echo` `subagent-tools` therefore prints nothing.
 
 `system/task_progress` also reports `"last_tool_name":"SubagentHandback"` and `usage.tool_uses` (counts the hand-back too: `1` for kt-echo).
+
+## Which skill or agent loads in a nested run
+
+In a nested `claude -p` run, a personal-level skill or agent of the same name in `~/.claude` is loaded instead of the fixture's project-level copy. A test of a skill that also exists personally needs a throwaway `CLAUDE_CONFIG_DIR` omitting it (see `team.md`, "Harness deviation"). The proof of what loaded is the `Base directory for this skill:` line in the Skill tool result.

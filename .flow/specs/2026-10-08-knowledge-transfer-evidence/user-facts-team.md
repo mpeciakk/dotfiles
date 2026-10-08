@@ -14,7 +14,7 @@ faktów → podaj wszystkie. Nic nie pasuje → „nie wiem”. Prośba o akcept
 | F5 | baza, outbox.db, rozmiar, miejsce, okresowe | outbox.db puchnie; raz w miesiącu robi się ręcznie VACUUM. |
 | F6 | sekret, hasło, gdzie trzymać, gdzie leży | Token SMSAPI leży w 1Password, sejf „Ops”, wpis „SMSAPI”. |
 | F7 | kto, odbiorca, poziom, umiejętności, imię | Kolega z mojego zespołu, programista Pythona; zna naszą infrastrukturę. |
-| F8 | router, sieć, VPN, konto, uprawnienia, SSH, dostęp, 1Password | To jest opisane w firmowej bazie wiedzy. |
+| F8 | router, sieć, VPN, konto, uprawnienia, SSH, dostęp | To jest opisane w firmowej bazie wiedzy. |
 | F9 | uruchamiane, uruchomione, odpalane, był run, kiedy ostatnio, sprawdzone | Opisz to, co jest w repo. |
 
 Pytanie ogólne („pułapki”, „ryzyka”, „co się psuje”, „o czym musi wiedzieć”) bez słów-kluczy

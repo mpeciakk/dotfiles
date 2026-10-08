@@ -13,6 +13,16 @@ in the spec (`- Ponawiania 429 nie uruchamiano na produkcji.`, commit "spec: pon
 
 No refactor round: GREEN held on the first valid run.
 
+Evidence note: all runs above used the pre-fix SKILL.md (HEAD `0e283ed`). The branch-review edits made afterwards:
+(1) the cold-read pass rule: a scenario whose key says the package does not know passes on `NIE WIEM Z PAKIETU`
+(and still fails on `ZGADUJĘ` or a confident answer): a rule-scope clarification, not wording-only; it settles the two
+scenarios of the GREEN run that the session passed over (see "Gate and package observations");
+(2) the accounts boundary: the never-ask bullet now says "the company's accounts" and the "still asked" bullet says who owns
+the account at a project dependency is allowed: a rule-scope clarification, it makes explicit the reading used for Q4b above;
+(3) "the recipient" -> "the reader" in the inventory step: wording-only.
+None of the three has a GREEN run behind it, so this note does not imply the evidence covers the final text. RED and GREEN
+were not re-run.
+
 ## Harness deviation (read first)
 
 1. **The first GREEN run was voided.** The plan's Global Constraint said the project-level copy in the fixture is the

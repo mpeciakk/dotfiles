@@ -1,3 +1,5 @@
+> VOIDED run: it loaded the personal-level skill (old text). Not GREEN evidence; see `team.md`, "Harness deviation".
+
 # kolejka-sms: przekazanie projektu (następca)
 
 ## 0. Jak czytać

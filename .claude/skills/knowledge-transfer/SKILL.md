@@ -41,7 +41,7 @@ message.
 2. **Scan:** spec, README, design records, CI/deploy config, `git log`.
    Reverts, `fix:` commits and files that change often are trap candidates.
    Note `git rev-parse --short HEAD` — the package pins it.
-3. **✋ Inventory.** List what the recipient needs, each item with a priority:
+3. **✋ Inventory.** List what the reader needs, each item with a priority:
    high / medium / low = cost of not knowing × whether the repo lets them
    recover it. Add 5–8 scenarios with an answer key, built from the high
    items. Show it to the user and stop. Nothing is written before the yes.
@@ -53,13 +53,13 @@ message.
    Never a bare "anything else?". Time pressure shortens the interview to the
    high items; it never removes it.
    - **Still asked:** traps and workarounds that are not in the code, who knows
-     what, the project's own external dependencies, and where a secret the repo
-     names is kept (location only — allowed even when the answer is "in the
-     password manager").
+     what, the project's own external dependencies (who owns the account at one
+     is allowed), and where a secret the repo names is kept (location only —
+     allowed even when the answer is "in the password manager").
    - **Never ask:**
-     - **Company infrastructure:** network, router, VPN, accounts,
-       permissions, SSH or server access, getting into the password manager
-       and its procedures. The package carries one line pointing to
+     - **Company infrastructure:** network, router, VPN, the company's
+       accounts, permissions, SSH or server access, getting into the password
+       manager and its procedures. The package carries one line pointing to
        `docs.internal.animativ.dev` instead.
      - **Run history:** when something was last run, whether it has been run,
        how the user runs it. The package describes the mechanism as the code
@@ -110,7 +110,9 @@ step needs its answers):
 - Prompt: `PAKIET:` + the package with the answers of "Sprawdź się" removed +
   `SCENARIUSZE:` + the numbered scenarios.
 - A scenario **fails** when `Podstawa` is `NIE WIEM Z PAKIETU` or `ZGADUJĘ`, or
-  the answer contradicts the key.
+  the answer contradicts the key — except a scenario whose key says the package
+  does not know: it passes on `NIE WIEM Z PAKIETU` and still fails on `ZGADUJĘ`
+  or a confident answer.
 - Patch the package wherever a scenario failed or the reader misread, then
   **re-run**: a fresh dispatch of `kt-cold-reader` with the patched package.
   An unchecked patch is not a patch — not when the dispatch costs time, and
