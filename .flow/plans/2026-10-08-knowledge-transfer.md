@@ -17,7 +17,7 @@
 - Skill and agent texts are English (like every skill in `.claude/skills/`); the package the skill produces, the scenario prompts and the cold-reader's answers are Polish.
 - Skills and agents under `~/.claude` are per-file symlinks into the **main checkout**, so files created in the worktree are invisible to any session. Every live test copies the files under test into a temp dir's own `.claude/agents/` / `.claude/skills/` (project level) and runs `claude -p` with that dir as cwd. Never run a nested `claude` with the dotfiles repo or the worktree as cwd: the run's flow-guard would deny its writes.
 - Every nested `claude -p` call: the prompt is the first argument after `-p` (`--tools`, `--allowedTools`, `--disallowedTools` are variadic and swallow what follows them); `--model sonnet` (the production session model); `--output-format stream-json --verbose`; `--disallowedTools SendMessage ListAgents` (nested sessions load `~/.claude/CLAUDE.md`, which tells them to report facts to the vault session — fixture facts must not reach it). Never `--permission-mode bypassPermissions` or `--dangerously-skip-permissions`; a denied tool is reported, not bypassed.
-- Bash tool calls that run a nested session use `timeout: 600000`.
+- Bash tool calls that run a nested session use `timeout: 600000`; a turn that may run longer (scan + package + cold read) runs with `run_in_background: true` and is waited for.
 - The fake secret `kt-secret-7Q9ZL4MX2P` exists only in fixtures; committing it inside `EV/` evidence is fine (fake by construction).
 
 ---
@@ -31,7 +31,7 @@ The probe (Task 2) and checker criterion C3 (Task 3) decide from the stream: did
 - Test: `EV/stream-test.sh`
 
 **Interfaces:**
-- Produces: `python3 -I EV/stream.py agent-results <subagent_type> <jsonl>...` — one JSON object per line, per Agent tool_use whose `input.subagent_type` equals `<subagent_type>`: `{"is_error": bool, "text": "<tool_result text>"}`; a tool_use with no matching tool_result prints `{"is_error": true, "text": "NO RESULT"}`.
+- Produces: `python3 -I EV/stream.py agent-results <subagent_type> <jsonl>...` — one JSON object per line, per Agent tool_use whose `input.subagent_type` equals `<subagent_type>`: `{"is_error": bool, "text": "<the subagent's report>"}` — the report wherever the stream carries it: the `tool_result` content, or a separate hand-back message linked to that dispatch (in interactive sessions here the `tool_result` holds only boilerplate and the report arrives as a hand-back; `-p` may differ); a tool_use with no matching tool_result prints `{"is_error": true, "text": "NO RESULT"}`.
 - Produces: `python3 -I EV/stream.py subagent-tools <jsonl>...` — one tool name per line, for every tool_use emitted *inside* a subagent (an event linked to a parent tool_use), in stream order.
 - Produces: `EV/stream-format.md` — the exact key spellings Task 3's test substitutes on (how a tool_result marks an error, how a subagent event is linked to its parent).
 
@@ -61,7 +61,7 @@ Expected: a non-empty file containing `PONG-7731`. If the Agent call failed (e.g
 
 - [ ] **Step 2: Record the format**
 
-Read `EV/sample-stream.jsonl` and write `EV/stream-format.md`: the event types present; where the Agent tool_use and its `input.subagent_type` sit; where its tool_result sits and how it is linked (`tool_use_id`); the exact JSON spelling of the error flag (e.g. `"is_error":false`); how an event emitted inside the subagent is linked to the parent (e.g. `parent_tool_use_id`). Quote one real line for each. If the stream carries no events from inside the subagent, write that down: `subagent-tools` then prints nothing for any input, and the probe's tool-call check (Task 2) rests on the token check alone.
+Read `EV/sample-stream.jsonl` and write `EV/stream-format.md`: the event types present; where the Agent tool_use and its `input.subagent_type` sit; where its tool_result sits and how it is linked (`tool_use_id`); the exact JSON spelling of the error flag (e.g. `"is_error":false`); how an event emitted inside the subagent is linked to the parent (e.g. `parent_tool_use_id`). Where the subagent's report text actually is — in the `tool_result`, or in a separate hand-back event (and how that event is linked to the dispatch). Whether a successful `tool_result` carries an error flag at all. Quote one real line for each. If the stream carries no events from inside the subagent, write that down: `subagent-tools` then prints nothing for any input, and the probe's tool-call check (Task 2) rests on the token check alone.
 
 - [ ] **Step 3: Write the failing test**
 
@@ -96,7 +96,7 @@ Expected: `FAIL exactly one kt-echo result`, `FAIL result is not an error`, `FAI
 
 - [ ] **Step 5: Implement `stream.py`**
 
-Standard library only, run with `python3 -I`; parse every line as JSON (skip lines that fail to parse); match tool_use → tool_result by id; tool_result content may be a string or a list of `{"type":"text"}` blocks — join the texts. Use the key spellings recorded in `EV/stream-format.md`. Print with `json.dumps(obj, ensure_ascii=False)` (that gives the `"is_error": false` spacing the tests grep for).
+Standard library only, run with `python3 -I`; parse every line as JSON (skip lines that fail to parse); match tool_use → tool_result by id; tool_result content may be a string or a list of `{"type":"text"}` blocks — join the texts. Use the key spellings and the report location recorded in `EV/stream-format.md`; absent error flag = `false`. Print with `json.dumps(obj, ensure_ascii=False)` (that gives the `"is_error": false` spacing the tests grep for).
 
 - [ ] **Step 6: Run the test to verify it passes**
 
@@ -183,12 +183,21 @@ Body (English, ~25 lines): you are the person taking over; you have only the pac
 
 - [ ] **Step 3: RED — the probe catches an agent that can read**
 
-Run:
+A reader that obeys the real body would not read the file even without `tools:`, so the RED definition is written to read:
+
 ```bash
-sed '/^tools:/d' .claude/agents/kt-cold-reader.md > /tmp/kt-cold-reader-open.md
+cat > /tmp/kt-cold-reader-open.md <<'DEF'
+---
+name: kt-cold-reader
+description: RED fixture for the probe — an agent that reads files.
+model: haiku
+---
+
+Read the file the scenario names with the Read tool and quote its content verbatim.
+DEF
 bash EV/probe-cold-reader.sh /tmp/kt-cold-reader-open.md; echo "exit=$?"
 ```
-Expected: `FAIL: agent read the file` (an agent without `tools:` inherits Read) — plus `FAIL: agent called tools: Read` when `EV/stream-format.md` records subagent-internal events — and `exit=1`. If it does not fail on the read, the probe does not discriminate — fix the probe before going on.
+Expected: `FAIL: agent read the file` (an agent without `tools:` inherits Read) — plus `FAIL: agent called tools: Read` when `EV/stream-format.md` records subagent-internal events — and `exit=1`. If the token does not leak with this definition, the probe does not discriminate — fix the probe before going on.
 
 - [ ] **Step 4: GREEN — the real definition**
 
@@ -312,7 +321,7 @@ Każdą odpowiedź logujesz: `turn N: „<cytat pytania>” → F<k>[, F<k>] | n
 
 - [ ] **Step 3: Write the failing checker test**
 
-Transcripts in this test are derived from the real `EV/sample-stream.jsonl` so that C3 is tested against the real format. The `sed` substitutions below use the spellings recorded in `EV/stream-format.md`; if that file records a different spelling for the error flag, change only the two `is_error` patterns.
+Transcripts in this test are derived from the real `EV/sample-stream.jsonl` so that C3 is tested against the real format. The `sed` substitutions below use the spellings recorded in `EV/stream-format.md`. If that file records a different spelling for the error flag, change only the two `is_error` patterns; if a successful `tool_result` carries no error flag at all, derive `tr-err` by injecting `"is_error":true,` right after `"type":"tool_result",` instead of flipping. The `FIXTURE FAILED` guards catch a derivation that does not take.
 
 `EV/check-package-test.sh`:
 
@@ -433,8 +442,9 @@ bash EV/turn.sh "$F" "$TR" "kt-smoke"
 # take <id> from the SESSION line above
 bash EV/turn.sh "$F" "$TR" 'Użyj narzędzia Agent z subagent_type "kt-echo" i promptem "Odpowiedz zgodnie z instrukcją." Zwróć jego odpowiedź.' <id>
 python3 -I EV/stream.py agent-results kt-echo "$TR"/turn-2.jsonl
+bash EV/turn.sh "$F" "$TR" 'Uruchom git log --oneline -1 i podaj jego wynik.' <id>
 ```
-Expected: turn 1 prints `SMOKE-SKILL-4412`, turn 2 a `SESSION` line with the same id, the last command a line with `"is_error": false` and `PONG-7731`; no `DENIED` line anywhere. Any `DENIED Skill` or `DENIED Agent` is a harness failure — fix `turn.sh`, never treat it as a skill failure later.
+Expected: turn 1 prints `SMOKE-SKILL-4412`, turn 2 a `SESSION` line with the same id, the `stream.py` command a line with `"is_error": false` and `PONG-7731`, turn 3 the line `… fix: ponawianie przy 429 z bramki`; no `DENIED` line anywhere. A `DENIED Bash` on turn 3 means the rule syntax is wrong: switch every `"Bash(x *)"` to the `"Bash(x:*)"` form and re-run the smoke. Any `DENIED Skill` or `DENIED Agent` is a harness failure — fix `turn.sh`, never treat it as a skill failure later.
 
 - [ ] **Step 8: Commit**
 
@@ -475,7 +485,7 @@ bash EV/turn.sh "$F" EV/baseline-transcripts "$(tail -n +2 EV/scenario.md)"
 ```
 No `.claude/skills/knowledge-transfer` and no `.claude/agents` in the fixture — that is the baseline.
 
-User simulation: while the session's last result asks a question or asks for approval, answer with one `turn.sh … <session-id>` call, strictly by the table and rules in `EV/user-facts.md`, logging each answer in its format. Stop when it reports done, or after 6 turns in total.
+User simulation: while the session's last result asks a question or asks for approval, answer with one `turn.sh … <session-id>` call, strictly by the table and rules in `EV/user-facts.md`, logging each answer in its format. Stop when it reports done, or after 6 turns in total. A `DENIED Skill`, `DENIED Agent`, `DENIED Write` or `DENIED Edit` is a harness failure — stop and fix `turn.sh`; other denials (e.g. a `~/.claude/hooks/flow-state` call prompted by CLAUDE.md) are recorded and ignored.
 
 - [ ] **Step 3: Score it**
 
@@ -556,7 +566,7 @@ cp .claude/agents/kt-cold-reader.md "$F/.claude/agents/"
 printf '.claude/\n' >> "$F/.git/info/exclude"
 bash EV/turn.sh "$F" EV/green-transcripts "$(tail -n +2 EV/scenario.md)"
 ```
-User simulation: while the session's last result asks a question or asks for approval, answer with one `turn.sh … <session-id>` call, strictly by the table and rules in `EV/user-facts.md`, logging each answer in its format. Stop when it reports done, or after 8 turns in total.
+User simulation: while the session's last result asks a question or asks for approval, answer with one `turn.sh … <session-id>` call, strictly by the table and rules in `EV/user-facts.md`, logging each answer in its format. Stop when it reports done, or after 8 turns in total. A `DENIED Skill`, `DENIED Agent`, `DENIED Write` or `DENIED Edit` is a harness failure — stop and fix `turn.sh`; other denials are recorded and ignored.
 
 - [ ] **Step 3: Score it**
 
