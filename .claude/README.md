@@ -31,6 +31,11 @@ Artifacts: specs → `.flow/specs/`, plans → `.flow/plans/`, execution scratch
 [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)) live always-on in
 `CLAUDE.md`.
 
+**Outside the pipeline:** `writing-specs` establishes a project's living spec;
+`knowledge-transfer` packages dated handovers for a successor, support person,
+or the user's future self, reviewed by the `kt-cold-reader` agent that sees
+only the package. Neither opens a run.
+
 ## Model & effort
 
 Session default **Sonnet 5.5 · high**; design and planning run on **Opus 5.5 ·

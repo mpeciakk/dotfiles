@@ -30,10 +30,9 @@ odbiorca da sobie radę.
   przyswajalność; tę pokrywa prosty język i sekcja „Sprawdź się” dla odbiorcy.
 - Aktualizacja starych pakietów — snapshot się nie aktualizuje, robi się nowy.
 
-## Do sprawdzenia w implementacji
+## Sprawdzone w implementacji
 
-- Czy agent z `tools: TaskStop` startuje pod modelem sesji produkcyjnej
-  i nie widzi plików (probe w planie, zadanie 2).
+Agent `kt-cold-reader` z `tools: TaskStop` startuje pod Sonnet i nie widzi narzędzi (zob. EV/probe.md, GREEN).
 
 ## Testy skilla (baseline wg writing-skills)
 
