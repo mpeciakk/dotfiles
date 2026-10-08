@@ -2,10 +2,12 @@
 
   python3 -I stream.py agent-results <subagent_type> <jsonl>...
   python3 -I stream.py subagent-tools <jsonl>...
+  python3 -I stream.py questions <jsonl>...
 
 Key spellings are the ones recorded in stream-format.md.
 """
 import json
+import os
 import sys
 
 HANDBACK_TOOL = "SubagentHandback"  # harness-injected, not a tool the subagent chose
@@ -65,13 +67,29 @@ def subagent_tools(paths):
                     print(b.get("name"))
 
 
+def questions(paths):
+    for path in paths:
+        name = os.path.basename(path)
+        for ev in events(path):
+            if ev.get("type") == "result" and isinstance(ev.get("result"), str):
+                for line in ev["result"].splitlines():
+                    if "?" in line:
+                        print(f"{name}: {line}")
+            for b in blocks(ev):
+                if b.get("type") == "tool_use" and b.get("name") == "AskUserQuestion":
+                    for q in (b.get("input") or {}).get("questions") or []:
+                        print(f"{name}: {q.get('question', '').replace(chr(10), ' ')}")
+
+
 def main(argv):
     if len(argv) >= 4 and argv[1] == "agent-results":
         agent_results(argv[2], argv[3:])
     elif len(argv) >= 3 and argv[1] == "subagent-tools":
         subagent_tools(argv[2:])
+    elif len(argv) >= 3 and argv[1] == "questions":
+        questions(argv[2:])
     else:
-        sys.exit("usage: stream.py agent-results <subagent_type> <jsonl>... | subagent-tools <jsonl>...")
+        sys.exit("usage: stream.py agent-results <subagent_type> <jsonl>... | subagent-tools <jsonl>... | questions <jsonl>...")
 
 
 if __name__ == "__main__":
