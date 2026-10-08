@@ -21,7 +21,8 @@ def events(path):
 
 
 def blocks(event):
-    content = (event.get("message") or {}).get("content")
+    message = event.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
     return content if isinstance(content, list) else []
 
 

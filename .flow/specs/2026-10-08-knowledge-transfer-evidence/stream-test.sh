@@ -15,5 +15,10 @@ none=$(python3 -I "$EV/stream.py" agent-results kt-cold-reader "$EV/sample-strea
 [ -z "$none" ]; check "other subagent_type: no output" $?
 tools=$(python3 -I "$EV/stream.py" subagent-tools "$EV/sample-stream.jsonl")
 [ -z "$tools" ]; check "kt-echo called no tools" $?
+# real event type seen in a nested session: system/permission_denied carries "message" as a string
+tmp=$(mktemp)
+printf '%s\n' '{"type":"system","subtype":"permission_denied","tool_name":"Bash","message":"A variable in this command can'"'"'t be checked before it runs"}' > "$tmp"
+python3 -I "$EV/stream.py" agent-results kt-cold-reader "$tmp" >/dev/null 2>&1; check "string-valued message event does not crash the reader" $?
+rm -f "$tmp"
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]
