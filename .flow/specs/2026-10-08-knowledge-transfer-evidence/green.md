@@ -9,11 +9,11 @@ invisible otherwise). Nested `claude -p --model sonnet`, one session per run, cw
 | GREEN | `/tmp/kt-green.RnL0vc/fx` (tip `42c8bd3`; session commit `c64ddec`) | `1ee9411b-e0b0-47eb-95cd-1c9554884cc7` | `green-transcripts/turn-1..3.jsonl` | `green-package.md` | first SKILL.md |
 | refactor 1 | `/tmp/kt-green.2ZG3tx/fx` (tip `42c8bd3`; session commit `c131893`) | `6e456a7b-97cb-489a-889c-7fda1cab5d31` | `green-transcripts-r1/turn-1..3.jsonl` | `green-package-r1.md` | SKILL.md + re-run counter (below) |
 
-Evidence note: all runs above used the pre-fix SKILL.md. The branch-review edits made afterwards are wording-only:
-the interview hypothesis rule (a hypothesis wherever the repo or materials suggest one, a direct question
-otherwise, the ban on a bare "anything else?" kept), the one-line `temat` rule (section 0 date only, no commit),
-and the `.env.example` clause ("templates such as `.env.example` are fine"). The frontmatter and the section
-matrix are unchanged. The runs were not repeated.
+Evidence note: all runs above used the pre-fix SKILL.md. The branch-review edits made afterwards are rule-scope
+clarifications (a softened hypothesis rule, a new `.env.example` permission); no gate, matrix or output-format change.
+The one-line `temat` rule (section 0 date only, no commit) is wording-only. Neither the softened hypothesis rule nor
+the `.env.example` permission has a GREEN run behind it, so this note does not imply the evidence covers the final text.
+The runs were not repeated.
 
 ## Checker output (verbatim)
 
