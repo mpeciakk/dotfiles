@@ -1,7 +1,7 @@
 ---
 name: kt-cold-reader
 description: Stand-in recipient for a knowledge-transfer package — answers handover scenarios using only the package text inlined in its prompt. Dispatched by the knowledge-transfer skill. Not for review or any task that needs files.
-model: haiku
+model: sonnet
 effort: medium
 tools: TaskStop
 ---

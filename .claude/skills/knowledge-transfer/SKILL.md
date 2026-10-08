@@ -1,14 +1,17 @@
 ---
 name: knowledge-transfer
-description: Use when someone is taking over a project, system or technical topic from the user — a successor engineer, a semi-technical support person, or the user themselves months later — and needs a handover document. Triggers on "przekazanie projektu", "knowledge transfer", "KT", "ktoś przejmuje", "dokument przekazania", "dokument onboardingowy dla". Not for agent session continuity (handoff) or for describing what a project is (writing-specs).
+description: Use when another Animativ employee — or the user, months later — is taking over a company project and needs a handover document. Triggers on "przekazanie projektu", "knowledge transfer", "KT", "ktoś przejmuje", "dokument przekazania", "dokument onboardingowy dla". Not for agent session continuity (handoff) or for describing what a project is (writing-specs).
 ---
 
 # Knowledge Transfer
 
-A KT package is a dated, recipient-prioritised snapshot of what the person
+A KT package is a dated, reader-prioritised snapshot of what the person
 taking over cannot get from the repo: traps, workarounds, failure symptoms,
-who to call. It is written for one named reader, and it is not trusted until a
-reader with nothing but the package has tried to act on it.
+who to call. Every KT covers a company (Animativ) repo. The reader is another
+employee of the same company, or the author months later; either knows the
+company's infrastructure and has the company knowledge base
+`docs.internal.animativ.dev`. The package is not trusted until a reader with
+nothing but the package has tried to act on it.
 
 ## Boundary
 
@@ -26,23 +29,18 @@ reader with nothing but the package has tried to act on it.
 
 ## Intake
 
-Four fields. If any is missing, ask for all missing ones in **one** message.
+Two fields. If any is missing, ask for all missing ones together, in **one**
+message.
 
-1. **Profile:** `następca` (a successor engineer), `ja-później` (the user,
-   months from now) or `support` (semi-technical; plain language, no code
-   internals).
-2. **Goal:** what the recipient must be able to do afterwards.
-3. **Mode:** `projekt` (a repo exists) or `temat` (no repo — an output path is
-   required, and never under `~/obsidian`: write elsewhere and tell the user to
-   send the vault session a pointer).
-4. **Extra materials** (optional): documents, links, chats.
+1. **Goal:** what the reader must be able to do afterwards.
+2. **Extra materials** (optional): documents, links, chats.
 
 ## Process
 
 1. **Intake**, as above.
-2. **Scan** (`projekt` mode only): spec, README, design records, CI/deploy
-   config, `git log`. Reverts, `fix:` commits and files that change often are
-   trap candidates. Note `git rev-parse --short HEAD` — the package pins it.
+2. **Scan:** spec, README, design records, CI/deploy config, `git log`.
+   Reverts, `fix:` commits and files that change often are trap candidates.
+   Note `git rev-parse --short HEAD` — the package pins it.
 3. **✋ Inventory.** List what the recipient needs, each item with a priority:
    high / medium / low = cost of not knowing × whether the repo lets them
    recover it. Add 5–8 scenarios with an answer key, built from the high
@@ -54,44 +52,53 @@ Four fields. If any is missing, ask for all missing ones in **one** message.
    suggest one; where they cannot (people, external systems), ask directly.
    Never a bare "anything else?". Time pressure shortens the interview to the
    high items; it never removes it.
-5. **Write** `docs/kt/YYYY-MM-DD-<profil>.md` (`temat` mode: the intake path),
-   by the matrix below.
+   - **Still asked:** traps and workarounds that are not in the code, who knows
+     what, the project's own external dependencies, and where a secret the repo
+     names is kept (location only — allowed even when the answer is "in the
+     password manager").
+   - **Never ask:**
+     - **Company infrastructure:** network, router, VPN, accounts,
+       permissions, SSH or server access, getting into the password manager
+       and its procedures. The package carries one line pointing to
+       `docs.internal.animativ.dev` instead.
+     - **Run history:** when something was last run, whether it has been run,
+       how the user runs it. The package describes the mechanism as the code
+       has it. Where the spec says what was or was not run or verified, the
+       package attributes it to the spec, using the phrase `wg speca`, and
+       neither confirms nor questions it. A spec–code contradiction goes to
+       "Luki" without a question.
+     - **The reader:** no name, no profile, no skill level.
+5. **Write** `docs/kt/YYYY-MM-DD.md`, by the section list below.
 6. **Cold read**, below.
 7. **✋ Final.** Show the package and the gap report (what the cold read still
    failed, what the user left unanswered, spec–repo contradictions). The
    user's yes = a commit of the package file only.
 
-## Section matrix
+## Sections
 
-Sections 0, 1, traps, "Sprawdź się" and "Luki" are in every package; the rest
-by profile (`link` = a link or one line, not a section of prose).
+One list, in this order:
 
-| Sekcja | support | następca | ja-później |
-|---|---|---|---|
-| 0 Jak czytać, stan na (data, SHA) | ✓ | ✓ | ✓ |
-| 1 Co to robi i dla kogo | ✓ | ✓ | ✓ |
-| Objawy awarii i jak je rozpoznać | ✓ | — | — |
-| Runbooki (uruchom, wdróż, rollback) | ✓ | link | link |
-| Mapa systemu (linki do speca i kodu) | — | ✓ | link |
-| Jak zmieniać (build, test, release) | — | ✓ | — |
-| Decyzje i dlaczego (linki do rekordów) | — | ✓ | — |
-| Dług i otwarte ryzyka | — | ✓ | ✓ |
-| Gdzie stanąłem, jak odtworzyć środowisko | — | — | ✓ |
-| Pułapki i obejścia | ✓ | ✓ | ✓ |
-| Eskalacja: kiedy i do kogo | ✓ | kto co wie | — |
-| Dostępy: gdzie, nigdy jakie | ✓ | ✓ | — |
-| Sprawdź się: scenariusze z odpowiedziami | ✓ | ✓ | ✓ |
-| Luki | ✓ | ✓ | ✓ |
+```
+0. Jak czytać, stan na (data, SHA)
+1. Co to robi (dwa zdania i link do speca)
+2. Mapa systemu (linki do speca i kodu)
+3. Uruchomienie i zmiany (build, test, release; runbooki jako linki)
+4. Decyzje i dlaczego (linki do rekordów)
+5. Dług i otwarte ryzyka
+6. Gdzie stanąłem, jak odtworzyć środowisko
+7. Pułapki i obejścia (z objawami)
+8. Kto co wie, eskalacja
+9. Dostępy projektu: gdzie, nigdy jakie; infrastruktura firmowa: docs.internal.animativ.dev
+10. Sprawdź się: scenariusze z odpowiedziami
+11. Luki
+```
 
 - **Link to the spec instead of restating it.** Section 1 is two sentences and
   a link, not the spec's purpose section reworded.
-- `ja-później`: if the package reads like a copy of the spec, cut it to links
-  plus traps.
 - Every claim traces to the repo, to something the user said, or to an
   explicit line in "Luki" saying it is unconfirmed. Nothing else is written —
   not an inferred schedule, not a procedure nobody described, not arithmetic
   dressed as a limit.
-- `temat`: section 0 carries the date only; no commit, report the path.
 
 ## Cold read
 
@@ -99,8 +106,7 @@ Verification by someone who has only the package. Dispatch the agent
 `kt-cold-reader` in the **foreground** (`run_in_background: false` — the next
 step needs its answers):
 
-- `subagent_type: "kt-cold-reader"`; `model: "haiku"` for `support`,
-  `model: "sonnet"` for `następca` and `ja-później`.
+- `subagent_type: "kt-cold-reader"`, always `model: "sonnet"`.
 - Prompt: `PAKIET:` + the package with the answers of "Sprawdź się" removed +
   `SCENARIUSZE:` + the numbered scenarios.
 - A scenario **fails** when `Podstawa` is `NIE WIEM Z PAKIETU` or `ZGADUJĘ`, or
@@ -118,14 +124,14 @@ step needs its answers):
   dispatch too, since the prompt carries the whole package. Do not open
   `.env`-style files to see what is in them (templates such as `.env.example`
   are fine).
-- **Polish**, written per the `polszczyzna` skill; plain language for
-  `support`.
+- **Polish**, written per the `polszczyzna` skill.
 - **Commit only the package**, only after the final ✋.
 
 ## Common mistakes
 
-Each row is something the skill-less baseline run actually did
-(`.flow/specs/2026-10-08-knowledge-transfer-evidence/baseline.md`).
+The rows come from two runs: the skill-less baseline run
+(`.flow/specs/2026-10-08-knowledge-transfer-evidence/baseline.md`) and the first
+real KT run (edge-vibecoding, 2026-10-08).
 
 | Mistake | Counter |
 |---|---|
@@ -135,3 +141,6 @@ Each row is something the skill-less baseline run actually did
 | Restated the spec: "Usługa przyjmuje zlecenia wysyłki SMS przez HTTP i wysyła je przez bramkę SMSAPI. …" (section 2, near-verbatim from spec section 1; D1/D2 likewise) | Link to the spec. A line-level copy check misses a paraphrase, so check by reading. |
 | No pinned repo state — nothing says which commit the package describes | Section 0: date and short SHA, "stan na". |
 | Verified by its own hand: "Wszystkie cztery ustalenia są już w `PRZEKAZANIE.md` (grep wyżej)" — a grep of its own file for the words it had just been given | The cold read is the check: a reader with only the package, answering scenarios. |
+| Asked about company infrastructure: „Sieć: hipoteza — 10.100.100.205 to rezerwacja DHCP na routerze labu, który Ty administrujesz; kolejna płytka wymaga dopisania jej MAC tam. Kto/gdzie?” (the answer: „po prostu router w biurze”) | Company infrastructure is in `docs.internal.animativ.dev`. One line in the package points there; never ask. |
+| Asked about run history: „Od 2026-09-28 był jakiś run?” | Describe the mechanism as the code has it; a spec's claim about what was run or verified goes in `wg speca`. |
+| Asked who the reader is: „Odbiorca: git na tej maszynie ma użytkownika „Ernest”, commity są od mpeciakk. Pakiet jest dla Ernesta?” | The reader is a company employee or the author later; no name, no profile. |
