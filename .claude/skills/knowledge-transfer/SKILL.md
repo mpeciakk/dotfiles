@@ -108,7 +108,9 @@ Use these headings verbatim; `###` subheadings are free.
   five sentences.
 - **2:** the parts and how a typical run flows through them, in its own words,
   one level deep. Each part links to its spec section or file. A reader who
-  stops here knows how the project works.
+  stops here knows how the project works. Where the spec describes a flow the
+  code does not implement, say so in this section, next to the flow, and point
+  to "Luki"; never write the spec's flow as plain present-tense fact.
 - **3:** version, what works, debt and open risks, in the present tense. A spec
   claim that something is unverified is stated as state, with `wg speca` and no
   date.
@@ -119,7 +121,10 @@ Use these headings verbatim; `###` subheadings are free.
   Each step names where it runs (for example the operator's machine, a server,
   a device console) and how success looks.
 - **6:** symptom → cause → workaround. Each workaround says when it applies and
-  when to stop instead.
+  when to stop instead. Both conditions come from the repo, from a user answer
+  or from a "Luki" item. Where none gives a stop condition, write that it is
+  unknown and list the gap; never invent a threshold, an escalation step or a
+  procedure the user did not describe.
 - **7:** one worked example of a typical change: which files, which tests, when
   a run on real hardware or a real environment is needed, how a change is
   released. Decisions as links to the spec's decision records.
@@ -182,10 +187,11 @@ step needs its answers):
 
 ## Common mistakes
 
-The rows come from three runs: the skill-less baseline run
+The rows come from four runs: the skill-less baseline run
 (`.flow/specs/2026-10-08-knowledge-transfer-evidence/baseline.md`), the first
-real KT run (edge-vibecoding, D31) and the second real KT run (edge-vibecoding,
-D32).
+real KT run (edge-vibecoding, D31), the second real KT run (edge-vibecoding,
+D32) and the D32 colleague-scenario run on the fixture
+(`.flow/specs/2026-10-08-knowledge-transfer-evidence/d32.md`).
 
 | Mistake | Counter |
 |---|---|
@@ -202,5 +208,8 @@ D32).
 | Tied the package to the author's setup: „Na `pc` jest herdr 0.9.3”, „`.flow/` (…) to archiwum uzasadnień z osobistego workflow autora — nie musisz go kontynuować” | Machine- and person-agnostic: no author machines, paths, local versions or personal tooling. |
 | Sent the reader to the exceptions first: „Najpierw przeczytaj sekcję 7 (pułapki), potem 3 i 6.” | Normal flow first: how it works, then a typical task, then failures. |
 | Left „Co to robi” at two sentences plus a link, and the map as a table of file paths | Section 2 explains how a typical run flows through the parts; a reader who stops there knows how the project works. |
+| Wrote the spec's flow in section 2 as present-tense steps („Proces zapisuje zlecenie w tabeli `outbox`”) over a code base that is a skeleton; the skeleton is said only in section 3 | Section 2 says next to the flow that the code does not implement it, and points to "Luki". |
+| Invented a stop condition and a procedure: „Gdy worker znów się zatrzyma, nie powtarzaj startu w pętli. Zajrzyj w logi i zgłoś awarię.”, „zapisz nowy w 1Password” (the user said only where the token is) | Each "when it applies" and "when to stop" traces to repo, user or "Luki"; an unknown stop condition is a listed gap. |
+| Patched the package after the cold read and skipped the re-dispatch: „Te poprawki nie zmieniają faktów ze scenariuszy, więc nie puszczałem cold readu drugi raz” (the patch added a deploy step and rewrote a cause) | Every patch gets a fresh dispatch; a patch that adds a step or a condition is new content nobody has read cold. |
 | Listed a gap with no consequence: „**Kontakt do SoMLabs** — nieznany pakietowi.” | Each gap: `Skutek:` and `Do czasu ustalenia:`; blockers first. |
 | Gave a workaround with no condition: „Porównaj MAC-i interfejsów przewodowych z sondą i odpowiedz `dalej`.” | Each workaround says when it applies and when to stop instead. |
