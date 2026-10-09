@@ -66,7 +66,7 @@ message.
        accounts, permissions, SSH or server access, getting into the password
        manager and its procedures. The package carries one line pointing to
        `docs.internal.animativ.dev` instead.
-     - **Run history:** When or whether something was run, and
+     - **Run history:** when or whether something was run, and
        how it was run in the past. The procedure of the typical task and where
        each step runs may be asked; how to get access there goes to
        `docs.internal.animativ.dev`. The package describes the mechanism as the
@@ -187,10 +187,11 @@ step needs its answers):
 
 ## Common mistakes
 
-The rows come from three runs: the skill-less baseline run
+The quoted rows come from three runs: the skill-less baseline run
 (`.flow/specs/2026-10-08-knowledge-transfer-evidence/baseline.md`), the first
 real KT run (edge-vibecoding, D31) and the second real KT run (edge-vibecoding,
-D32).
+D32). The unquoted generic rows describe failures seen in the D32 fixture runs
+(`.flow/specs/2026-10-08-knowledge-transfer-evidence/d32.md`).
 
 | Mistake | Counter |
 |---|---|

@@ -3,6 +3,9 @@
 # every entry of <src>, except that skills/ and agents/ are real dirs holding
 # symlinks minus skills/knowledge-transfer and agents/kt-cold-reader.md, so a
 # nested claude loads the fixture's project-level copies of those two.
+# Isolates reads only, not writes: every top-level entry is a symlink into <src>,
+# so a nested session writes projects/ transcripts and backups/ into the real
+# ~/.claude (<src>).
 set -eu
 SRC=$1; DST=$2
 [ ! -e "$DST" ] && [ ! -L "$DST" ] || { echo "make-config-dir.sh: $DST already exists" >&2; exit 1; }
