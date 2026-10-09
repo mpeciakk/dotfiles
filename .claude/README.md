@@ -32,9 +32,9 @@ Artifacts: specs → `.flow/specs/`, plans → `.flow/plans/`, execution scratch
 `CLAUDE.md`.
 
 **Outside the pipeline:** `writing-specs` establishes a project's living spec;
-`knowledge-transfer` packages dated handovers for another employee or the
-user's future self, reviewed by the `kt-cold-reader` agent that sees only the
-package. Neither opens a run.
+`knowledge-transfer` packages current-state handovers for another employee or
+the user's future self, reviewed by the `kt-cold-reader` agent that sees only
+the package. Neither opens a run.
 
 ## Model & effort
 
