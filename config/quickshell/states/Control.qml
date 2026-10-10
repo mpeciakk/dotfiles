@@ -5,6 +5,7 @@ import Quickshell.Networking as QsNetworking
 import ".."
 import "../services"
 import "../components" as Components
+import "../lib/slider.js" as S
 
 // The control panel (reference 3.7, R24): clock and date, Wi-Fi / Bluetooth tiles, volume and brightness
 // sliders, round toggles (Skupienie = DND, Motyw, Zasilanie) and a mini player. What the machine lacks is
@@ -39,7 +40,49 @@ Item {
         return Math.round(fraction * root.spec.percent);
     }
 
+    // Brightness goes to brightnessctl through a leading-and-trailing throttle (lib/slider.js): one call
+    // per tick at most, the last requested value always sent (also on release), and a wheel step starts
+    // from the last requested value while one is pending, not from the lagging sysfs value.
+    property var brightnessQ: S.idle()
+    readonly property real brightnessBase: S.base(root.brightnessQ, Brightness.value)
+
+    function sendBrightness(f: real): void {
+        root.perform("set the brightness to " + root.percent(f) + "%", () => Brightness.set(f));
+    }
+
+    function requestBrightness(f: real): void {
+        const r = S.request(root.brightnessQ, f);
+        root.brightnessQ = r.state;
+        if (r.send !== null) {
+            root.sendBrightness(r.send);
+            brightnessTimer.restart();
+        }
+    }
+
+    function flushBrightness(): void {
+        const r = S.flush(root.brightnessQ);
+        root.brightnessQ = r.state;
+        if (r.send !== null)
+            root.sendBrightness(r.send);
+    }
+
+    Timer {
+        id: brightnessTimer
+
+        interval: root.spec.brightnessThrottleMs
+        repeat: true
+        onTriggered: {
+            const r = S.tick(root.brightnessQ);
+            root.brightnessQ = r.state;
+            if (r.send !== null)
+                root.sendBrightness(r.send);
+            else
+                brightnessTimer.stop();
+        }
+    }
+
     // A tile of the Wi-Fi / Bluetooth row: an accent circle (dimmed while off) with a title and a status line.
+    // Informational only: it shows the radio's actual state and never changes it.
     component Tile: Rectangle {
         id: tile
 
@@ -47,18 +90,12 @@ Item {
         property string title
         property string sub
         property bool checked: true
-        signal clicked
 
         readonly property var spec: Theme.layout.control
 
         implicitHeight: tile.spec.tileCircle + 2 * tile.spec.tilePad
         radius: Theme.radii.tile
         color: Theme.tile
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: tile.clicked()
-        }
 
         Row {
             anchors.fill: parent
@@ -108,20 +145,31 @@ Item {
     }
 
     // An icon, a track filled to `fraction` and the value. A click or drag on the track and the wheel
-    // ask for a new fraction through `moved`; the fill only ever follows `fraction`.
+    // ask for a new fraction through `moved` (`settled` when the pointer is released); the fill only ever
+    // follows `fraction`. A wheel step starts from `value`, the real level (a muted volume keeps its stored
+    // level while `fraction` shows an empty track), and `min` is the lowest fraction the row can request.
     component SliderRow: Item {
         id: slider
 
         property string icon
         property real fraction: 0
+        property real value: slider.fraction
+        property real min: 0
         property string valueText
         property bool animated: true
         signal moved(real fraction)
+        signal settled
 
         readonly property var spec: Theme.layout.control
 
         function clamp(f: real): real {
             return Math.max(0, Math.min(1, f));
+        }
+
+        // Pure slider arithmetic answers null when nothing should change (zero wheel delta, no width).
+        function request(f: var): void {
+            if (f !== null)
+                slider.moved(f);
         }
 
         implicitHeight: slider.spec.sliderIcon
@@ -172,12 +220,14 @@ Item {
             anchors.right: track.right
             anchors.verticalCenter: track.verticalCenter
             height: slider.spec.hitH
-            onPressed: mouse => slider.moved(slider.clamp(mouse.x / width))
+            onPressed: mouse => slider.request(S.dragFraction(mouse.x, width, slider.min))
             onPositionChanged: mouse => {
                 if (pressed)
-                    slider.moved(slider.clamp(mouse.x / width));
+                    slider.request(S.dragFraction(mouse.x, width, slider.min));
             }
-            onWheel: wheel => slider.moved(slider.clamp(slider.fraction + (wheel.angleDelta.y > 0 ? 1 : -1) * slider.spec.wheelStep))
+            onReleased: slider.settled()
+            onCanceled: slider.settled()
+            onWheel: wheel => slider.request(S.wheelFraction(slider.value, wheel.angleDelta.y, slider.spec.wheelStep, slider.min))
         }
 
         Text {
@@ -305,7 +355,6 @@ Item {
                 title: "Wi-Fi"
                 sub: root.wifiOn ? (Network.activeWifi?.name ?? "Niepołączono") : "Wyłączone"
                 checked: root.wifiOn
-                onClicked: root.perform("switch Wi-Fi " + (root.wifiOn ? "off" : "on"), () => QsNetworking.Networking.wifiEnabled = !root.wifiOn)
             }
 
             Tile {
@@ -317,7 +366,6 @@ Item {
                 title: "Bluetooth"
                 sub: root.adapter?.enabled ? (root.btDevice?.name ?? "Włączony") : "Wyłączony"
                 checked: root.adapter?.enabled ?? false
-                onClicked: root.perform("switch Bluetooth " + (root.adapter.enabled ? "off" : "on"), () => root.adapter.enabled = !root.adapter.enabled)
             }
         }
 
@@ -339,6 +387,7 @@ Item {
                     width: parent.width
                     icon: Audio.muted ? "volume-x" : "volume-1"
                     fraction: Audio.muted ? 0 : Audio.volume
+                    value: Audio.volume
                     valueText: Audio.muted ? "—" : root.percent(Audio.volume)
                     onMoved: f => root.perform("set the volume to " + root.percent(f) + "%", () => Audio.setVolume(f))
                 }
@@ -348,9 +397,12 @@ Item {
                     visible: Brightness.available
                     icon: "sun"
                     fraction: Brightness.value
+                    value: root.brightnessBase
+                    min: root.spec.brightnessMin
                     valueText: root.percent(Brightness.value)
                     animated: false
-                    onMoved: f => root.perform("set the brightness to " + root.percent(f) + "%", () => Brightness.set(f))
+                    onMoved: f => root.requestBrightness(f)
+                    onSettled: root.flushBrightness()
                 }
             }
         }
