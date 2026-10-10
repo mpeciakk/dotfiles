@@ -329,7 +329,7 @@ KNOWN = {"name","description","tools","disallowedTools","model","permissionMode"
          "initialPrompt"}
 MODELS = {"sonnet","opus","haiku","fable","inherit"}
 EFFORT = {"low","medium","high","xhigh","max"}
-READ_ONLY = {"branch-reviewer","plan-red-team"}
+READ_ONLY = {"branch-reviewer","plan-red-team","explorer"}
 WRITERS = {"implementer"}
 d = sys.argv[1]
 seen, bad = {}, []

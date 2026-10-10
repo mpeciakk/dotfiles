@@ -15,8 +15,8 @@ Open the run if nobody has: `~/.claude/hooks/flow-state init <slug>`, then
 
 Read the project's living spec before asking anything — for a split spec, the
 index and the topic files this change touches. Then the code: cbm
-(`get_architecture`, `search_graph`, `trace_path`) for structure and blast
-radius, Read for branch-new code and non-code files. Recent commits.
+`get_architecture` for structure and `trace_path` for the blast radius of what
+the change touches; grep and Read for the rest. Recent commits.
 
 If the request spans several independent subsystems, say so first and plan
 the first one; each gets its own run.

@@ -146,6 +146,25 @@ ran up to four times; parallel reviewers shared a workspace; the spec's state
 sections were updated after the only review. Its point on the suite was taken
 in part (see L6).
 
+## L10 — cbm where grep is worse; a Haiku explorer for broad questions
+
+Measured on transcripts since 09-01: 212 cbm calls against ~25k grep/find
+searches (0–3% by role; implementers 4 calls in 155 harmonia transcripts).
+Per call a targeted grep returned less (median 1.0k chars, 0.3 s) than
+`search_graph` (3.2k, 1.7 s); `trace_path` (0.4k) beats the rounds of greps a
+caller search takes. The token sink is whole-file Reads of code (median 6.7k).
+
+**Chosen:** grep and Read by default, code files read by range when not
+edited; cbm `trace_path` for callers and blast radius (planning, the branch
+reviewer for every changed public interface), `get_architecture` when
+planning. A read-only `explorer` agent on Haiku answers broad "where / how is
+X handled" questions for the main session with file:line only.
+
+**Rejected:** a hook enforcing cbm (process on top of a tool that is not
+cheaper per call); the explorer for implementers (a dispatch costs tens of
+seconds against a 0.3 s grep, and branch-new code is not in the graph); the
+built-in `Explore` agent (ran on Sonnet here).
+
 ## Cutover (after the wyspa-shell run is closed)
 
 - Tag `workflow-v1`, merge, then `dotter deploy`: dotter links files one by

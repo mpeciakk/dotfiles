@@ -45,12 +45,15 @@ Why it looks like this: `.flow/specs/2026-10-10-lean-workflow-design.md`
 
 ## codebase-memory (cbm)
 
-Code navigation uses the [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
-graph **before** grep/find via Bash (`search_graph`, `trace_path`, `get_code_snippet`,
-`get_architecture`), wired into planning, the implementer/reviewer
-prompts, and debugging. The protocol itself lives in `CLAUDE.md` rule 2 (loaded
-every session and after compaction). The graph indexes the main checkout, not
-worktrees, so `finishing` re-indexes after merge.
+The [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
+graph is used where grep is worse: `trace_path` for callers and blast radius
+(planning, the branch reviewer's check of changed interfaces) and
+`get_architecture` when planning. Everything else is grep and Read — measured
+2026-10-10, a targeted grep returns less text, faster, than `search_graph`, and
+the blanket "cbm first" rule was followed in under 3% of searches. Broad
+"where is X handled" questions go to the `explorer` agent (Haiku, returns
+file:line only). Rules live in `CLAUDE.md` rule 2. The graph indexes the main
+checkout, not worktrees, so `finishing` re-indexes after merge.
 
 ## How this differs from obra/superpowers
 
@@ -59,7 +62,8 @@ worktrees, so `finishing` re-indexes after merge.
   acceptance criteria, not pre-written code.
 - **No per-task review** — one stronger branch review that runs the tests and
   the change's real verification and checks spec decisions.
-- **cbm navigation layer**, **candor ruleset**, **red-team pre-mortem**.
+- **cbm for callers and blast radius**, **Haiku explorer**, **candor ruleset**,
+  **red-team pre-mortem**.
 - **Localized** — `CLAUDE.md` and discipline notes in Polish.
 
 ## Testing

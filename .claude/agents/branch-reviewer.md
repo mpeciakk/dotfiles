@@ -27,8 +27,10 @@ Run `~/.claude/skills/subagent-driven-development/scripts/review-package <BASE> 
 (literal SHAs; `--worktree` in place of HEAD when you are told the change is
 uncommitted) and read the file it prints once. An exit 4 means there is nothing
 to review in that range: report BLOCKED with its message. Use `git show <sha>:<path>` for other
-revisions and cbm (`trace_path`, `get_code_snippet`) for callers outside the
-diff. Never move HEAD, touch the index, or create a worktree.
+revisions. For every public function, interface or format the diff changes,
+find its callers outside the diff with cbm `trace_path` (the graph is the main
+checkout — callers there are exactly what the branch can break); grep for
+branch-new code. Never move HEAD, touch the index, or create a worktree.
 
 ## Run it
 

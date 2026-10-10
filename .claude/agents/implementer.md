@@ -71,13 +71,6 @@ commit messages): read `~/.claude/skills/polszczyzna/SKILL.md` first. A bug or
 unexpected test result: read `~/.claude/skills/systematic-debugging/SKILL.md`
 and follow it.
 
-Navigate with codebase-memory (`search_graph`, `trace_path`,
-`get_code_snippet`, `get_architecture`) before grep/find via Bash (Read is for text, config and
-non-code files). One caveat the tooling
-cannot tell you: cbm indexes the main checkout, not your worktree, so code
-written by earlier tasks on this branch may be missing from the graph — use cbm
-for base code and caller impact, and Read branch-new code directly.
-
 ## Scope discipline
 
 Follow the file structure the plan defines; each file keeps one clear

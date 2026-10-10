@@ -16,15 +16,15 @@ receiving-code-review.
 Zasady:
 1. Skille procesowe (development-workflow przy runie, systematic-debugging,
    TDD) PRZED domenowymi.
-2. Nawigacja po kodzie — cbm MCP PRZED Grep/Read. Szukasz symbolu/funkcji/klasy →
-   search_graph; kto-co-woła / łańcuch wywołań → trace_path; źródło symbolu →
-   get_code_snippet; struktura projektu → get_architecture; tekst w kodzie →
-   search_code. Projekt bez indeksu → najpierw index_repository. Graf indeksuje
-   main checkout, nie worktree — kod nowy na gałęzi czytasz Read'em. Nazwa
-   projektu w cbm to ścieżka main checkoutu z myślnikami (np.
-   `home-m-projects-harmonia`), także gdy pracujesz w worktree.
-   Tekst, configi i pliki nie-kodu: grep/find przez Bash + Read (oraz zawsze Read
-   przed edycją pliku).
+2. Nawigacja po kodzie — grep/find przez Bash + Read; plik kodu, którego nie
+   edytujesz, czytasz zakresem, nie w całości. cbm MCP tam, gdzie grep jest
+   gorszy: kto-co-woła / zasięg zmiany → trace_path, struktura projektu przy
+   planie → get_architecture. Projekt bez indeksu → najpierw index_repository.
+   Graf indeksuje main checkout, nie worktree — kod nowy na gałęzi tylko grepem.
+   Nazwa projektu w cbm to ścieżka main checkoutu z myślnikami (np.
+   `home-m-projects-harmonia`). Szerokie pytanie „gdzie/jak X jest w repo”,
+   które zajęłoby kilkanaście wyszukiwań → agent `explorer` (Haiku, zwraca
+   file:line).
 3. Każda biblioteka/API → context7 (/docs); każdy fakt sprawdzalny narzędziem
    (SHA, stan gałęzi, wynik komendy, istnienie symbolu) → sprawdź, nie zgaduj
    z pamięci.
