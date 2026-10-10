@@ -98,6 +98,9 @@ Item {
             return;
         const kind = P.kindForKey(event.text);
         if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
+            // Moving off a button ends its hold, as the pointer leaving does: the Enter release that follows
+            // would otherwise look at the new button and leave the old hold running.
+            root.release(root.holding);
             root.keyboard = true;
             root.focused = P.step(root.focused, event.key === Qt.Key_Left ? -1 : 1, P.ITEMS.length);
             event.accepted = true;
