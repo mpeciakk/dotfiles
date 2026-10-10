@@ -12,7 +12,7 @@
 
 **Design record / measurements:** `/home/m/dotfiles/.flow/specs/2026-10-10-wyspa-reference.md` — every px/colour/ms per state (§1–§5) and the binding resolutions R1–R35 (§7). Each task names the sections it implements; read only those.
 
-**User gates:** the user tests by hand after each group. The controller STOPS after tasks **2, 6, 9, 10, 12, 15, 17, 18, 19, 22**, starts the worktree instance (`qs kill` the old shell first only with the user's OK), reports what to test, and waits.
+**User gates:** the user tests by hand after each group. The controller STOPS after tasks **2, 6, 9, 10, 12, 15, 17, 18, 19, 22** and, with the user's OK: `systemctl --user stop quickshell` (the old shell), `QSG_RENDER_LOOP=threaded qs -p <wt>/config/quickshell -d`, reports what to test, waits; after the gate: `qs kill -p <wt>/config/quickshell; systemctl --user start quickshell`. Before each autonomous stretch the controller asks the user to keep the session unlocked (the old shell idle-locks after 300 s and `tests/shot.sh` refuses to shoot a locked session).
 
 ## Global Constraints
 
@@ -26,9 +26,13 @@
 - Out of scope (W8): warm light, screen recording, `/` file search, tray. Do not add niri binds except in Task 22 (W9).
 - IPC: `IpcHandler` functions need typed args/returns (`string|int|bool|real|color|void`); only typed properties are readable with `qs ipc prop get`. Instance flags go before the subcommand: `qs ipc -p <dir> call|prop get …`.
 - `Region { item: x }` tracks only `x`'s own geometry — animate the item itself. Regions have no concave corners: an ear = rect minus ellipse (`intersection: Intersection.Subtract`).
-- Safety: never trigger power actions (suspend/logout/reboot/poweroff) and never engage the session lock from a test. Smoke tests open the `power` state but never press a button.
+- **Test mode** (`Quickshell.env("WYSPA_TEST") === "1"`, exported by `tests/smoke.sh`): island keyboard focus is always `WlrKeyboardFocus.None`, power commands only `console.info` what they would run, and the lock action only logs. Every task that adds keyboard focus, a power command or a lock path implements this guard. Never trigger power actions or the session lock from a test.
+- **Config path**: `Theme.qml` reads `Quickshell.env("WYSPA_CONFIG")` if set, else `~/.config/dotfiles/config.json`. Smoke runs use a fresh temp copy of `tests/fixtures/config.json` (check files may rewrite that copy; Theme hot-reloads it). Never edit the live `~/.config/dotfiles/config.json` (it is a symlink into the main checkout).
+- **Allowed log warnings** live in `tests/smoke/allowed-warnings.txt` (one ERE per line, each preceded by a `#` comment saying why). Adding a pattern requires a justification in the task report; never widen the grep in `smoke.sh`.
+- The pre-rewrite code is at commit `ff1f02d` — read it with `git show ff1f02d:config/quickshell/<path>` (never `HEAD~1`).
+- niri config is validated only through `tests/niri-validate.sh` (the repo's `config.kdl` includes a per-host `output.kdl` that exists only after dotter deploy).
 - Screenshots (`tests/shot.sh`) capture the focused monitor of the user's live session and niri also copies each one to the clipboard — take at most the ones a task asks for.
-- Commit after each task with a `quickshell:` prefixed message ending in the `Co-Authored-By` trailer the controller provides.
+- Commit after each task with `git add -A .` (plus `../niri` when niri files changed) and a `quickshell:` prefixed message ending in the `Co-Authored-By` trailer the controller provides.
 
 ---
 
@@ -37,12 +41,12 @@
 ### Task 1: Clean slate + test harness
 
 **Files:**
-- Delete: `modules/` (all), `components/` (all), `services/Colours.qml`, `services/Appearance.qml`, `services/Config.qml`, `shell.qml` contents (rewritten)
-- Keep untouched: `services/{Apps,Audio,Battery,Menus,Network,Niri,Notifs,Players,Time,Vpn}.qml`, `menus/`, `assets/pam.d/passwd`, `docs/`
-- Create: `shell.qml`, `tests/qmljs.mjs`, `tests/no-magic.test.mjs`, `tests/smoke.sh`, `tests/shot.sh`, `tests/smoke/00-start.sh`
+- Delete: `modules/` (all), `components/` (all), `services/Colours.qml`, `services/Appearance.qml`, `services/Config.qml`, `services/Vpn.qml` (only the deleted VPN indicator used it; the VPN launcher menu uses `menus/vpn.sh`), `shell.qml` contents (rewritten)
+- Keep untouched: `services/{Apps,Audio,Battery,Menus,Network,Niri,Notifs,Players,Time}.qml`, `menus/`, `assets/pam.d/passwd`, `docs/`
+- Create: `shell.qml`, `tests/qmljs.mjs`, `tests/no-magic.test.mjs`, `tests/smoke.sh`, `tests/shot.sh`, `tests/niri-validate.sh`, `tests/smoke/00-start.sh`, `tests/smoke/allowed-warnings.txt`, `tests/fixtures/config.json`
 
 **Interfaces:**
-- Produces: `load(rel: string, extra?: object) → vm context` and `plain(x) → JSON-roundtripped x` from `tests/qmljs.mjs`; `tests/smoke.sh <check-file>` providing `call <target> <fn> [args…]`, `expect <target> <prop> <value>`, `wait_ms <n>`, `shot <name>` to the sourced check file; `tests/shot.sh <name>` → prints `/tmp/wyspa-shots/<name>.png`.
+- Produces: `load(rel: string, extra?: object) → vm context` and `plain(x) → JSON-roundtripped x` from `tests/qmljs.mjs`; `tests/smoke.sh <check-file>` providing `call <target> <fn> [args…]`, `expect <target> <prop> <value>`, `wait_ms <n>`, `shot <name>`, `$DIR`, `$CFG` (the temp config copy) to the sourced check file; `tests/shot.sh <name>` → prints `/tmp/wyspa-shots/<name>.png`; `tests/niri-validate.sh` → exit 0 iff niri accepts the repo's niri config.
 
 - [ ] **Step 1: Write the guard test** — `tests/no-magic.test.mjs`:
 
@@ -117,12 +121,18 @@ export const plain = x => JSON.parse(JSON.stringify(x));
 ```bash
 #!/usr/bin/env bash
 # Usage: tests/smoke.sh <check-file>
-# Starts this config as its own quickshell instance, sources the check file
-# (which may use call / expect / wait_ms / shot), fails on any warning or
-# error this instance logged, and kills the instance.
+# Starts this config as its own quickshell instance in test mode, sources the
+# check file (call / expect / wait_ms / shot, $DIR, $CFG), fails on any logged
+# warning or error not listed in tests/smoke/allowed-warnings.txt, and always
+# kills the instance.
 set -uo pipefail
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
+export WYSPA_TEST=1 QSG_RENDER_LOOP=threaded
+CFG="$(mktemp /tmp/wyspa-config.XXXXXX.json)"
+cp "$DIR/tests/fixtures/config.json" "$CFG"
+export WYSPA_CONFIG="$CFG"
+trap 'qs kill -p "$DIR" >/dev/null 2>&1; rm -f "$CFG"' EXIT
 
 call() { qs ipc -p "$DIR" call "$@" >/dev/null 2>&1 || { echo "FAIL: call $*"; FAILED=1; }; }
 expect() {
@@ -131,7 +141,7 @@ expect() {
     if [ "$got" == "$3" ]; then echo "ok: $1.$2 = $3"; else echo "FAIL: $1.$2 expected '$3' got '$got'"; FAILED=1; fi
 }
 wait_ms() { sleep "$(awk "BEGIN{print $1/1000}")"; }
-shot() { "$DIR/tests/shot.sh" "$1"; }
+shot() { "$DIR/tests/shot.sh" "$1" || FAILED=1; }
 
 qs kill -p "$DIR" >/dev/null 2>&1
 qs -p "$DIR" -d >/dev/null 2>&1
@@ -139,30 +149,80 @@ sleep 2
 # shellcheck source=/dev/null
 source "$1"
 LOG="$(qs log -p "$DIR" 2>&1)"
-qs kill -p "$DIR" >/dev/null 2>&1
-BAD="$(printf '%s\n' "$LOG" | grep -E '\b(WARN|ERROR|FATAL|CRIT)' | grep -v -E 'Signal detected|Could not find an available backend' || true)"
+BAD="$(printf '%s\n' "$LOG" | grep -E '\b(WARN|ERROR|FATAL|CRIT)' | grep -v -E -f <(grep -v -E '^\s*(#|$)' "$DIR/tests/smoke/allowed-warnings.txt") || true)"
 if [ -n "$BAD" ]; then echo "FAIL: instance logged:"; echo "$BAD"; FAILED=1; fi
 exit $FAILED
 ```
 
-- [ ] **Step 5: Write the screenshot helper** — `tests/shot.sh` (chmod +x):
+  `tests/smoke/allowed-warnings.txt` (environment noise on `pc`, not shell bugs):
+
+```
+# IPC property change signals are reported as warnings by qs ipc.
+Signal detected
+# Quickshell.Networking without NetworkManager (pc has none running).
+Could not find an available backend
+# Quickshell.Bluetooth without BlueZ (pc has none running).
+Failed to create DBusObjectManagerInterface for "org\.bluez"
+# The user's running shell owns org.freedesktop.Notifications during development.
+Could not register notification server
+# Themed icon names absent from the icon theme (menu rows, some apps).
+Could not load icon
+# No xdg-desktop-portal host registration for this instance.
+Failed to register with host portal
+```
+
+  (When the notification server warning turns out to be two lines in Task 8, add the second line's exact text there, with a comment.)
+
+  `tests/fixtures/config.json`:
+
+```json
+{
+  "wallpaper": "~/.config/dotfiles/wp2.jpg",
+  "lock": { "timeout": 0 }
+}
+```
+
+- [ ] **Step 5: Write the screenshot and niri helpers** — `tests/shot.sh` (chmod +x):
 
 ```bash
 #!/usr/bin/env bash
-# Usage: tests/shot.sh <name> — top-centre crop (50% × 50%) of the focused monitor.
-# niri also copies the screenshot to the clipboard.
+# Usage: tests/shot.sh <name> — crop around the island on the focused monitor.
+# niri also copies the screenshot to the clipboard. Refuses while the user's
+# session is locked (the old shell's lock target answers "true").
 set -euo pipefail
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [ "$(qs ipc call lock isLocked 2>/dev/null || true)" == "true" ]; then echo "shot: session locked — ask the user to unlock"; exit 1; fi
 mkdir -p /tmp/wyspa-shots
 RAW="/tmp/wyspa-shots/$1-full.png"
+W="$(qs ipc -p "$DIR" prop get island targetW 2>/dev/null || echo 800)"
+H="$(qs ipc -p "$DIR" prop get island targetH 2>/dev/null || echo 500)"
+[[ "$W" =~ ^[0-9]+$ ]] || W=800
+[[ "$H" =~ ^[0-9]+$ ]] || H=500
+SCALE="$(niri msg -j focused-output | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["logical"]["scale"])')"
 niri msg action screenshot-screen --show-pointer false --path "$RAW" >/dev/null
 sleep 0.5
-python3 -I - "$RAW" "/tmp/wyspa-shots/$1.png" <<'PY'
+python3 -I - "$RAW" "/tmp/wyspa-shots/$1.png" "$W" "$H" "$SCALE" <<'PY'
 import sys
 from PIL import Image
-im = Image.open(sys.argv[1]); w, h = im.size
-im.crop((w // 4, 0, w * 3 // 4, h // 2)).save(sys.argv[2])
+raw, out, w, h, scale = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), float(sys.argv[5])
+im = Image.open(raw); iw, ih = im.size
+cw = min(iw, int((w + 200) * scale)); ch = min(ih, int((h + 120) * scale))
+im.crop(((iw - cw) // 2, 0, (iw + cw) // 2, ch)).save(out)
 PY
 echo "/tmp/wyspa-shots/$1.png"
+```
+
+  `tests/niri-validate.sh` (chmod +x):
+
+```bash
+#!/usr/bin/env bash
+# Validates the repo's niri config with this host's output.kdl in place.
+set -euo pipefail
+REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+cp "$REPO"/config/niri/*.kdl "$TMP"/
+cp "$REPO/hosts/pc/niri-output.kdl" "$TMP/output.kdl"
+niri validate -c "$TMP/config.kdl"
 ```
 
 - [ ] **Step 6: Delete the old UI and write the empty shell** — remove the files listed above; `shell.qml`:
@@ -183,14 +243,14 @@ ShellRoot {
 true
 ```
 
-- [ ] **Step 7: Verify the runner really catches warnings** — temporarily add `Component.onCompleted: console.warn("probe")` to `ShellRoot`, run `tests/smoke.sh tests/smoke/00-start.sh`.
-  Expected: exit 1 and the `probe` line printed under "FAIL: instance logged:". If the probe is not caught, look at the real `qs log -p .` output and fix the `grep -E` level pattern in `smoke.sh` until it is. Remove the probe.
+- [ ] **Step 7: Verify the runner really catches warnings and cleans up** — temporarily add `Component.onCompleted: console.warn("probe")` to `ShellRoot`, run `tests/smoke.sh tests/smoke/00-start.sh`.
+  Expected: exit 1 and the `probe` line printed under "FAIL: instance logged:". If the probe is not caught, look at the real `qs log -p .` output and fix the level pattern in `smoke.sh` until it is. Remove the probe. Then make a check file with an unbound variable (`echo $NOPE`), run it, and confirm `qs list` shows no instance for this path afterwards (the EXIT trap). Run `tests/niri-validate.sh` → exit 0.
 
 - [ ] **Step 8: Run everything green**
   Run: `node --test 'tests/*.test.mjs' && tests/smoke.sh tests/smoke/00-start.sh`
   Expected: both PASS (exit 0).
 
-- [ ] **Step 9: Commit** — `git add -A config/quickshell && git commit -m "quickshell: clean slate for Wyspa + node/smoke test harness"`
+- [ ] **Step 9: Commit** — `git add -A . && git commit -m "quickshell: clean slate for Wyspa + node/smoke test harness"`
 
 ### Task 2: Theme tokens (dark/light × glass levels) + Theme singleton + wallpaper
 
@@ -201,7 +261,7 @@ true
 Reference: §1.1–§1.7, §2a, §2b, §7 R1–R12, R16, R23, R34 (theme parts only). DESIGN §3, §3a, §3b.
 
 **Interfaces:**
-- Produces (`lib/theme.js`): `var defaults` (token tree, see Step 3); `function rgba(r, g, b, a) → "#aarrggbb"`; `function hex(c) → "#aarrggbb"` (accepts `#rrggbb` / `#aarrggbb`); `function withAlpha(c, a) → "#aarrggbb"`; `function merge(base, over) → new object`; `function resolve(tokens, mode, level, glass) → object` with colour keys `islandBg ring shadowColor lockShadowColor tile sel card chip track sliderFill fg fgMuted fgDim fgSoft fgLock accent accentSoft accentHalo focusRing onAccent inverseBg inverseFg danger dotInactive line divider scrimDim lockField lockFieldRing lockGlass sheenTop sheenMid sheenEdge sheenOutline sheenGlow` and number keys `sheen shadowY shadowBlur lockShadowY lockShadowBlur` and object `lockWallpaper {blur, saturate, brightness, scale}`.
+- Produces (`lib/theme.js`): `var defaults` (token tree, see Step 3); `function rgba(r, g, b, a) → "#aarrggbb"`; `function hex(c) → "#aarrggbb"` (accepts `#rrggbb` / `#aarrggbb`); `function withAlpha(c, a) → "#aarrggbb"`; `function merge(base, over) → new object`; `function resolve(tokens, mode, level, glass) → object` with colour keys `islandBg ring shadowColor lockShadowColor tile sel hover card chip track sliderFill fg fgMuted fgDim fgSoft fgLock accent accentSoft accentHalo focusRing onAccent inverseBg inverseFg danger dotInactive line divider scrimDim lockField lockFieldRing lockGlass sheenTop sheenMid sheenEdge sheenOutline sheenGlow` and number keys `sheen shadowY shadowBlur lockShadowY lockShadowBlur` and object `lockWallpaper {blur, saturate, brightness, scale}`.
 - Produces (`Theme.qml`, singleton): `tokens: var`, `host: var` (whole parsed config.json), `mode: string` ("dark"|"light"), `glassLevel: string`, `glass: bool`, `reducedMotion: bool`, `autoMode: string` (writable, "" default — Task 21 sets it), `geom: var`, `motion: var`, `radii: var`, `sizes: var`, `fonts: var`, `layout: var`, `c: var` (= resolve output, target values), one animated `color` property per colour key above (same names, e.g. `Theme.fg`, `Theme.islandBg`), plain `real` props `sheen shadowY shadowBlur lockShadowY lockShadowBlur`, `lockWallpaper: var`, `wallpaper: string` (absolute path), `function setMode(m: string): void`, `function setGlassLevel(l: string): void`. `IpcHandler { target: "theme" }` with `setMode(m: string): void`, `setLevel(l: string): void`, readable `readonly property string mode`, `readonly property string level`, `readonly property color fg`.
 
 - [ ] **Step 1: Write the failing tests** — `tests/theme.test.mjs`:
@@ -287,6 +347,7 @@ test("resolve(): dark ciekłe", () => {
     assert.equal(c.sel, T.rgba(255, 255, 255, 0.12));
     assert.equal(c.chip, T.rgba(255, 255, 255, 0.14));
     assert.equal(c.card, c.sel);
+    assert.equal(c.hover, c.sel);
     assert.equal(c.track, c.chip);
     assert.equal(c.sliderFill, c.fg);
     assert.equal(c.sheen, 1);
@@ -354,7 +415,7 @@ test("resolve(): config overrides flow through merge", () => {
 - [ ] **Step 3: Implement `lib/theme.js`**
 
   `defaults` groups: `mode`, `modeSource` ("manual"|"sun"|"wallpaper"), `location {lat: null, lon: null}`, `wallpaperLight 0.6`, `wallpaperDark 0.5`, `legibility {threshold: 0.7, boost: 0.2}`, `glass`, `glassLevel`, `reducedMotion`, `fonts`, `sizes` (`iconStroke 1.6`, `ringWidth 1`, font sizes from §1.4 as `text10 … text88` is NOT the naming — use semantic names as they get used: start with `clockRest 13`), `geom` (Step 1 values), `radii` (§1.6), `motion` (§1.7 values incl. `enterOpacityMs 220`, `enterOpacityDelayMs 160`, `enterScaleMs 320`, `enterScaleDelayMs 120`, `exitOpacityMs 120`, `exitScaleMs 160`, `exitBlurMs 120`, `enterBlurMs 220`, `enterBlurDelayMs 160`, `contentScaleFrom 0.94`, `contentBlur 6`, `earFadeMs 160`, `bgColorMs 200`, `osdBarMs 260`, `toastBarMs 3400`, `toastBarDelayMs 60`, `lineLeaveDelayMs 250`, `mediaLeaveMs 250`, `holdCancelMs 220`, `powerDoneMs 1800`, `dimMs 400`, `stackPadMs 300`, `buttonBgMs 200`, `eqMs 900`, `shakeMs 380`, `shakeCurve [0.36,0.07,0.19,0.97,1,1]`, `wallpaperMs 700`), `palette.dark` / `palette.light` (every non-glass colour from §1.1 + R6/R8/R9 invented values, as `#rrggbb` or `rgba()` calls), `glassLevels.<level>.<mode>` = `{bg, tile, sel, chip, card?, sheen}` (§1.2 + R4), `solid.<mode>` = `{bg, tile, sel, chip, card}` (R2), `sheen.<mode>` = `{top, mid, edge, outline, glow}` (§2a + R23), `shadow.<mode>` = `{y, blur, color}`, `lockShadow.<mode>` = `{y, blur, color}` (R3), `lockWallpaper.<mode>` (R10), `layout: {}` (state tasks fill it). Accent alternatives as a comment (R7).
-  `resolve()` picks `palette[mode]`, overlays `glassLevels[level][mode]` (unknown level → `ciekłe`; `glass=false` → `solid[mode]`, sheen 0), derives `card` (level's `card` or `sel`), `track` (dark: `chip`; light: palette `track`), `sliderFill = fg`, `accentSoft/accentHalo/focusRing` from `accent`, and normalises every colour through `hex()`.
+  `resolve()` picks `palette[mode]`, overlays `glassLevels[level][mode]` (unknown level → `ciekłe`; `glass=false` → `solid[mode]`, sheen 0), derives `card` (level's `card` or `sel`), `hover = sel` (R6), `track` (dark: `chip`; light: palette `track`), `sliderFill = fg`, `accentSoft/accentHalo/focusRing` from `accent`, and normalises every colour through `hex()`.
   `merge()`: recursive for plain objects only; arrays and primitives in `over` replace; a non-object `over` for an object node is ignored; `null`/`undefined` `over` → copy of `base`.
 
 - [ ] **Step 4: Run** — `node --test tests/theme.test.mjs` → Expected: PASS.
@@ -428,7 +489,7 @@ Singleton {
     // … shadowBlur, lockShadowY, lockShadowBlur …
 
     FileView {
-        path: `${Quickshell.env("HOME")}/.config/dotfiles/config.json`
+        path: Quickshell.env("WYSPA_CONFIG") || `${Quickshell.env("HOME")}/.config/dotfiles/config.json`
         watchChanges: true
         onFileChanged: reload()
         onLoaded: { try { root.host = JSON.parse(text()); } catch (e) { root.host = ({}); } }
@@ -446,13 +507,13 @@ Singleton {
 }
 ```
 
-  `Wallpaper.qml`: port `git show HEAD~1:config/quickshell/modules/Wallpaper.qml` (one `PanelWindow` per screen, `WlrLayer.Background`, namespace `quickshell-wallpaper`, click-through), source `"file://" + Theme.wallpaper`. `shell.qml`: `Variants { model: Quickshell.screens; Wallpaper {} }`.
+  `Wallpaper.qml`: port `git show ff1f02d:config/quickshell/modules/Wallpaper.qml` (one `PanelWindow` per screen, `WlrLayer.Background`, namespace `quickshell-wallpaper`, click-through), source `"file://" + Theme.wallpaper`. `shell.qml`: `Variants { model: Quickshell.screens; Wallpaper {} }`.
 
 - [ ] **Step 8: Run all** — `node --test 'tests/*.test.mjs' && tests/smoke.sh tests/smoke/02-theme.sh` → Expected: PASS.
 
 - [ ] **Step 9: Commit** — `quickshell: Theme tokens (dark/light, glass levels) with config overrides`
 
-**— USER GATE 1 —** test: `qs ipc -p <wt>/config/quickshell call theme setMode light|dark`, `… setLevel subtelne|mocne|ciekłe`; wallpaper shows; override `"island": {"palette": {"dark": {"accent": "#8FD3C1"}}}` in `~/.config/dotfiles/config.json` hot-reloads.
+**— USER GATE 1 —** test: `qs ipc -p <wt>/config/quickshell call theme setMode light|dark`, `… setLevel subtelne|mocne|ciekłe`; wallpaper shows; for the override test run the gate instance with `WYSPA_CONFIG=/tmp/wyspa-gate.json` (a copy of the live config) and add `"island": {"palette": {"dark": {"accent": "#8FD3C1"}}}` there — hot-reloads. The live config is never edited mid-branch.
 
 ---
 
@@ -582,64 +643,99 @@ expect island hidden false
 - [ ] **Step 4: Run** `node --test 'tests/*.test.mjs' && tests/smoke.sh tests/smoke/04-state.sh` → PASS.
 - [ ] **Step 5: Commit** — `quickshell: IslandState machine with island IPC`
 
-### Task 5: Island window, shape, strut, blur, shadow, gloss + niri rules
+### Task 5a: Island surface, morphing shape, strut, mask, focus
 
 **Files:**
-- Create: `Island.qml`, `IslandShape.qml`, `Strut.qml`, `tests/smoke/05-island.sh`
-- Modify: `shell.qml` (per screen: `Wallpaper`, `Strut`, `Island`), `lib/theme.js` (any new tokens), `config/niri/layout.kdl` (repo path `config/niri/`, i.e. `../niri/layout.kdl` from here: delete the whole `struts { … }` block), `config/niri/window_rules.kdl` (append the layer rule below)
+- Create: `Island.qml`, `IslandShape.qml`, `Strut.qml`, `tests/smoke/05a-surface.sh`
+- Modify: `shell.qml` (per screen: `Wallpaper`, `Strut`, `Island`), `IslandState.qml` (readable `maskMode: string` = "shape"|"full" for the island on `output`, reported by Island like `contentState` in Task 6 — add `reportMask(output: string, m: string)`), `lib/theme.js` (new tokens), `config/niri/layout.kdl` (`../niri/layout.kdl` from here: delete the whole `struts { … }` block — it compensated the old Border)
 
-Reference: §2.1–§2.7, §2a, §2.9, §7 R2, R11, R13, R16, R20, R25; DESIGN W1–W3.
+Reference: §2.1–§2.3, §2.6–§2.7, §2.9, §7 R13, R20, R25; DESIGN W3.
 
 **Interfaces:**
 - Consumes: `IslandState.current/output/hidden/modal/geometryFor/close`, `Theme.*`.
-- Produces: `IslandShape.qml` properties `w: real`, `h: real`, `r: real`, `ears: bool`, `fillColor: color`, `lineMode: bool`, readonly `body: Item` (an Item whose own `x/y/width/height` follow the animated shape — used for Regions), readonly `animW/animH: real`. `Island.qml`: `required property var modelData` (ShellScreen), readonly `effState: string` (state shown on this screen: `IslandState.current` if `IslandState.output === screen.name` or current is `rest`, else `rest`; `line` override comes in Task 20), `property Item contentHost` (Task 6 fills it), keyboard focus `WlrKeyboardFocus.Exclusive` iff `IslandState.modal && IslandState.output === screen.name`, else `None`. `Strut.qml`: `required property var modelData`, `exclusiveZone: Theme.geom.exclusive` (Task 20 makes it 0 in line mode).
+- Produces: `IslandShape.qml` properties `w: real`, `h: real`, `r: real`, `ears: bool`, `fillColor: color`, `lineMode: bool`, readonly `body: Item` (an Item whose own `x/y/width/height` follow the animated shape — Regions track only an item's own geometry), readonly `animW/animH/animR/animEar: real`, default property alias `content` (a `clip: true` item of size `animW × animH`). `Island.qml`: `required property var modelData` (ShellScreen), readonly `effState: string` (`IslandState.current` if `IslandState.output === screen.name` or current is `rest`, else `rest`; the `line` override comes in Task 20), keyboard focus `WlrKeyboardFocus.Exclusive` iff `IslandState.modal && IslandState.output === screen.name && Quickshell.env("WYSPA_TEST") !== "1"`, else `None`. `Strut.qml`: `required property var modelData`, `exclusiveZone: Theme.geom.exclusive` (Task 20 makes it 0 in line mode).
 
-- [ ] **Step 1: Write the check** — `tests/smoke/05-island.sh`:
+- [ ] **Step 1: Write the check** — `tests/smoke/05a-surface.sh`:
 
 ```bash
-shot island-rest
+expect island maskMode shape
+shot surface-rest
 call island open launcher
 wait_ms 700
-shot island-launcher
-call island open control
-wait_ms 700
-shot island-control
+expect island maskMode full
+shot surface-launcher
 call island close
 wait_ms 700
-shot island-rest-again
+expect island maskMode shape
+call island open toast
+wait_ms 700
+expect island maskMode shape
+call island close
 ```
 
-- [ ] **Step 2: Run** — `tests/smoke.sh tests/smoke/05-island.sh`; Read the four PNGs. Expected (RED): no island visible in any shot.
+- [ ] **Step 2: Run** `tests/smoke.sh tests/smoke/05a-surface.sh` → FAIL (`maskMode` not found; shots show no island).
 - [ ] **Step 3: Implement**
-  - `Island.qml`: `PanelWindow`, `screen: modelData`, anchors all four edges, `color: "transparent"`, `exclusionMode: ExclusionMode.Ignore`, `WlrLayershell.layer: WlrLayer.Overlay`, `WlrLayershell.namespace: "wyspa"`. Shape centred horizontally at `y = 0`. `mask: Region { item: IslandState.modal && on this screen ? fullItem : shape.body }`. A full-size `MouseArea` below the shape, enabled only when modal on this screen, calls `IslandState.close()` (R20). `Keys.onEscapePressed: IslandState.close()` on a focus scope that is focused when keyboard focus is Exclusive. `BackgroundEffect.blurRegion` (from `Quickshell.Wayland`): set only when `Theme.glass`; region = body rect with `bottomLeftRadius/bottomRightRadius = r` + per ear a rect `ear×ear` minus an ellipse `2ear×2ear` (snippet: `Region { Region { item: body; bottomLeftRadius: …; bottomRightRadius: … } Region { x: body.x - e; y: 0; width: e; height: e } Region { shape: RegionShape.Ellipse; intersection: Intersection.Subtract; x: body.x - 2*e; y: 0; width: 2*e; height: 2*e } …mirror right… }`; no ears when `!ears`).
-  - `IslandShape.qml`: `w/h/r` each with `Behavior { NumberAnimation { duration: Theme.reducedMotion ? 0 : Theme.motion.morphMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.morphCurve } }`. Fill: ONE `Shape` (`preferredRendererType: Shape.CurveRenderer`) with one `ShapePath` following the path in §2.3 (concave ear arcs, convex bottom corners) — no seams. Ears fade with `Theme.motion.earFadeMs` (fill path switches to the ear-less outline when `!ears`). Fill colour: `lineMode ? Theme.line : Theme.islandBg`, `ColorAnimation` `Theme.motion.bgColorMs`. Shadow (W2): drawn only *outside* the shape — `MultiEffect` with `shadowEnabled`, `shadowColor: Theme.shadowColor`, `shadowVerticalOffset: Theme.shadowY`, `blurMax: Theme.shadowBlur`, `shadowBlur: 1`, applied to an opaque copy of the path and masked with `maskEnabled + maskInverted` by the same path, so the translucent interior is not darkened. Ring (R13): a `Rectangle` the size of `body`, `color: "transparent"`, `border.color: Theme.ring`, `border.width: Theme.sizes.ringWidth`, bottom radii `r`. Gloss (§2a, R23): above content, clipped to body, `opacity: Theme.sheen`: vertical `Gradient` stops `0 → Theme.sheenTop`, `0.45 → Theme.sheenMid`, `1 → transparent`; 1 px outline `Theme.sheenOutline`; bottom-edge 1 px highlight `Theme.sheenEdge` following the bottom radius; inner glow `Theme.sheenGlow` with blur radius `Theme.sizes.sheenGlow` (30). Ring, gloss and shadow hidden when `lineMode` (R16). Content goes into a `clip: true` item of size `animW × animH` (exposed as default property alias `content`).
+  - `Island.qml`: `PanelWindow`, `screen: modelData`, anchors all four edges, `color: "transparent"`, `exclusionMode: ExclusionMode.Ignore`, `WlrLayershell.layer: WlrLayer.Overlay`, `WlrLayershell.namespace: "wyspa"`. Shape centred horizontally at `y = 0`. `mask: Region { item: modal-on-this-screen ? fullItem : shape.body }`. A full-size `MouseArea` below the shape, enabled only when modal on this screen, calls `IslandState.close()` (R20). `Keys.onEscapePressed: IslandState.close()` on a focus scope focused while keyboard focus is Exclusive.
+  - `IslandShape.qml`: `w/h/r` each with `Behavior { NumberAnimation { duration: Theme.reducedMotion ? 0 : Theme.motion.morphMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.morphCurve } }`. Fill = ONE `Shape` (`preferredRendererType: Shape.CurveRenderer`) with one `ShapePath` following §2.3 (concave ear arcs, convex bottom corners) — no seams. The ear radius is its own animated value `animEar` = `ears ? min(Theme.geom.ear, animH - animR) : 0` (clamped, so the path stays valid during line↔rest morphs — §2.3 warns `h − r ≥ e`), animated over `Theme.motion.earFadeMs`. Fill colour `lineMode ? Theme.line : Theme.islandBg`, `ColorAnimation` `Theme.motion.bgColorMs`.
   - `Strut.qml`: `PanelWindow` anchored top/left/right, `implicitHeight: Theme.geom.exclusive`, `exclusionMode: ExclusionMode.Normal`, `exclusiveZone: Theme.geom.exclusive`, transparent, `mask: Region {}`, `WlrLayershell.layer: WlrLayer.Bottom`, namespace `wyspa-strut`.
-  - niri `window_rules.kdl` append:
+- [ ] **Step 4: Run** `tests/smoke.sh tests/smoke/05a-surface.sh`, `node --test 'tests/*.test.mjs'`, `tests/niri-validate.sh`; Read the PNGs → rest 200×36 with ears at top centre, launcher 680×356; all PASS.
+- [ ] **Step 5: Commit** — `git add -A . ../niri` — `quickshell: island surface, morphing shape, strut`
+
+### Task 5b: Island material — blur region, shadow, ring, gloss + niri rule
+
+**Files:**
+- Create: `tests/smoke/05b-material.sh`
+- Modify: `Island.qml`, `IslandShape.qml`, `lib/theme.js` (`sizes.sheenGlow 30`, shadow padding token), `config/niri/window_rules.kdl`, `config/niri/config.kdl`
+
+Reference: §2.4, §2.5, §2a, §7 R2, R11, R13, R16, R23; DESIGN W1, W2.
+
+**Interfaces:**
+- Consumes: `IslandShape.body/animW/animH/animR/animEar/lineMode`, `Theme` material keys.
+- Produces: nothing new for later tasks (visual only).
+
+- [ ] **Step 1: Write the check** — `tests/smoke/05b-material.sh`:
+
+```bash
+call island open control
+wait_ms 700
+shot material-glass
+printf '{"wallpaper":"~/.config/dotfiles/wp2.jpg","lock":{"timeout":0},"island":{"glass":false}}' > "$CFG"
+wait_ms 900
+shot material-solid
+call island close
+```
+
+- [ ] **Step 2: Run**; Read both PNGs → RED: flat fill, no gloss/ring/shadow; identical shots.
+- [ ] **Step 3: Implement**
+  - Blur (W1): `BackgroundEffect.blurRegion` (from `Quickshell.Wayland`) set **only** when `Theme.glass && !lineMode`, else `null`. Region = `Region { Region { item: body; bottomLeftRadius: animR; bottomRightRadius: animR } <left ear> <right ear> }`, ear = `Region { x: body.x - e; y: 0; width: e; height: e }` followed by `Region { shape: RegionShape.Ellipse; intersection: Intersection.Subtract; x: body.x - 2*e; y: 0; width: 2*e; height: 2*e }` (mirror for the right), `e = animEar`; no ear regions when `animEar` is 0.
+  - Shadow (W2): drawn only *outside* the shape — `MultiEffect` with `shadowEnabled`, `shadowColor: Theme.shadowColor`, `shadowVerticalOffset: Theme.shadowY`, `blurMax: Theme.shadowBlur`, `shadowBlur: 1`, applied to an opaque copy of the path and masked with `maskEnabled + maskInverted` by the same path, so the translucent interior is not darkened. The effect's source item is sized to the shape bounds plus `Theme.shadowBlur + Theme.shadowY` padding — never the full-screen window (a 3840×2160 FBO per morph frame on DP-2).
+  - Ring (R13): a `Rectangle` the size of `body`, `color: "transparent"`, `border.color: Theme.ring`, `border.width: Theme.sizes.ringWidth`, bottom radii `animR`.
+  - Gloss (§2a, R23): above content, clipped to body, `opacity: Theme.sheen`: vertical `Gradient` stops `0 → Theme.sheenTop`, `0.45 → Theme.sheenMid`, `1 → transparent`; 1 px outline `Theme.sheenOutline`; 1 px bottom-edge highlight `Theme.sheenEdge` following the bottom radius; inner glow `Theme.sheenGlow` with blur radius `Theme.sizes.sheenGlow`. Ring, gloss and shadow hidden when `lineMode` (R16).
+  - niri: append to `config/niri/window_rules.kdl` (no `blur true` — the client region alone enables blur; a rule-level `blur true` would blur the whole full-screen surface whenever no region is set):
 
 ```kdl
 layer-rule {
     match namespace="^wyspa$"
     background-effect {
-        blur true
         xray false
         saturation 2.0
     }
 }
 ```
 
-  and in `config/niri/config.kdl` (top level) add `blur { passes 3; offset 5; }` — check the file has no `blur {}` block first. These niri changes go live only after merge (the live niri reads the main checkout).
-- [ ] **Step 4: Run** `tests/smoke.sh tests/smoke/05-island.sh` and `node --test 'tests/*.test.mjs'`; Read the PNGs. Expected: rest pill 200×36 at top centre with ears; launcher 680×356; control 520×440; translucent dark glass with gloss gradient; no dark halo inside the shape (shadow outside only); clean exit (no log warnings). Also run `niri validate -c ../niri/config.kdl` → `Config is valid`.
-- [ ] **Step 5: Commit** — `quickshell: island surface, morphing shape, strut; niri blur rule`
+    and at top level of `config/niri/config.kdl` (check there is no `blur {}` yet): `blur { passes 3; offset 5; }`. Live niri sees this only after merge (or earlier if the user lands it on main — plan-gate decision).
+- [ ] **Step 4: Run** `tests/smoke.sh tests/smoke/05b-material.sh`, `node --test 'tests/*.test.mjs'`, `tests/niri-validate.sh`; Read PNGs → glass shot: translucent fill, gloss gradient brighter at the top, 1 px ring, soft shadow outside only (no dark halo inside); solid shot: opaque fill, no gloss, and the area around the island NOT blurred. All PASS.
+- [ ] **Step 5: Commit** — `git add -A . ../niri` — `quickshell: island glass material; niri layer rule`
 
 ### Task 6: Content host with enter/exit choreography
 
-**Files:** Create `IslandContent.qml`, `tests/smoke/06-content.sh`; Modify `Island.qml`, `IslandState.qml` (readable `contentState` for tests).
+**Files:** Create `IslandContent.qml`, `tests/smoke/06-content.sh`; Modify `Island.qml`, `IslandShape.qml` (host goes into `content`), `IslandState.qml` (readable `contentState` for tests).
 
 Reference: §2.2, §2.8, §4.6 row "state change", §7 R25.
 
 **Interfaces:**
 - Consumes: `Island.effState`, `Theme.motion.*`, `IslandState.geometryFor(s)`.
-- Produces: `IslandContent.qml` with `property string state` (bound to `effState`), `property string output` (screen name), `readonly property string shown` (the state whose layer is fully entered, "" during transition), and `property var sources: ({})` — map state → `Qt.resolvedUrl("states/X.qml")`; **each later state task adds exactly one entry**. Every state component gets `property bool active` (true while its layer is "on") and `property string output` set by the host; it must size itself from `Theme.geom.<state>` (target width from the start, never reflowing). `IslandState` gains IPC-readable `contentState: string` = the `shown` value of the island on `IslandState.output` (Island registers it via `IslandState.reportShown(output: string, s: string)`).
+- Produces: `IslandContent.qml` with `property string target` (bound to `effState`; not `state`, which would shadow `Item.state`), `property string output` (screen name), `readonly property string shown` (the state whose layer is fully entered, "" during transition), and `property var sources: ({})` — map state → `Qt.resolvedUrl("states/X.qml")`; **each later state task adds exactly one entry**. Every state component gets `property bool active` (true while its layer is "on") and `property string output` set by the host; it must size itself from `Theme.geom.<state>` (target width from the start, never reflowing). `IslandState` gains IPC-readable `contentState: string` = the `shown` value of the island on `IslandState.output`, or on `Niri.focusedOutput` while `current === "rest"` (Island registers it via `IslandState.reportShown(output: string, s: string)`).
 
 - [ ] **Step 1: Write the check** — `tests/smoke/06-content.sh`:
 
@@ -659,7 +755,7 @@ expect island contentState rest
 - [ ] **Step 4: Run** all tests → PASS.
 - [ ] **Step 5: Commit** — `quickshell: island content host with enter/exit choreography`
 
-**— USER GATE 2 —** test: morph between states via `qs ipc -p … call island open launcher|control|toast|osd|media|power|center`, `close`; interrupt a morph mid-way; Esc/click-outside closes launcher/control; exclusive zone (windows shift down) on every monitor; glass/gloss/ring look; tell the user blur over windows and the 44 px window offset appear only after merge (niri config).
+**— USER GATE 2 —** test: morph between states via `qs ipc -p … call island open launcher|control|toast|osd|media|power|center`, `close`; interrupt a morph mid-way; Esc/click-outside closes launcher/control (gate instance runs without `WYSPA_TEST`, so it has keyboard focus); exclusive zone (windows shift down) on every monitor; glass/gloss/ring look; `"island": {"glass": false}` in the gate's `WYSPA_CONFIG` copy → solid, nothing blurred around. Unless the niri rule was landed on main at the plan gate, blur over windows (xray off) and the 44 px window offset appear only after merge.
 
 ---
 
@@ -669,10 +765,10 @@ expect island contentState rest
 
 **Files:** Create `lib/icons.js`, `components/Icon.qml`, `tests/icons.test.mjs`
 
-Reference: §5 (use the prototype path data where given, Lucide otherwise), §7 R31, R33.
+Reference: §5 (prototype path data where given, Lucide otherwise; `<circle>`/`<rect>` converted to path `d` strings), §7 R31, R33.
 
 **Interfaces:**
-- Produces: `var paths` (name → inner SVG markup); `function svg(name: string, color: string, width: number) → string`; `function dataUrl(name, color, width, b64: function) → "data:image/svg+xml;base64,…"`. `components/Icon.qml`: `property string name`, `property color color: Theme.fg`, `property real size`, renders `Image { source: I.dataUrl(name, color.toString(), Theme.sizes.iconStroke, Qt.btoa); sourceSize: size × size; smooth: true }`.
+- Produces: `var paths` (name → SVG path `d` string on the 24 grid). `components/Icon.qml`: `property string name`, `property color color: Theme.fg`, `property real size`; a `Shape` scaled by `size / 24` with one `ShapePath { strokeColor: root.color; strokeWidth: Theme.sizes.iconStroke; fillColor: "transparent"; capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin; PathSvg { path: I.paths[root.name] ?? "" } }` (stroke width must not scale — compensate by `Theme.sizes.iconStroke * 24 / size` if the scale transform affects it, verify on screen). Colour animates for free with `Theme.fg`.
 
 - [ ] **Step 1: Write the failing test** — `tests/icons.test.mjs`:
 
@@ -687,29 +783,25 @@ const NAMES = ["bell", "moon", "volume-x", "volume-1", "volume-2", "sun", "sun-m
     "calculator", "terminal", "app-window", "x", "check", "arrow-right", "battery", "battery-charging",
     "chevron-down", "chevron-up"];
 
-test("every icon the shell uses is defined", () => {
-    for (const n of NAMES) assert.equal(typeof I.paths[n], "string", n);
+test("every icon the shell uses is a path d string", () => {
+    for (const n of NAMES) {
+        assert.equal(typeof I.paths[n], "string", n);
+        assert.match(I.paths[n], /^[MmLlHhVvCcSsQqTtAaZz0-9 ,.\-]+$/, n);
+        assert.match(I.paths[n], /^[Mm]/, n);
+    }
 });
 
-test("svg() wraps the paths with the stroke colour, opacity and width", () => {
-    const s = I.svg("bell", "#112233", 1.6);
-    assert.ok(s.startsWith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#112233" stroke-opacity="1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'), s);
-    assert.ok(s.includes(I.paths.bell));
-    assert.ok(s.endsWith("</svg>"));
-    assert.ok(I.svg("bell", "#80112233", 2).includes('stroke="#112233" stroke-opacity="0.502" stroke-width="2"'));
-});
-
-test("dataUrl() base64-encodes the svg", () => {
-    const u = I.dataUrl("x", "#ffffff", 1.6, btoa);
-    assert.ok(u.startsWith("data:image/svg+xml;base64,"));
-    assert.equal(atob(u.slice("data:image/svg+xml;base64,".length)), I.svg("x", "#ffffff", 1.6));
+test("prototype paths are kept verbatim", () => {
+    assert.ok(I.paths.bell.includes("M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"));
+    assert.ok(I.paths.power.includes("M12 2v10"));
+    assert.ok(I.paths.check.includes("M20 6 9 17l-5-5"));
 });
 ```
 
-- [ ] **Step 2: Run** (with a `.pragma library` + `var paths = {};` stub) → FAIL on the first assertion (`undefined !== 'string'` for `bell`).
-- [ ] **Step 3: Implement.** Paths are SVG 1.1 markup only (`<path d="…"/>`, `<circle …/>`, `<rect …/>`); no `currentColor`.
-- [ ] **Step 4: Run** → PASS. Then verify rendering for real: temporarily put `Icon { name: "bell"; size: 48; color: Theme.accent }` into the rest layer area, run `tests/smoke.sh tests/smoke/05-island.sh`, Read `island-rest.png` — the bell must be visible in accent. If Qt does not render the data URL, switch the `dataUrl` encoding (e.g. utf8 + `encodeURIComponent`) and its test, then remove the probe.
-- [ ] **Step 5: Commit** — `quickshell: tinted line icons`
+- [ ] **Step 2: Run** (stub with `.pragma library` + `var paths = {};`) → FAIL (`undefined !== 'string'` for `bell`).
+- [ ] **Step 3: Implement** `lib/icons.js` and `components/Icon.qml`.
+- [ ] **Step 4: Run** → PASS. Verify rendering for real: temporarily put `Icon { name: "bell"; size: 48; color: Theme.accent }` into the rest area, run `tests/smoke.sh tests/smoke/05a-surface.sh`, Read `surface-rest.png` — a crisp accent bell with ~1.6 px strokes at 24 px scale. Remove the probe.
+- [ ] **Step 5: Commit** — `quickshell: line icons drawn with Shape paths`
 
 ### Task 8: Notification service for the island
 
@@ -759,7 +851,7 @@ test("initial()", () => {
 
 - [ ] **Step 2: Run** (stub file) → FAIL on assertions.
 - [ ] **Step 3: Implement** `lib/notifs.js`, add `layout.center` tokens (§3.5) to `lib/theme.js`, update `services/Notifs.qml` per Interfaces.
-- [ ] **Step 4: Run** `node --test 'tests/*.test.mjs' && tests/smoke.sh tests/smoke/04-state.sh` → PASS. Then `tests/smoke/08-notifs.sh` (`expect island targetW 200`, `call notifs inject test hello x`, `wait_ms 300`, `expect notifs unread 1`, `expect island targetW 252`) through `tests/smoke.sh` → PASS (write it before the QML change and see it FAIL first).
+- [ ] **Step 4: Run** `node --test 'tests/*.test.mjs' && tests/smoke.sh tests/smoke/04-state.sh` → PASS. Then `tests/smoke/08-notifs.sh` (`expect island targetW 200`, `call notifs dnd true`, `call notifs inject test hello x`, `wait_ms 300`, `expect notifs unread 1`, `expect island targetW 252`, `call notifs dnd false`) through `tests/smoke.sh` → PASS (write it before the QML change and see it FAIL first; DND keeps the toast from Task 11 out of this check). If the "notification server already registered" warning is two lines, add the second exact line to `allowed-warnings.txt` with a comment.
 - [ ] **Step 5: Commit** — `quickshell: notification history, groups, unread badge`
 
 ### Task 9: Rest state
@@ -898,7 +990,7 @@ call notifs dnd false
 
 ### Task 13: Calculator + fuzzy match with highlight ranges
 
-**Files:** Create `lib/calc.js`, `lib/fuzzy.js`, `tests/calc.test.mjs`, `tests/fuzzy.test.mjs`; Modify `services/Apps.qml` (use `lib/fuzzy.js` for scoring; keep `query()` signature, results gain `ranges`)
+**Files:** Create `lib/calc.js`, `lib/fuzzy.js`, `tests/calc.test.mjs`, `tests/fuzzy.test.mjs`; Modify `services/Apps.qml` (use `lib/fuzzy.js` for scoring; `query(search: string)` now returns `[{entry: DesktopEntry, ranges: [[start, end)]}]` — `DesktopEntry` objects cannot carry extra JS props)
 
 **Interfaces:**
 - Produces: `function evaluate(expr: string) → number|null` (`+ - * / ^ %`, parentheses, unary minus, decimals with `.` or `,`, `sqrt sin cos tan ln log abs round floor ceil`, `pi e`; anything else → null; never uses `eval`/`Function`); `function format(n: number) → string` (max 10 significant digits, no trailing zeros, `,` decimal separator); `function match(query: string, text: string) → {score: number, ranges: [[start, end)]} | null` (case-insensitive; prefix > word-start > subsequence; ranges are merged contiguous runs).
@@ -1015,9 +1107,9 @@ test("unrelated events return the same object", () => {
 
 ### Task 15: Launcher state
 
-**Files:** Create `states/Launcher.qml`, `tests/smoke/15-launcher.sh`; Modify `IslandContent.qml` (`sources.launcher`), `IslandState.qml` (IPC `launcherMenu(id: string): void` = open launcher straight into a menu), `lib/theme.js` (`layout.launcher`)
+**Files:** Create `states/Launcher.qml`, `tests/smoke/15-launcher.sh`; Modify `IslandContent.qml` (`sources.launcher`), `IslandState.qml` (IPC `launcherMenu(id: string): void` = open launcher straight into a menu), `lib/theme.js` (`layout.launcher`), `services/Menus.qml` (per-menu `closeOnRun: bool` — `clipboard: true`, `vpn: false`), `menus/cliphist.sh` (drop the trailing `; qs ipc call launcher close` from the emitted command — the launcher now closes itself when `closeOnRun`)
 
-Reference: §3.6, DESIGN §6 "Launcher", §7 R29, W8. Menu script format: `menus/*.sh list` prints `<active 1|0>\t<label>\t<sublabel>\t<command>` per line (see `services/Menus.qml` header comment); the old launcher logic is in `git show HEAD~1:config/quickshell/modules/Launcher.qml` (`kindOf`, `run`, menu drill-in, Esc backs out of a menu first).
+Reference: §3.6, DESIGN §6 "Launcher", §7 R29, W8. Menu script format: `menus/*.sh list` prints `<active 1|0>\t<label>\t<sublabel>\t<command>` per line (see `services/Menus.qml` header comment); the old launcher logic is in `git show ff1f02d:config/quickshell/modules/Launcher.qml` (`kindOf`, `run`, menu drill-in, Esc backs out of a menu first).
 
 **Interfaces:**
 - Consumes: `Apps.query`, `Apps.launch`, `Menus.list/get`, `Niri.windowList/focusWindow`, `lib/calc.js`, `lib/fuzzy.js`, `Icon`.
@@ -1112,7 +1204,7 @@ call island close
 Reference: §3.8, §3.9, §4.4, DESIGN §6 "Menu zasilania", §7 R18, R22.
 
 **Interfaces:**
-- Produces: `Theme.tokens.power.commands` = `{ suspend: ["systemctl", "suspend"], logout: ["niri", "msg", "action", "quit", "--skip-confirmation"], reboot: ["systemctl", "reboot"], poweroff: ["systemctl", "poweroff"] }` (overridable); Lock action calls `Lock.lock()` (Task 19 — until then `IslandState.lockRequested()` signal, connected in Task 19). Labels: "Blokowanie…", "Usypianie…", "Wylogowywanie…", "Ponowne uruchamianie…", "Wyłączanie…". On finish the state becomes `powerDone` with the label and the command runs immediately; `powerDone` auto-returns to `rest` after `Theme.motion.powerDoneMs` (R22).
+- Produces: `Theme.tokens.power.commands` = `{ suspend: ["systemctl", "suspend"], logout: ["niri", "msg", "action", "quit", "--skip-confirmation"], reboot: ["systemctl", "reboot"], poweroff: ["systemctl", "poweroff"] }` (overridable); Lock action calls `Lock.lock()` (Task 19 — until then `IslandState.lockRequested()` signal, connected in Task 19). Labels: "Blokowanie…", "Usypianie…", "Wylogowywanie…", "Ponowne uruchamianie…", "Wyłączanie…". On finish the state becomes `powerDone` with the label and the command runs immediately (in test mode it is only logged with `console.info`); `powerDone` auto-returns to `rest` after `Theme.motion.powerDoneMs` (R22).
 
 - [ ] **Step 1: Write the check** — `tests/smoke/18-power.sh` (never presses a button):
 
@@ -1141,7 +1233,7 @@ expect island current rest
 
 **Files:** Create `Lock.qml`, `states/LockCard.qml`, `tests/preview/LockPreview.qml`, `tests/smoke/19-lock-preview.sh`; Modify `shell.qml` (instantiate `Lock`), `IslandState.qml` (IPC `lock(): void`, `unlock(): void` recovery hatch without PAM — reachable only by processes of this user), `lib/theme.js` (`layout.lock`, `lock.timeoutDefault 300`)
 
-Reference: §3.10, §4.5, §4.6 (lock/unlock rows), DESIGN §6 "Blokada", §7 R3, R10, R21, R32. PAM: `PamContext { config: "passwd"; configDirectory: Quickshell.shellDir + "/assets/pam.d" }` — the previous working implementation is `git show HEAD~1:config/quickshell/modules/Lock.qml` (follow its PAM flow, idle monitor and IPC).
+Reference: §3.10, §4.5, §4.6 (lock/unlock rows), DESIGN §6 "Blokada", §7 R3, R10, R21, R32. PAM: `PamContext { config: "passwd"; configDirectory: Quickshell.shellDir + "/assets/pam.d" }` — the previous working implementation is `git show ff1f02d:config/quickshell/modules/Lock.qml` (follow its PAM flow, idle monitor and IPC). On PAM success keep `WlSessionLock.locked = true` until the reverse morph (`Theme.motion.lockMorphMs`) has finished, then unlock (DESIGN §6 "Sukces: odwrotny morfing do rest"). In test mode `lock()` only logs.
 
 **Interfaces:**
 - Produces: `states/LockCard.qml` — the card (clock 88 px, date, avatar initial + password field + →, status line, bottom row battery/Wi-Fi/notification count only), properties `property bool failed`, `property bool busy`, `signal submitted(string password)`, `function shake(): void`; usable outside a lock surface. `Lock.qml` — `WlSessionLock` with a surface per screen: wallpaper with `MultiEffect` blur/saturation/brightness/scale from `Theme.lockWallpaper` animated over `Theme.motion.wallpaperMs`, the card entering from the rest geometry (`lockMorphMs`), `MiniPlayer` at the bottom, Uśpij (immediate) / Wyłącz (hold, R32) bottom-right. `IdleMonitor { timeout: host lock.timeout ?? 300; respectInhibitors: true }`.
@@ -1226,7 +1318,7 @@ expect island hidden false
 Reference: §2b, §7 R34.
 
 **Interfaces:**
-- Produces (`lib/autotheme.js`): `function sunTimes(date: Date, lat: number, lon: number) → {sunrise: Date, sunset: Date} | null` (NOAA approximation; null for polar day/night); `function luminance(r, g, b) → number` (0..1, Rec. 709 on sRGB-linearised channels); `function nextMode(current: string, lum: number, lightAbove: number, darkBelow: number) → string` (hysteresis). (`services/AutoTheme.qml`): sets `Theme.autoMode` for `modeSource` `sun` (re-evaluated every minute; no location → "") and `wallpaper` (mean luminance of `Theme.wallpaper` sampled with a hidden `Canvas` drawImage + getImageData at a small size); `boost: bool` = dark mode and luminance of the wallpaper's top-centre region (screen-proportional crop under the island) > `legibility.threshold`.
+- Produces (`lib/autotheme.js`): `function sunTimes(date: Date, lat: number, lon: number) → {sunrise: Date, sunset: Date} | null` (NOAA approximation; null for polar day/night); `function luminance(r, g, b) → number` (0..1, Rec. 709 on sRGB-linearised channels); `function nextMode(current: string, lum: number, lightAbove: number, darkBelow: number) → string` (hysteresis). (`services/AutoTheme.qml`): sets `Theme.autoMode` for `modeSource` `sun` (re-evaluated every minute; no location → "") and `wallpaper` (mean colour of `Theme.wallpaper` from Quickshell's `ColorQuantizer { source; depth: 0; rescaleSize }` — a hidden `Canvas` would never paint); `boost: bool` = dark mode and luminance of the wallpaper's top-centre region (`ColorQuantizer.imageRect` = screen-proportional crop under the island) > `legibility.threshold`.
 
 - [ ] **Step 1: Write the failing test** — `tests/autotheme.test.mjs`:
 
@@ -1264,17 +1356,27 @@ test("nextMode(): hysteresis", () => {
 
 - [ ] **Step 2: Run** (stub) → FAIL.
 - [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** `node --test 'tests/*.test.mjs' && tests/smoke.sh tests/smoke/02-theme.sh` → PASS (manual mode unaffected).
+- [ ] **Step 4: Run** `node --test 'tests/*.test.mjs' && tests/smoke.sh tests/smoke/02-theme.sh` → PASS (manual mode unaffected). Then `tests/smoke/21-auto.sh` (write it before the QML service and see it FAIL first):
+
+```bash
+python3 -I -c 'from PIL import Image; Image.new("RGB", (64, 64), (250, 250, 250)).save("/tmp/wyspa-bright.png")'
+expect theme mode dark
+printf '{"wallpaper":"/tmp/wyspa-bright.png","lock":{"timeout":0},"island":{"modeSource":"wallpaper"}}' > "$CFG"
+wait_ms 1500
+expect theme mode light
+```
+
+  → PASS.
 - [ ] **Step 5: Commit** — `quickshell: automatic theme mode (sun, wallpaper) and legibility boost`
 
 ### Task 22: niri binds, CLAUDE.md, spec state
 
-**Files:** Modify `config/niri/bindings.kdl` (repo path), `docs/DESIGN.md` §7 (architecture → as built) and §2 W6 wording (icons live in `lib/icons.js`, not `assets/icons/`); Create `CLAUDE.md`
+**Files:** Modify `config/niri/bindings.kdl` (repo path), `docs/DESIGN.md` §7 (architecture → as built), `README.md` (repo root: the "Lock `unlock` IPC" note → `qs ipc call island unlock` in `config/quickshell/IslandState.qml`); Create `CLAUDE.md`
 
-- [ ] **Step 1: Binds** — retarget the existing binds only: `Mod+Space` → `qs ipc call island toggle launcher`; `Mod+Shift+V` → `qs ipc call island launcherMenu clipboard`; `Mod+L` → `qs ipc call island lock`. Add a commented block (no active binds) listing the future ones: `// Mod+A → island toggle control`, `// Mod+N → island toggle center`, `// Mod+M → island toggle media (conflicts: edexplore macro)`, `// Mod+Shift+E → island toggle power (conflicts: screenshot)`, `// Mod+Shift+H → island hide`, brightness keys → `brightnessctl set 5%+/-`. Run `niri validate -c ../niri/config.kdl` → `Config is valid`.
+- [ ] **Step 1: Binds** — retarget the existing binds only: `Mod+Space` → `qs ipc call island toggle launcher`; `Mod+Shift+V` → `qs ipc call island launcherMenu clipboard`; `Mod+L` → `qs ipc call island lock`. Add a commented block (no active binds) listing the future ones: `// Mod+A → island toggle control`, `// Mod+N → island toggle center`, `// Mod+M → island toggle media (conflicts: edexplore macro)`, `// Mod+Shift+E → island toggle power (conflicts: screenshot)`, `// Mod+Shift+H → island hide`, brightness keys → `brightnessctl set 5%+/-`. Run `tests/niri-validate.sh` → exit 0.
 - [ ] **Step 2: `CLAUDE.md`** — what this is (dotter deploys files individually into `~/.config/quickshell`, new files need `dotter deploy`), running (`qs`, `qs -p .`), tests (`node --test 'tests/*.test.mjs'`, `tests/smoke.sh tests/smoke/<x>.sh`, `tests/shot.sh`), structure (one line per root file, `lib/`, `states/`, `components/`, `services/`), conventions (Theme-only literals + guard test, how to add a state: geometry row in `lib/theme.js` + `lib/island.js` PRIORITY + `IslandContent.sources` entry + `states/X.qml`), IPC targets `island`/`theme`/`notifs` with their functions, gotchas (Region tracking, lazy ToplevelManager, typed IPC, lock recovery path, niri rule for blur).
-- [ ] **Step 3: DESIGN.md** — §7 "Architektura" rewritten to the files that exist (no "propozycja"); §2 W6 wording fixed. Do not touch other sections.
+- [ ] **Step 3: DESIGN.md** — §7 "Architektura" rewritten to the files that exist (no "propozycja"). Do not touch other sections.
 - [ ] **Step 4: Verify** — `node --test 'tests/*.test.mjs'` and every `tests/smoke/*.sh` except `19-lock-preview.sh` through `tests/smoke.sh` → all PASS.
-- [ ] **Step 5: Commit** — `quickshell: niri binds retargeted, CLAUDE.md, DESIGN architecture as built`
+- [ ] **Step 5: Commit** — `git add -A . ../niri ../../README.md` — `quickshell: niri binds retargeted, CLAUDE.md, DESIGN architecture as built`
 
-**— USER GATE 10 —** final manual pass, then finishing-a-development-branch (merge → `dotter deploy`, restart `qs`, niri reloads its config itself).
+**— USER GATE 10 —** final manual pass, then finishing-a-development-branch (merge → `dotter deploy`, `systemctl --user restart quickshell`, niri reloads its config itself).
