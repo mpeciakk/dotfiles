@@ -7,11 +7,13 @@ ShellRoot {
 
     // Referenced once so the singletons load at startup: IslandState (and its IPC handler),
     // Niri, whose event stream must have delivered the focused workspace before the first request,
-    // and Apps, whose DesktopEntries load asynchronously (a first launcher query would find none).
+    // Apps, whose DesktopEntries load asynchronously (a first launcher query would find none), and
+    // Fullscreen, whose toplevel list fills asynchronously (detection must be live from the start).
     Component.onCompleted: {
         IslandState.current;
         Niri.focusedId;
         Apps.list;
+        Fullscreen.outputs;
     }
 
     // The session lock: one WlSessionLock, which makes its own surface per screen.

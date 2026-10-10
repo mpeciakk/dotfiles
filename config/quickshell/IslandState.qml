@@ -26,6 +26,9 @@ Singleton {
     property var shownByOutput: ({})
     // output name -> whether that output's Rest layer is loaded and lit (true from enter start until the island leaves rest).
     property var restLoadedByOutput: ({})
+    // output name -> whether that output's island is collapsed to the line right now.
+    property var lineByOutput: ({})
+    readonly property string lineOn: Object.keys(root.lineByOutput).filter(n => root.lineByOutput[n]).sort().join(",")
 
     // The launcher, as the IPC sees it. The lit Launcher layer owns the field and mirrors its mode, row
     // count and selected row here; `launcherQuery` is the one text both sides write. `launcherMenuRequest`
@@ -102,6 +105,16 @@ Singleton {
 
     function reportLocked(on: bool): void {
         root.locked = on;
+    }
+
+    function reportLine(output: string, on: bool): void {
+        root.lineByOutput = Object.assign({}, root.lineByOutput, { [output]: on });
+    }
+
+    // Whether this output wants the line (fullscreen there, or hidden by the user); Island adds that the
+    // island is at rest and not hovered, Strut only gives its strip back.
+    function lineWanted(output: string): bool {
+        return Fullscreen.on(output) || root.hidden;
     }
 
     function reportRest(output: string, loaded: bool): void {
@@ -189,6 +202,7 @@ Singleton {
         readonly property string output: root.output
         readonly property bool hidden: root.hidden
         readonly property string maskMode: root.maskMode
+        readonly property string lineOn: root.lineOn
         readonly property string contentState: root.contentState
         readonly property bool restLoaded: root.restLoadedByOutput[Niri.focusedOutput] ?? false
         readonly property int targetW: root.geometryFor(root.current).w

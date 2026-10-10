@@ -3,14 +3,21 @@ import Quickshell
 import Quickshell.Wayland
 
 // The island's full-screen surface on one screen. Input is limited to the shape,
-// except in modal states, where the whole surface catches clicks (click-outside closes).
+// except in modal states, where the whole surface catches clicks (click-outside closes), and in
+// the line (fullscreen there, or hidden), where only the hover zone at the top centre is input.
 PanelWindow {
     id: root
 
     required property var modelData
     screen: modelData
 
-    readonly property string effState: IslandState.output === root.screen.name ? IslandState.current : "rest"
+    readonly property string baseState: IslandState.output === root.screen.name ? IslandState.current : "rest"
+    // The line (reference 2.6) is an override, not an IslandState state: only at rest, and not while the
+    // pointer is on the hover zone. Leaving the zone ends `hovered` after Theme.motion.lineLeaveDelayMs.
+    readonly property bool lineWanted: IslandState.lineWanted(root.screen.name) && root.baseState === "rest"
+    property bool hovered: false
+    readonly property bool line: root.lineWanted && !root.hovered
+    readonly property string effState: root.line ? "line" : root.baseState
     readonly property bool modalHere: IslandState.modal && IslandState.output === root.screen.name
     readonly property string maskMode: root.modalHere ? "full" : "shape"
     readonly property var geo: IslandState.geometryFor(root.effState)
@@ -20,7 +27,11 @@ PanelWindow {
     }
 
     onMaskModeChanged: root.reportMask()
-    Component.onCompleted: root.reportMask()
+    onLineChanged: IslandState.reportLine(root.screen.name, root.line)
+    Component.onCompleted: {
+        root.reportMask();
+        IslandState.reportLine(root.screen.name, root.line);
+    }
 
     Connections {
         target: IslandState
@@ -43,8 +54,15 @@ PanelWindow {
     WlrLayershell.namespace: "wyspa"
     WlrLayershell.keyboardFocus: root.modalHere && Quickshell.env("WYSPA_TEST") !== "1" ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
+    // While the line is wanted, the input is the hover zone plus the body (which is inside the zone as the
+    // line, and keeps the pointer from slipping out of the mask while it grows). Nothing else: the rest of
+    // the screen stays click-through, a fullscreen window included.
     mask: Region {
         item: root.modalHere ? stage : shape.body
+
+        Region {
+            item: root.lineWanted ? hoverZone : shape.body
+        }
     }
 
     // Blur (W1) covers the body and both concave ears (an ear = rect minus ellipse),
@@ -100,11 +118,36 @@ PanelWindow {
         }
     }
 
+    Timer {
+        id: lineLeave
+        interval: Theme.motion.lineLeaveDelayMs
+        onTriggered: root.hovered = false
+    }
+
     FocusScope {
         id: stage
         anchors.fill: parent
         focus: root.modalHere
         Keys.onEscapePressed: IslandState.close()
+
+        Item {
+            id: hoverZone
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 0
+            width: Theme.geom.hoverZone.w
+            height: Theme.geom.hoverZone.h
+
+            HoverHandler {
+                onHoveredChanged: {
+                    if (hovered) {
+                        lineLeave.stop();
+                        root.hovered = true;
+                    } else {
+                        lineLeave.restart();
+                    }
+                }
+            }
+        }
 
         MouseArea {
             anchors.fill: parent

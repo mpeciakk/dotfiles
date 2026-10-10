@@ -18,7 +18,8 @@ PanelWindow {
 
     implicitHeight: Theme.geom.exclusive
     exclusionMode: ExclusionMode.Normal
-    exclusiveZone: Theme.geom.exclusive
+    // The strip is given back while this screen's island is the line (fullscreen there, or hidden).
+    exclusiveZone: IslandState.lineWanted(root.screen.name) ? 0 : Theme.geom.exclusive
     color: "transparent"
     mask: Region {}
 
