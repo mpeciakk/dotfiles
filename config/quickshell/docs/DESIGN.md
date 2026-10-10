@@ -59,6 +59,39 @@ Otwarte: tray (może wróci na końcu).
 Uwaga: blur tła zależy od kompozytora — sprawdź, czy Twoja wersja niri wspiera blur dla layer-shell.
 Jeśli nie, fallback: to samo tło z alfą ~0.78 bez blura.
 
+### 3a. Jasny motyw — „przygaszony dzień” (w planie)
+
+Ten sam układ, kształty i ruch; podmieniane wyłącznie tokeny. Szkło w kolorze mgły (nie biel), tekst grafitowy, akcent przyciemniony do kontrastu ≥ 4.5:1.
+
+| Token | Ciemny | Jasny |
+|---|---|---|
+| `island.bg` | `#100E1A` @ 62% | `#E6E2EC` @ 80% (blur 24, saturate 1.3) |
+| `island.ring` | inset `rgba(255,255,255,0.07)` | inset `rgba(255,255,255,0.55)` |
+| `island.shadow` | `0 18 60 rgba(10,6,20,0.5)` | `0 18 50 rgba(40,30,70,0.2)` |
+| `surface` (kafle) | `#17161F` | `#EFECF3` |
+| `card` / zaznaczenie | `#1F1E2A` | `#F3F1F6` |
+| `chip` / kbd | `#2C2A39` | `#DDD9E5` |
+| `fg` | `#ECEAF2` | `#1E1B2A` |
+| `fg.muted` | `#A29DB3` | `#5C5770` |
+| `track` | `#2C2A39` | `#CFCADA` (wypełnienie suwaka = `fg`) |
+| `accent` | `#B9A7F5` | `#5E48B8` |
+| `onAccent` | `#121118` | `#FFFFFF` |
+| `danger` | `#F2A7B8` | `#B4405E` |
+| Blokada: tapeta | blur 22, brightness 0.78 | blur 18, brightness 0.92 |
+
+Przełączanie: tryb ręczny / wg pory dnia (wschód–zachód) / wg jasności tapety. Zmiana = przenikanie kolorów 600 ms (`ColorAnimation`), bez morfingu kształtu. `Theme.qml` trzyma dwa zestawy i właściwość `mode`.
+
+### 3b. Poziomy szkła (`Theme.glassLevel`, domyślnie „ciekłe” — do potwierdzenia)
+
+| Poziom | Tło wyspy (ciemny / jasny) | Blur | Kafle wewnątrz | Połysk |
+|---|---|---|---|---|
+| subtelne | `#100E1A`@62% / `#E6E2EC`@80% | 24, sat 1.5 | pełne (`#17161F` / `#EFECF3`) | brak |
+| mocne | `#100E1A`@40% / `#E8E4EE`@58% | 36, sat 1.8 | białe @6% / @42% | 50% |
+| ciekłe | `#161224`@28% / `#EAE6F0`@44% | 44, sat 2.0, jasność 1.05 | białe @7% / @40% | 100% |
+
+Połysk = nakładka na kształt: gradient pionowy biel 12%→0 (jasny: 38%→0), dolna krawędź `inset 0 -1 0` biel 22% (jasny 75%), obrys `inset 0 0 0 1` biel 10% (jasny 35%), wewnętrzna poświata 30 px biel 6%.
+Kafle przy mocnym/ciekłym szkle są półprzezroczyste — nie zabijają efektu. Przy jasnej tapecie pilnuj czytelności (ew. lekki text-shadow albo automatyczne podbicie alfy tła, gdy jasność tapety pod wyspą > 0.7).
+
 ## 4. Geometria stanów
 
 Kotwica zawsze: górny środek aktywnego monitora, `top = 0`.
@@ -147,5 +180,6 @@ Skróty: binds w configu niri → `qs ipc call island <stan>`.
 | `LockLive.dc.html` | ekran blokady i przejścia |
 | `PowerLive.dc.html` | menu zasilania z przytrzymaniem |
 | `NotifLive.dc.html` | toasty, licznik, centrum, grupowanie, DND |
+| `JasnyMotyw.dc.html` | jasny motyw: panel, launcher, blokada, tabela tokenów |
 
 Logika (timery, rozmiary, krzywe) jest w bloku `<script type="text/x-dc">` na końcu każdego pliku.
