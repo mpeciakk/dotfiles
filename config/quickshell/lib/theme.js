@@ -70,7 +70,7 @@ var defaults = {
 
     fonts: { ui: "JetBrainsMono Nerd Font", mono: "JetBrainsMono Nerd Font" },
 
-    sizes: { iconStroke: 1.6, ringWidth: 1, clockRest: 13 },
+    sizes: { iconStroke: 1.6, ringWidth: 1, clockRest: 13, sheenGlow: 30, sheenMidStop: 0.45 },
 
     // Island states. r = bottom radius (lock: all corners).
     geom: {
@@ -287,6 +287,7 @@ function resolve(tokens, mode, level, glass) {
         sheen: glass ? mat.sheen : 0,
         shadowY: shadow.y,
         shadowBlur: shadow.blur,
+        shadowPad: shadow.blur + shadow.y,
         lockShadowY: lockShadow.y,
         lockShadowBlur: lockShadow.blur,
         lockWallpaper: clone(tokens.lockWallpaper[m])

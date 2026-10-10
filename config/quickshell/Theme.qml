@@ -119,6 +119,7 @@ Singleton {
     Behavior on sheen { NumberAnimation { duration: root.motion.sheenFadeMs; easing.type: Easing.BezierSpline; easing.bezierCurve: root.motion.easeCurve } }
     readonly property real shadowY: root.c.shadowY
     readonly property real shadowBlur: root.c.shadowBlur
+    readonly property real shadowPad: root.c.shadowPad
     readonly property real lockShadowY: root.c.lockShadowY
     readonly property real lockShadowBlur: root.c.lockShadowBlur
 

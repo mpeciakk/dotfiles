@@ -69,6 +69,8 @@ test("defaults: choices", () => {
     assert.equal(T.defaults.fonts.ui, "JetBrainsMono Nerd Font");
     assert.equal(T.defaults.fonts.mono, "JetBrainsMono Nerd Font");
     assert.equal(T.defaults.sizes.iconStroke, 1.6);
+    assert.equal(T.defaults.sizes.sheenGlow, 30);
+    assert.equal(T.defaults.sizes.sheenMidStop, 0.45);
 });
 
 test("resolve(): dark ciekłe", () => {
@@ -92,6 +94,7 @@ test("resolve(): dark ciekłe", () => {
     assert.equal(c.shadowColor, T.rgba(10, 6, 20, 0.5));
     assert.equal(c.shadowY, 18);
     assert.equal(c.shadowBlur, 60);
+    assert.equal(c.shadowPad, 78);
     assert.equal(c.sheenTop, T.rgba(255, 255, 255, 0.12));
     assert.equal(c.sheenMid, T.rgba(255, 255, 255, 0.02));
     assert.equal(c.sheenEdge, T.rgba(255, 255, 255, 0.22));
@@ -116,6 +119,7 @@ test("resolve(): light subtelne and light mocne", () => {
     assert.equal(s.ring, T.rgba(255, 255, 255, 0.55));
     assert.equal(s.shadowColor, T.rgba(40, 30, 70, 0.2));
     assert.equal(s.shadowBlur, 50);
+    assert.equal(s.shadowPad, 68);
     assert.equal(s.sheenGlow, T.rgba(255, 255, 255, 0));
     assert.deepStrictEqual(s.lockWallpaper, { blur: 18, saturate: 1.2, brightness: 0.92, scale: 1.08 });
     const m = plain(T.resolve(T.defaults, "light", "mocne", true));

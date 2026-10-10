@@ -47,6 +47,50 @@ PanelWindow {
         item: root.modalHere ? stage : shape.body
     }
 
+    // Blur (W1) covers the body and both concave ears (an ear = rect minus ellipse),
+    // only while the island is glass and not collapsed to the line. A zero-sized ear
+    // is an empty region, so the ears drop out when `animEar` is 0.
+    // `shape` is also a Region property name, so Regions read through these aliases.
+    readonly property Item islandBody: shape.body
+    readonly property real cornerRadius: shape.animR
+    readonly property real earSize: shape.animEar
+    property Region blurShape: Region {
+        Region {
+            item: root.islandBody
+            bottomLeftRadius: root.cornerRadius
+            bottomRightRadius: root.cornerRadius
+        }
+        Region {
+            x: root.islandBody.x - root.earSize
+            y: 0
+            width: root.earSize
+            height: root.earSize
+        }
+        Region {
+            shape: RegionShape.Ellipse
+            intersection: Intersection.Subtract
+            x: root.islandBody.x - 2 * root.earSize
+            y: 0
+            width: 2 * root.earSize
+            height: 2 * root.earSize
+        }
+        Region {
+            x: root.islandBody.x + root.islandBody.width
+            y: 0
+            width: root.earSize
+            height: root.earSize
+        }
+        Region {
+            shape: RegionShape.Ellipse
+            intersection: Intersection.Subtract
+            x: root.islandBody.x + root.islandBody.width
+            y: 0
+            width: 2 * root.earSize
+            height: 2 * root.earSize
+        }
+    }
+    BackgroundEffect.blurRegion: Theme.glass && root.effState !== "line" ? root.blurShape : null
+
     FocusScope {
         id: stage
         anchors.fill: parent
@@ -66,6 +110,7 @@ PanelWindow {
             h: root.geo.h
             r: root.geo.r
             ears: root.geo.ears
+            lineMode: root.effState === "line"
         }
     }
 }
