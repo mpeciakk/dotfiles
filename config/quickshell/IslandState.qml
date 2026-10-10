@@ -16,6 +16,8 @@ Singleton {
     property int centerHeight: Theme.geom.center.hMin
     property bool badge: false
     property string osdKind: "volume"
+    // "shape" | "full": input-mask mode of the island on `output`, reported by that screen's Island.
+    property string maskMode: "shape"
 
     readonly property bool modal: L.isModal(root.current)
 
@@ -48,6 +50,11 @@ Singleton {
         return true;
     }
 
+    function reportMask(output: string, m: string): void {
+        if (output === root.output)
+            root.maskMode = m;
+    }
+
     function close(): void {
         autoClose.stop();
         root.current = "rest";
@@ -75,6 +82,7 @@ Singleton {
         readonly property string current: root.current
         readonly property string output: root.output
         readonly property bool hidden: root.hidden
+        readonly property string maskMode: root.maskMode
         readonly property int targetW: root.geometryFor(root.current).w
         readonly property int targetH: root.geometryFor(root.current).h
 

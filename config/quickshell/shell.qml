@@ -1,15 +1,28 @@
 import QtQuick
 import Quickshell
+import "services"
 
 ShellRoot {
     settings.watchFiles: true
 
-    // Referenced once so the singleton (and its IPC handler) loads at startup.
-    Component.onCompleted: IslandState.current
+    // Referenced once so the singletons load at startup: IslandState (and its IPC handler),
+    // and Niri, whose event stream must have delivered the focused workspace before the first request.
+    Component.onCompleted: {
+        IslandState.current;
+        Niri.focusedId;
+    }
 
     Variants {
         model: Quickshell.screens
 
-        Wallpaper {}
+        Scope {
+            id: perScreen
+
+            required property var modelData
+
+            Wallpaper { modelData: perScreen.modelData }
+            Strut { modelData: perScreen.modelData }
+            Island { modelData: perScreen.modelData }
+        }
     }
 }
