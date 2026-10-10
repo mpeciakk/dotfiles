@@ -143,6 +143,8 @@ Singleton {
     }
 
     Timer {
+        id: osdGate
+
         running: true
         interval: Theme.motion.osdTimeoutMs
         onTriggered: root.osdReady = true
@@ -176,6 +178,12 @@ Singleton {
 
     Connections {
         target: Audio
+
+        // The volume of a new default sink (BT or USB connecting) settles like at startup: no OSD until it has.
+        function onSinkChanged(): void {
+            root.osdReady = false;
+            osdGate.restart();
+        }
 
         function onVolumeChanged(): void {
             root.showOsd("volume", Audio.volume, Audio.muted);
@@ -235,8 +243,8 @@ Singleton {
         }
 
         function launcherMenu(id: string): void {
-            root.launcherMenuRequest = id;
-            root.request("launcher");
+            if (root.request("launcher"))
+                root.launcherMenuRequest = id;
         }
 
         // Asks for the session lock (in test mode Lock.qml only logs).

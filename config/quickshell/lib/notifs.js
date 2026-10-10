@@ -55,3 +55,10 @@ function iconSource(snap, iconPath) {
         return snap.appIcon;
     return iconPath(snap.appIcon);
 }
+
+// The same for a stored snapshot, which outlives its Notification: the image://qsimage/ URL of it is dead
+// by then, any other image (path, image://icon/...) is not.
+function storedSource(snap, iconPath) {
+    var image = /^image:\/\/qsimage\//.test(snap.image) ? "" : snap.image;
+    return iconSource({ image: image, appIcon: snap.appIcon }, iconPath);
+}

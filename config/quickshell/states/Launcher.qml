@@ -130,6 +130,8 @@ Item {
             root.perform("focus window " + row.id, () => Niri.focusWindow(row.id));
             IslandState.close();
         } else if (row.kind === "item") {
+            if (row.command === "")
+                return;
             root.perform("run menu command: " + row.command, () => Quickshell.execDetached(["sh", "-c", row.command]));
             if (Menus.get(root.menuId)?.closeOnRun) {
                 IslandState.close();
@@ -199,6 +201,7 @@ Item {
         } else {
             refreshTimer.stop();
             menuProc.running = false;
+            IslandState.launcherResult = "";
         }
     }
 
@@ -445,6 +448,9 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 model: root.rows
 
+                // A new model resets the view to the top: bring the selected row back.
+                onModelChanged: list.positionViewAtIndex(root.selected, ListView.Contain)
+
                 delegate: Rectangle {
                     id: row
 
@@ -530,6 +536,7 @@ Item {
                             Text {
                                 Layout.fillWidth: true
                                 visible: row.modelData.sub !== ""
+                                textFormat: Text.PlainText
                                 text: row.modelData.sub
                                 elide: Text.ElideRight
                                 maximumLineCount: 1

@@ -342,8 +342,8 @@ Item {
                                             required property int index
 
                                             // A card renders its snapshot long after the notification itself is gone, and an
-                                            // image://qsimage/ URL of it is dead by then: the picture is the appIcon, never `image`.
-                                            readonly property string picture: N.iconSource({ appIcon: card.modelData.appIcon }, name => Quickshell.iconPath(name, true))
+                                            // image://qsimage/ URL of it is dead by then: storedSource() drops only those.
+                                            readonly property string picture: N.storedSource({ image: card.modelData.image, appIcon: card.modelData.appIcon }, name => Quickshell.iconPath(name, true))
                                             readonly property bool pictured: card.picture !== "" && cardImage.status === Image.Ready
 
                                             visible: group.open || card.index === 0

@@ -21,6 +21,16 @@ Item {
     readonly property string picture: N.iconSource(root.snap, name => Quickshell.iconPath(name, true))
     readonly property bool pictured: root.picture !== "" && icon.status === Image.Ready
     readonly property int more: Notifs.series - 1
+    // The series resets while the layer is still fading out (more = -1): the chip keeps its last value.
+    property int shownMore: 0
+
+    Binding {
+        target: root
+        property: "shownMore"
+        value: root.more
+        when: root.more >= 0
+        restoreMode: Binding.RestoreNone
+    }
 
     // Fraction of the bar still showing: full for the bar's delay, then linear down to empty.
     property real remaining: 1
@@ -81,6 +91,8 @@ Item {
                 width: root.spec.iconImage
                 height: root.spec.iconImage
                 source: root.picture
+                sourceSize.width: root.spec.iconImage
+                sourceSize.height: root.spec.iconImage
                 fillMode: Image.PreserveAspectFit
                 visible: root.pictured
             }
@@ -114,7 +126,7 @@ Item {
 
             Text {
                 Layout.fillWidth: true
-                text: root.snap.appName + " · " + root.snap.body
+                text: [root.snap.appName, root.snap.body].filter(s => s !== "").join(" · ")
                 elide: Text.ElideRight
                 maximumLineCount: 1
                 color: Theme.fgMuted
@@ -124,7 +136,7 @@ Item {
         }
 
         Rectangle {
-            visible: root.more > 0
+            visible: root.shownMore > 0
             Layout.preferredWidth: chipText.implicitWidth + 2 * root.spec.chipPad
             Layout.preferredHeight: root.spec.chipH
             radius: root.spec.chipRadius
@@ -134,7 +146,7 @@ Item {
                 id: chipText
 
                 anchors.centerIn: parent
-                text: "+" + root.more
+                text: "+" + root.shownMore
                 color: Theme.onAccent
                 font.family: Theme.fonts.mono
                 font.pixelSize: root.spec.chipFont

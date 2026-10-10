@@ -35,4 +35,10 @@ wait_ms 600
 call island open launcher
 wait_ms 600
 expect island launcherMode apps
+# The selected label does not outlive the launcher (the clipboard menu's preview would stay readable over IPC).
+call island launcherSetQuery "=2+3*4"
+wait_ms 200
+expect island launcherResult 14
 call island close
+wait_ms 600
+expect island launcherResult ""
