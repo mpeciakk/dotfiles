@@ -18,7 +18,9 @@ Item {
         center: "states/Center.qml",
         launcher: "states/Launcher.qml",
         control: "states/Control.qml",
-        media: "states/Media.qml"
+        media: "states/Media.qml",
+        power: "states/Power.qml",
+        powerDone: "states/PowerDone.qml"
     })
 
     // The state whose layer has fully entered; "" while a transition runs.

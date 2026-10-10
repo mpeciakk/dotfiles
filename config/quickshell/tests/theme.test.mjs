@@ -245,3 +245,15 @@ test("defaults: layout.media matches reference 3.3", () => {
         emptyFont: 13
     });
 });
+
+test("defaults: layout.power and layout.powerDone match reference 3.8 / 3.9", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.power), {
+        padTop: 16, padX: 18, padBottom: 18, gap: 14, headPadX: 4, titleFont: 14, hintFont: 12,
+        gridGap: 8, buttonGap: 8, buttonPadY: 4, circle: 60, icon: 20,
+        ringRadius: 28, ringWidth: 2.5, ringStart: -90, ringSweep: 360,
+        labelFont: 12, keyFont: 10, focusWidth: 1.5, focusGap: 4, focusRadius: 18
+    });
+    assert.deepStrictEqual(plain(T.defaults.layout.powerDone), {
+        padX: 20, gap: 12, dot: 10, dotRadius: 5, haloWidth: 4, labelFont: 14
+    });
+});

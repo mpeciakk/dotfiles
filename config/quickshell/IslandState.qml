@@ -36,6 +36,11 @@ Singleton {
     property string launcherResult: ""
     property string launcherMenuRequest: ""
 
+    // The power menu: the label powerDone shows (set when a button is confirmed), and the request for the
+    // session lock. Nothing is connected to lockRequested until the lock screen (Task 19).
+    property string powerLabel: ""
+    signal lockRequested
+
     // What the user sees: the island on `output`, or at rest the one on the focused output.
     readonly property string contentState: root.shownByOutput[root.current === "rest" ? Niri.focusedOutput : root.output] ?? ""
 
@@ -181,6 +186,7 @@ Singleton {
         readonly property int launcherCount: root.launcherCount
         readonly property string launcherMode: root.launcherMode
         readonly property string launcherResult: root.launcherResult
+        readonly property string powerLabel: root.powerLabel
 
         function open(s: string): void {
             root.request(s);

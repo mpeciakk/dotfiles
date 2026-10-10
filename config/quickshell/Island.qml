@@ -112,6 +112,23 @@ PanelWindow {
             onClicked: IslandState.close()
         }
 
+        // The power menu dims the screen (reference 3.8). A Rectangle takes no input, so the catcher above
+        // still gets every click; the island body is declared after it and paints over it.
+        Rectangle {
+            anchors.fill: parent
+            color: Theme.scrimDim
+            opacity: root.effState === "power" ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.motion.dimMs
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Theme.motion.easeCurve
+                }
+            }
+        }
+
         IslandShape {
             id: shape
             anchors.fill: parent

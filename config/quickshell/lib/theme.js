@@ -137,6 +137,17 @@ var defaults = {
         shakeMs: 380
     },
 
+    // What the power menu runs (reference 3.8); overridable under "island.power.commands". The lock has no
+    // command: it asks the session lock. Only states/Power.qml perform() ever reads these.
+    power: {
+        commands: {
+            suspend: ["systemctl", "suspend"],
+            logout: ["niri", "msg", "action", "quit", "--skip-confirmation"],
+            reboot: ["systemctl", "reboot"],
+            poweroff: ["systemctl", "poweroff"]
+        }
+    },
+
     // Colours that do not depend on the glass level. Omitted keys are derived in
     // resolve(): fgSoft = fg, fgLock = fgMuted, track = chip, lockField = tile,
     // lockGlass = islandBg.
@@ -308,6 +319,19 @@ var defaults = {
             art: 36, artRadius: 10, play: 36,
             eqGap: 2, eqH: 14, eqBarW: 2, eqMarginRight: 4, eqScaleMin: 0.35, eqDelayMs: [0, -200, -500, -700],
             emptyFont: 13
+        },
+        // Power menu (reference 3.8). The ring is an arc of radius ringRadius round the circle, starting at
+        // ringStart degrees (12 o'clock) and sweeping ringSweep degrees when full. The focus ring (focusGap
+        // outside the circle) is the keyboard focus (R22).
+        power: {
+            padTop: 16, padX: 18, padBottom: 18, gap: 14, headPadX: 4, titleFont: 14, hintFont: 12,
+            gridGap: 8, buttonGap: 8, buttonPadY: 4, circle: 60, icon: 20,
+            ringRadius: 28, ringWidth: 2.5, ringStart: -90, ringSweep: 360,
+            labelFont: 12, keyFont: 10, focusWidth: 1.5, focusGap: 4, focusRadius: 18
+        },
+        // powerDone (reference 3.9): the "prototyp" demo marker is dropped.
+        powerDone: {
+            padX: 20, gap: 12, dot: 10, dotRadius: 5, haloWidth: 4, labelFont: 14
         }
     }
 };
