@@ -111,6 +111,15 @@ PanelWindow {
             r: root.geo.r
             ears: root.geo.ears
             lineMode: root.effState === "line"
+
+            IslandContent {
+                id: content
+                anchors.fill: parent
+                target: root.effState
+                output: root.screen.name
+                onShownChanged: IslandState.reportShown(root.screen.name, content.shown)
+                Component.onCompleted: IslandState.reportShown(root.screen.name, content.shown)
+            }
         }
     }
 }

@@ -18,6 +18,11 @@ Singleton {
     property string osdKind: "volume"
     // "shape" | "full": input-mask mode of the island on `output`, reported by that screen's Island.
     property string maskMode: "shape"
+    // output name -> the state whose content layer is fully entered ("" while a transition runs).
+    property var shownByOutput: ({})
+
+    // What the user sees: the island on `output`, or at rest the one on the focused output.
+    readonly property string contentState: root.shownByOutput[root.current === "rest" ? Niri.focusedOutput : root.output] ?? ""
 
     readonly property bool modal: L.isModal(root.current)
 
@@ -55,6 +60,10 @@ Singleton {
             root.maskMode = m;
     }
 
+    function reportShown(output: string, s: string): void {
+        root.shownByOutput = Object.assign({}, root.shownByOutput, { [output]: s });
+    }
+
     function close(): void {
         autoClose.stop();
         root.current = "rest";
@@ -83,6 +92,7 @@ Singleton {
         readonly property string output: root.output
         readonly property bool hidden: root.hidden
         readonly property string maskMode: root.maskMode
+        readonly property string contentState: root.contentState
         readonly property int targetW: root.geometryFor(root.current).w
         readonly property int targetH: root.geometryFor(root.current).h
 
