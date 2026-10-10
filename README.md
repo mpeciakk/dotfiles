@@ -140,6 +140,6 @@ To add a machine: copy an existing `hosts/<host>` dir (e.g. `hosts/mac`) to
   with `rename(2)`, which would swap a symlink for a regular file and silently detach it
   from the repo. If herdr ever rewrites `config.toml` the same way (`herdr config
   reset-keys`, onboarding), check `ls -l ~/.config/herdr/config.toml` still points here.
-- **Lock `unlock` IPC** (`config/quickshell/modules/Lock.qml`): `qs ipc call lock
+- **Lock `unlock` IPC** (`config/quickshell/IslandState.qml`): `qs ipc call island
   unlock` clears the lock without authentication — a deliberate recovery hatch,
   reachable only by processes already running as you.

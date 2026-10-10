@@ -5,9 +5,17 @@ binds {
     Mod+Return repeat=false { spawn-sh "kitten @ --to unix:@kitty launch --type=os-window 2>/dev/null || kitty --single-instance"; }
     Mod+Q repeat=false  { close-window; }
 
-    Mod+Space repeat=false { spawn "qs" "ipc" "call" "launcher" "toggle"; }
-    Mod+Shift+V repeat=false { spawn "qs" "ipc" "call" "launcher" "menu" "clipboard"; }
-    Mod+L repeat=false { spawn "qs" "ipc" "call" "lock" "lock"; }
+    Mod+Space repeat=false { spawn "qs" "ipc" "call" "island" "toggle" "launcher"; }
+    Mod+Shift+V repeat=false { spawn "qs" "ipc" "call" "island" "launcherMenu" "clipboard"; }
+    Mod+L repeat=false { spawn "qs" "ipc" "call" "island" "lock"; }
+
+    // Wyspa binds not taken yet (W9), each one needs its conflict settled first:
+    // Mod+A → island toggle control
+    // Mod+N → island toggle center
+    // Mod+M → island toggle media (conflicts: edexplore macro)
+    // Mod+Shift+E → island toggle power (conflicts: screenshot)
+    // Mod+Shift+H → island hide
+    // XF86MonBrightnessUp / XF86MonBrightnessDown → brightnessctl set 5%+ / 5%-
 
     Mod+O repeat=false { toggle-overview; }
 

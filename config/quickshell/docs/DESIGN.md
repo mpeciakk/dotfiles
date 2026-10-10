@@ -151,24 +151,40 @@ Behavior on implicitWidth {
 **Blokada** (`WlSessionLock`, PAM) — wyspa zjeżdża z krawędzi do karty 460×360 na środku; tapeta blur 22 px, saturate 1.2, brightness 0.78, scale 1.08 (700 ms); okna znikają. Karta: zegar 88 px, data, pole hasła (avatar z inicjałem, input, przycisk →), linia statusu, na dole bateria / Wi‑Fi / **tylko liczba** powiadomień (bez treści). Dodatkowo: mini odtwarzacz na dole ekranu, przyciski Uśpij/Wyłącz w prawym dolnym rogu. Błąd: shake 380 ms (±10/8/6/3 px) + obwódka `danger`. Sukces: odwrotny morfing do `rest`, okna wracają z opóźnieniem 240 ms.
 Uwaga: lock surface to osobna powierzchnia — „zjazd” wyspy symulujemy animacją wejścia karty z pozycji/rozmiaru `rest`.
 
-## 7. Architektura (propozycja)
+## 7. Architektura
+
+Katalog `config/quickshell/`. Dotter wdraża go do `~/.config/quickshell` plik po pliku. Opis pracy z kodem: `config/quickshell/CLAUDE.md`.
 
 ```
-shell.qml
-Theme.qml            singleton: tokeny + wczytanie configu (JSON/TOML) z hot-reloadem
-IslandState.qml      singleton: maszyna stanów, priorytety, timery, IPC (IpcHandler dla skrótów niri)
-Island.qml           PanelWindow per ekran (Variants na Quickshell.screens), anchors.top,
-                     exclusiveZone = (line ? 0 : 36), mask = Region { item: shape } (kliki przechodzą obok)
-IslandShape.qml      Shape (QtQuick.Shapes) — jedna ścieżka z uszami, animowana szerokością/wysokością
-states/Rest.qml, Launcher.qml, Control.qml, Osd.qml, Media.qml, Toast.qml,
-       Center.qml, Power.qml, PowerDone.qml
-Lock.qml             WlSessionLock + Quickshell.Services.Pam
-services/Niri.qml    `niri msg -j event-stream` (obszary, okna, fullscreen)
+shell.qml            ShellRoot: Lock, a na każdy ekran (Variants) Wallpaper, Strut i Island;
+                     odwołuje się do leniwych singletonów, żeby ruszyły przy starcie
+Theme.qml            singleton: tokeny z lib/theme.js + config hosta (FileView, hot-reload),
+                     tryb i poziom szkła, IPC `theme`
+IslandState.qml      singleton: maszyna stanów, timery, OSD, tryb linii, IPC `island`
+Island.qml           PanelWindow per ekran (pełnoekranowa, maska = kształt, w stanach modalnych pełna)
+IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus blur i cień
+IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
+Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
+Wallpaper.qml        tapeta per ekran
+Lock.qml             WlSessionLock + PAM; LockPreview.qml pokazuje kartę bez blokowania (zrzuty)
+states/              Rest, Osd, Toast, Center, Launcher, Control, Media, Power, PowerDone, LockCard
+components/          Icon, MiniPlayer, PowerActions (jedyna bramka poleceń zasilania i blokady)
+services/            Niri, Fullscreen, Apps, Menus, Notifs, Audio, Brightness, Network, Battery,
+                     Players, Time, AutoTheme
+lib/                 czysty JS (`.pragma library`), testowany w node: theme, island, niri, fullscreen,
+                     notifs, power, lock, slider, fuzzy, calc, icons, autotheme
+menus/               skrypty menu launchera (schowek, VPN)
+tests/               testy node, smoke (`tests/smoke/*.sh`), `shot.sh`, `niri-validate.sh`
 ```
 
-Serwisy Quickshell: Pipewire (głośność), Mpris (media), UPower (bateria), Notifications (NotificationServer),
-Bluetooth; Wi‑Fi i jasność przez `Process` (nmcli, brightnessctl), jeśli brak natywnych.
-Skróty: binds w configu niri → `qs ipc call island <stan>`.
+Zasady:
+
+- Wszystkie liczby i kolory UI pochodzą z `Theme`. Pilnuje tego `tests/no-magic.test.mjs`.
+- Nowy stan to cztery zmiany: wiersz geometrii w `lib/theme.js`, wpis w `PRIORITY` w `lib/island.js`, wpis w `IslandContent.sources` i plik `states/X.qml`.
+- Skróty niri wołają `qs ipc call island <funkcja>`. Cel `island` ma funkcje `open`, `toggle`, `close`, `hide`, `launcherMenu`, `lock`, `unlock`. Cele `theme` i `notifs` służą do ustawiania motywu i do testów.
+- Blur robi shell przez `ext-background-effect`. `layer-rule` dla `wyspa` w `config/niri/window_rules.kdl` tylko włącza blur okien i saturację.
+- Polecenia zasilania i blokada przechodzą przez jedną bramkę (`PowerActions.perform()`, `Lock.engageLock()`). W trybie testowym (`WYSPA_TEST=1`) bramka tylko loguje.
+- Natywne moduły Quickshell: Pipewire (głośność), Mpris (media), Notifications (serwer powiadomień), UPower (bateria), Pam, Bluetooth, Networking. Jasność czyta sysfs i ustawia przez `brightnessctl`.
 
 ## 8. Prototypy
 
