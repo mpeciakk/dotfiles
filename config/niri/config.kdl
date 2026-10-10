@@ -12,6 +12,11 @@ spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
 
 prefer-no-csd
 
+blur {
+    passes 3
+    offset 5
+}
+
 screenshot-path "~/pictures/screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
 recent-windows {

@@ -32,3 +32,15 @@ layer-rule {
     match namespace="^quickshell-wallpaper$"
     place-within-backdrop true
 }
+
+// Wyspa (Quickshell island): the shell sets the blur region itself via
+// ext-background-effect; this rule only makes it blur windows (not just the
+// backdrop) and boosts saturation. No `blur true` here — that would blur the
+// whole full-screen surface whenever the shell sets no region.
+layer-rule {
+    match namespace="^wyspa$"
+    background-effect {
+        xray false
+        saturation 2.0
+    }
+}
