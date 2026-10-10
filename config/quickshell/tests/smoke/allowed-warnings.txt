@@ -1,0 +1,12 @@
+# IPC property change signals are reported as warnings by qs ipc.
+Signal detected
+# Quickshell.Networking without NetworkManager (pc has none running).
+Could not find an available backend
+# Quickshell.Bluetooth without BlueZ (pc has none running).
+Failed to create DBusObjectManagerInterface for "org\.bluez"
+# The user's running shell owns org.freedesktop.Notifications during development.
+Could not register notification server
+# Themed icon names absent from the icon theme (menu rows, some apps).
+Could not load icon
+# No xdg-desktop-portal host registration for this instance.
+Failed to register with host portal
