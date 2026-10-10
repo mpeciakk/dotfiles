@@ -34,7 +34,7 @@ A new file in the repo is not visible to the running shell until `dotter deploy`
 | `shell.qml` | `ShellRoot`: `Lock`, and per screen `Wallpaper`, `Strut`, `Island`; references the lazy singletons |
 | `Theme.qml` | singleton: tokens (`lib/theme.js`) merged with the host config, mode, glass level, IPC `theme` |
 | `IslandState.qml` | singleton: state machine, timers, OSD, line mode, launcher/lock hooks, IPC `island` |
-| `Island.qml` | per-screen full-screen panel; input mask = the shape (full in modal states, hover zone in line mode); blur region (`blurShape`, `BackgroundEffect.blurRegion`) |
+| `Island.qml` | per-screen full-screen panel; input mask = the shape (full in modal states, hover zone (plus the body while it grows) in line mode); blur region (`blurShape`, `BackgroundEffect.blurRegion`) |
 | `IslandShape.qml` | the silhouette: one path with ears, shadow, inner glow |
 | `IslandContent.qml` | one layer per state (`sources`), cross-fade |
 | `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode) |
@@ -142,6 +142,6 @@ for `namespace="^wyspa$"` in `config/niri/window_rules.kdl` has `xray false` and
    unlock after 600 s.
 10. A fullscreen window on an output puts its island in line mode. `services/Fullscreen.qml` is disabled under
     `WYSPA_TEST` (`outputs` is `[]`), so smokes are independent of real fullscreen windows; they reach line mode only
-    through IPC `hide`. `maskMode`: `full` in a modal state, `line` while the line is wanted (only the 400x28 hover
-    zone is input), else `shape`.
+    through IPC `hide`. `maskMode`: `full` in a modal state, `line` while the line is wanted (input is the 400x28 hover
+    zone, plus the body while it grows), else `shape`.
 11. Test-only readable props (`restLoaded`, `contentState`, `maskMode`, …) are there for smokes; do not build features on them.

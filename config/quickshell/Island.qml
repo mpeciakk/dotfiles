@@ -4,7 +4,7 @@ import Quickshell.Wayland
 
 // The island's full-screen surface on one screen. Input is limited to the shape,
 // except in modal states, where the whole surface catches clicks (click-outside closes), and in
-// the line (fullscreen there, or hidden), where only the hover zone at the top centre is input.
+// the line (fullscreen there, or hidden), where input is the hover zone at the top centre (plus the body while it grows).
 PanelWindow {
     id: root
 
@@ -70,10 +70,10 @@ PanelWindow {
     // line, and keeps the pointer from slipping out of the mask while it grows). Nothing else: the rest of
     // the screen stays click-through, a fullscreen window included.
     mask: Region {
-        item: root.modalHere ? stage : shape.body
+        item: root.maskMode === "full" ? stage : shape.body
 
         Region {
-            item: root.lineWanted ? hoverZone : shape.body
+            item: root.maskMode === "line" ? hoverZone : shape.body
         }
     }
 
