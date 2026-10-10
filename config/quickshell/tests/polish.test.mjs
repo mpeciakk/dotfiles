@@ -61,11 +61,24 @@ test("guard: a menu row without a command runs nothing", () => {
     assert.ok(branch.indexOf('row.command === ""') < branch.indexOf("execDetached"));
 });
 
-test("guard: a default sink change shuts the OSD gate again, with the startup timer", () => {
+test("guard: a default sink change shuts the OSD gate inside the value handlers, not after them", () => {
     const s = src("IslandState.qml");
     assert.match(s, /Timer\s*\{\s*id:\s*osdGate\b[^}]*onTriggered:\s*root\.osdReady\s*=\s*true/);
+    // volume / muted are bindings on Audio.sink: they emit BEFORE sinkChanged, so each handler checks the sink itself.
+    const fn = s.match(/function sinkSettling\(\): bool \{[\s\S]*?\n    \}/)[0];
+    assert.match(fn, /if\s*\(\s*Audio\.sink\s*===\s*root\.osdSink\s*\)\s*return false;/);
+    assert.match(fn, /root\.osdSink\s*=\s*Audio\.sink;\s*root\.osdReady\s*=\s*false;\s*osdGate\.restart\(\);\s*return true;/);
     const audio = s.match(/target: Audio[\s\S]*?\n    \}/)[0];
-    assert.match(audio, /function onSinkChanged\(\): void \{\s*root\.osdReady\s*=\s*false;\s*osdGate\.restart\(\);\s*\}/);
+    for (const h of ["onVolumeChanged", "onMutedChanged"])
+        assert.match(audio, new RegExp("function " + h + "\\(\\): void \\{\\s*if \\(root\\.sinkSettling\\(\\)\\)\\s*return;\\s*root\\.showOsd\\("));
+    // a sink switch that leaves volume and mute as they were emits neither: sinkChanged settles the gate too.
+    assert.match(audio, /function onSinkChanged\(\): void \{\s*root\.sinkSettling\(\);\s*\}/);
+});
+
+test("guard: the centre card image decodes at the icon box size, not the file's", () => {
+    const img = src("states/Center.qml").match(/Image \{\s*id: cardImage[\s\S]*?\n\s*\}/)[0];
+    assert.match(img, /sourceSize\.width:\s*root\.spec\.cardIconImage/);
+    assert.match(img, /sourceSize\.height:\s*root\.spec\.cardIconImage/);
 });
 
 test("guard: the toast's +N chip keeps its last value while the layer fades out", () => {

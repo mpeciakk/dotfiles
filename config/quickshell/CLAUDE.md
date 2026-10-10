@@ -130,7 +130,7 @@ for `namespace="^wyspa$"` in `config/niri/window_rules.kdl` has `xray false` and
    `Network` service: import it `as QsNetworking`.
 5. Lazy singletons (`Niri`, `Apps`, `Fullscreen`, `AutoTheme`) run only when referenced: keep them referenced
    from `shell.qml`. `ToplevelManager` fills lazily.
-6. Notification `image://qsimage` URLs die with the `Notification` object (not tracked): stored snapshots use `appIcon`.
+6. Notification `image://qsimage` URLs die with the `Notification` object (not tracked): stored snapshots drop only those (`storedSource()`) and keep file-path and `image://icon` images, else `appIcon`.
    The toast reads the image synchronously inside the handler, never `asynchronous`.
 7. niri posts its own notification for every screenshot and the test instance is the daemon: take the shot last, wait
    ≥ `toastTimeoutMs` + 1.5 s, or assert relative values. `tests/shot.sh` removes the stale image and waits for the new one.

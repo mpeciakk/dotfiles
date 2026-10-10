@@ -20,6 +20,8 @@ Singleton {
     property bool osdMuted: false
     // False while the audio and backlight values settle after startup; no OSD until then.
     property bool osdReady: false
+    // The default sink the OSD has seen last (see sinkSettling()).
+    property var osdSink: null
     // "shape" | "line" | "full": input-mask mode of the island on `output`, reported by that screen's Island.
     property string maskMode: "shape"
     // output name -> the state whose content layer is fully entered ("" while a transition runs).
@@ -92,6 +94,17 @@ Singleton {
         root.osdValue = value;
         root.osdMuted = muted;
         root.request("osd");
+    }
+
+    // True (and the OSD gate shut again, like at startup) when the default sink is not the one the
+    // OSD has been following: the volume of a new sink (BT or USB connecting) must settle first.
+    function sinkSettling(): bool {
+        if (Audio.sink === root.osdSink)
+            return false;
+        root.osdSink = Audio.sink;
+        root.osdReady = false;
+        osdGate.restart();
+        return true;
     }
 
     function reportMask(output: string, m: string): void {
@@ -179,17 +192,21 @@ Singleton {
     Connections {
         target: Audio
 
-        // The volume of a new default sink (BT or USB connecting) settles like at startup: no OSD until it has.
+        // volume and muted are bindings on Audio.sink: they emit before sinkChanged does, so each handler
+        // checks the sink itself. sinkChanged covers a switch that leaves both values as they were.
         function onSinkChanged(): void {
-            root.osdReady = false;
-            osdGate.restart();
+            root.sinkSettling();
         }
 
         function onVolumeChanged(): void {
+            if (root.sinkSettling())
+                return;
             root.showOsd("volume", Audio.volume, Audio.muted);
         }
 
         function onMutedChanged(): void {
+            if (root.sinkSettling())
+                return;
             root.showOsd("volume", Audio.volume, Audio.muted);
         }
     }

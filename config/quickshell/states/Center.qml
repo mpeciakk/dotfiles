@@ -370,6 +370,8 @@ Item {
                                                         anchors.centerIn: parent
                                                         width: root.spec.cardIconImage
                                                         height: root.spec.cardIconImage
+                                                        sourceSize.width: root.spec.cardIconImage
+                                                        sourceSize.height: root.spec.cardIconImage
                                                         source: card.picture
                                                         cache: false
                                                         fillMode: Image.PreserveAspectFit
