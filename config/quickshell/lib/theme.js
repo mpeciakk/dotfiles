@@ -226,6 +226,12 @@ var defaults = {
 
     // Per-state extras, filled in by the state tasks.
     layout: {
+        // Rest (reference 3.1). eqDelayMs are the bars' phase offsets in the eq cycle.
+        rest: {
+            gap: 14, dotsGap: 4, dot: 5, dotActiveW: 14, dotRadius: 3,
+            eqGap: 2, eqH: 12, eqBarW: 2, eqScaleMin: 0.35, eqDelayMs: [0, -300, -600],
+            badgeGap: 5, badgeH: 22, badgePad: 8, badgeRadius: 11, badgeFont: 11, badgeIcon: 12
+        },
         // Notification centre height terms (reference 3.5, R28). hMin/hMax mirror geom.center so
         // lib/notifs.js centerHeight() needs only this object.
         center: {

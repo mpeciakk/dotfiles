@@ -20,6 +20,8 @@ Singleton {
     property string maskMode: "shape"
     // output name -> the state whose content layer is fully entered ("" while a transition runs).
     property var shownByOutput: ({})
+    // output name -> whether that output's Rest layer is mounted and entered.
+    property var restLoadedByOutput: ({})
 
     // What the user sees: the island on `output`, or at rest the one on the focused output.
     readonly property string contentState: root.shownByOutput[root.current === "rest" ? Niri.focusedOutput : root.output] ?? ""
@@ -64,6 +66,10 @@ Singleton {
         root.shownByOutput = Object.assign({}, root.shownByOutput, { [output]: s });
     }
 
+    function reportRest(output: string, loaded: bool): void {
+        root.restLoadedByOutput = Object.assign({}, root.restLoadedByOutput, { [output]: loaded });
+    }
+
     function close(): void {
         autoClose.stop();
         root.current = "rest";
@@ -93,6 +99,7 @@ Singleton {
         readonly property bool hidden: root.hidden
         readonly property string maskMode: root.maskMode
         readonly property string contentState: root.contentState
+        readonly property bool restLoaded: root.restLoadedByOutput[Niri.focusedOutput] ?? false
         readonly property int targetW: root.geometryFor(root.current).w
         readonly property int targetH: root.geometryFor(root.current).h
 

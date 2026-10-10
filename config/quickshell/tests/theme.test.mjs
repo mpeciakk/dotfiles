@@ -144,3 +144,12 @@ test("resolve(): config overrides flow through merge", () => {
     const tokens = T.merge(T.defaults, { palette: { dark: { accent: "#8FD3C1" } } });
     assert.equal(T.resolve(tokens, "dark", "ciekłe", true).accent, T.hex("#8FD3C1"));
 });
+
+test("defaults: layout.rest matches reference 3.1", () => {
+    const r = plain(T.defaults.layout.rest);
+    assert.deepStrictEqual(r, {
+        gap: 14, dotsGap: 4, dot: 5, dotActiveW: 14, dotRadius: 3,
+        eqGap: 2, eqH: 12, eqBarW: 2, eqScaleMin: 0.35, eqDelayMs: [0, -300, -600],
+        badgeGap: 5, badgeH: 22, badgePad: 8, badgeRadius: 11, badgeFont: 11, badgeIcon: 12
+    });
+});

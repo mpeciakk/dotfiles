@@ -11,7 +11,9 @@ Item {
     property string target: "rest"
     property string output: ""
     // state -> component url; every state task adds exactly one entry here.
-    property var sources: ({})
+    property var sources: ({
+        rest: "states/Rest.qml"
+    })
 
     // The state whose layer has fully entered; "" while a transition runs.
     readonly property string shown: root.settled ? root.target : ""
