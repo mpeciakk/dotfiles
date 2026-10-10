@@ -91,6 +91,15 @@ PanelWindow {
     }
     BackgroundEffect.blurRegion: Theme.glass && root.effState !== "line" ? root.blurShape : null
 
+    Timer {
+        id: mediaLeave
+        interval: Theme.motion.mediaLeaveMs
+        onTriggered: {
+            if (root.effState === "media")
+                IslandState.close();
+        }
+    }
+
     FocusScope {
         id: stage
         anchors.fill: parent
@@ -119,6 +128,19 @@ PanelWindow {
                 output: root.screen.name
                 onShownChanged: IslandState.reportShown(root.screen.name, content.shown)
                 Component.onCompleted: IslandState.reportShown(root.screen.name, content.shown)
+            }
+
+            // The pointer on the island body (the shape's content area fills it). Leaving it while in the
+            // media state closes that after Theme.motion.mediaLeaveMs; coming back cancels the close. Media
+            // opened by IPC with the pointer elsewhere has no leave and so stays open. Always enabled: a
+            // disabled handler clears `hovered` and a re-enabled one would only see the pointer on its next move.
+            HoverHandler {
+                onHoveredChanged: {
+                    if (hovered || root.effState !== "media")
+                        mediaLeave.stop();
+                    else
+                        mediaLeave.restart();
+                }
             }
         }
     }

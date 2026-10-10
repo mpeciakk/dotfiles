@@ -29,6 +29,18 @@ Item {
         onClicked: IslandState.request("control")
     }
 
+    // Hovering the island while a player plays opens the media state (R31). A HoverHandler is passive, so
+    // it takes no clicks from the MouseAreas; it acts on the pointer entering only, and only on the output
+    // that has focus (IslandState.request opens the state there).
+    HoverHandler {
+        enabled: root.active && root.playing && root.output === Niri.focusedOutput
+
+        onHoveredChanged: {
+            if (hovered)
+                IslandState.request("media");
+        }
+    }
+
     RowLayout {
         anchors.centerIn: parent
         spacing: root.spec.gap

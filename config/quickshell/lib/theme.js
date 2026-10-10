@@ -300,6 +300,14 @@ var defaults = {
         miniPlayer: {
             pad: 10, gap: 12, art: 40, artRadius: 12, textGap: 1, titleFont: 13, artistFont: 12,
             play: 38, playIcon: 14, skip: 32, skipIcon: 15, disabledOpacity: 0.4
+        },
+        // Media (reference 3.3). What it shares with the mini player (padding, gap, fonts, prev/next sizes) is
+        // read from layout.miniPlayer; only what differs is here. The reference gives no eq scale range (the
+        // rest eq's 0.35 is reused) and no size for the "Nic nie gra" placeholder (emptyFont).
+        media: {
+            art: 36, artRadius: 10, play: 36,
+            eqGap: 2, eqH: 14, eqBarW: 2, eqMarginRight: 4, eqScaleMin: 0.35, eqDelayMs: [0, -200, -500, -700],
+            emptyFont: 13
         }
     }
 };

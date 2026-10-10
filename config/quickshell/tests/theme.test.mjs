@@ -237,3 +237,11 @@ test("defaults: layout.miniPlayer matches reference 3.7", () => {
         play: 38, playIcon: 14, skip: 32, skipIcon: 15, disabledOpacity: 0.4
     });
 });
+
+test("defaults: layout.media matches reference 3.3", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.media), {
+        art: 36, artRadius: 10, play: 36,
+        eqGap: 2, eqH: 14, eqBarW: 2, eqMarginRight: 4, eqScaleMin: 0.35, eqDelayMs: [0, -200, -500, -700],
+        emptyFont: 13
+    });
+});
