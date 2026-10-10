@@ -43,21 +43,7 @@ Item {
         ColorAnimation { duration: Theme.motion.bgColorMs }
     }
 
-    // Own geometry follows the animated shape: a Region tracks only this item.
-    Item {
-        id: bodyItem
-        x: (root.width - root.animW) / 2
-        y: 0
-        width: root.animW
-        height: root.animH
-
-        Item {
-            id: clipArea
-            anchors.fill: parent
-            clip: true
-        }
-    }
-
+    // Declared before bodyItem: later siblings paint on top, so content stays above the fill.
     Shape {
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
@@ -107,6 +93,27 @@ Item {
                 radiusY: path.e
                 direction: PathArc.Clockwise
             }
+        }
+    }
+
+    // Own geometry follows the animated shape: a Region tracks only this item.
+    Item {
+        id: bodyItem
+        x: (root.width - root.animW) / 2
+        y: 0
+        width: root.animW
+        height: root.animH
+
+        // Absorbs clicks on the body so they never reach the click-outside catcher
+        // below; sits under clipArea, so interactive content still gets its events first.
+        MouseArea {
+            anchors.fill: parent
+        }
+
+        Item {
+            id: clipArea
+            anchors.fill: parent
+            clip: true
         }
     }
 }
