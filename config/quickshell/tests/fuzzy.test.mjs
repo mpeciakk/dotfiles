@@ -68,3 +68,39 @@ test("word start follows a separator", () => {
     assert.ok(F.match("ed", "Text-Editor").score > F.match("ed", "Tedious").score);
     assert.deepStrictEqual(plain(F.match("ed", "Text-Editor").ranges), [[5, 7]]);
 });
+
+test("rank(): exact > prefix > word start > substring > extras > subsequence", () => {
+    const scores = [
+        F.rank("term", "Term", []),
+        F.rank("term", "Terminal", []),
+        F.rank("term", "Kitty Terminal", []),
+        F.rank("term", "Xterm", []),
+        F.rank("term", "Kitty", ["Terminal emulator"]),
+        F.rank("term", "The Witcher 3: Wild Hunt - Remastered", [])
+    ].map(r => r.score);
+    for (let i = 1; i < scores.length; i++)
+        assert.ok(scores[i - 1] > scores[i], `tier ${i - 1} > tier ${i}: ${scores}`);
+});
+
+test("rank(): an extras hit beats a pure name subsequence even when the name also subsequence-matches", () => {
+    const name = "The Witcher 3: Wild Hunt - Remastered";
+    assert.ok(F.match("term", name), "name is a subsequence match");
+    const viaExtras = F.rank("term", name, ["terminal", "game"]);
+    const pure = F.rank("term", name, ["game"]);
+    assert.equal(viaExtras.score, 2000);
+    assert.ok(viaExtras.score > pure.score);
+    assert.deepStrictEqual(plain(viaExtras.ranges), plain(F.match("term", name).ranges));
+});
+
+test("rank(): extras-only hit has no ranges, is case-insensitive; no hit anywhere is null", () => {
+    assert.deepStrictEqual(plain(F.rank("TERM", "kitty", ["Terminal"])), { score: 2000, ranges: [] });
+    assert.equal(F.rank("term", "kitty", ["browser"]), null);
+});
+
+test("rank(): a name prefix/word-start/substring match is returned as-is, extras do not change it", () => {
+    assert.deepStrictEqual(plain(F.rank("fi", "Firefox", ["fi"])), plain(F.match("fi", "Firefox")));
+});
+
+test("rank(): empty query matches with no ranges and no extras promotion", () => {
+    assert.deepStrictEqual(plain(F.rank("", "Firefox", ["x"])), { score: 0, ranges: [] });
+});

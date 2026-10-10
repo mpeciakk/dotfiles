@@ -37,9 +37,12 @@ function tokenize(src) {
             return null;
         }
         pos = re.lastIndex;
-        if (m[1] !== undefined)
-            out.push({ t: "num", v: parseFloat(m[1].replace(",", ".")) });
-        else if (m[2] !== undefined)
+        if (m[1] !== undefined) {
+            var v = parseFloat(m[1].replace(",", "."));
+            if (!isFinite(v))
+                return null;
+            out.push({ t: "num", v: v });
+        } else if (m[2] !== undefined)
             out.push({ t: "id", v: m[2].toLowerCase() });
         else
             out.push({ t: "op", v: m[3] });

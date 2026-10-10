@@ -3,12 +3,13 @@
 // Fuzzy matcher for the launcher: case-insensitive, no diacritic folding.
 // Tiers (higher is better): prefix 5000, word start 4000, contiguous substring 3000,
 // scattered subsequence 1000. Each score is its tier minus a penalty capped at 999
-// (shorter / earlier / tighter wins), so tiers never overlap; 2000 is left free for
-// callers that want a weaker source (e.g. keywords) ranked between substring and subsequence.
+// (shorter / earlier / tighter wins), so tiers never overlap; 2000 (EXTRA) is the weaker
+// source (keywords/comment, see rank) ranked between substring and subsequence.
 
 var PREFIX = 5000;
 var WORD_START = 4000;
 var SUBSTRING = 3000;
+var EXTRA = 2000;
 var SUBSEQUENCE = 1000;
 var MAX_PENALTY = 999;
 var SEPARATORS = " \t-_./:,;()[]&+";
@@ -79,4 +80,18 @@ function match(query, text) {
     if (j < q.length)
         return null;
     return { score: SUBSEQUENCE - penalty(indices[indices.length - 1] - indices[0] + 1), ranges: toRanges(indices) };
+}
+
+// Name match combined with a weaker source (genericName/comment/keywords): `extras` is an
+// array of strings, hit when any contains the query (case-insensitive substring, joined by
+// space). A hit scores EXTRA, above a scattered name subsequence even if the name also
+// subsequence-matches (the name's ranges are kept), below a name substring or better.
+// -> {score, ranges} | null.
+function rank(query, name, extras) {
+    var m = match(query, name);
+    if (query.length === 0 || (m !== null && m.score > EXTRA))
+        return m;
+    if (extras.join(" ").toLowerCase().indexOf(query.toLowerCase()) >= 0)
+        return { score: EXTRA, ranges: m !== null ? m.ranges : [] };
+    return m;
 }

@@ -66,6 +66,12 @@ test("non-finite results are null", () => {
         assert.equal(C.evaluate(s), null, s);
 });
 
+test("numeric literals that overflow to Infinity are null, not Infinity", () => {
+    const big = "1" + "0".repeat(400);
+    for (const s of [big, "-" + big, "(" + big + ")", "2^-" + big, "1/" + big, big + "-" + big])
+        assert.equal(C.evaluate(s), null, s.slice(0, 12));
+});
+
 test("deep nesting is bounded, never throws", () => {
     assert.equal(C.evaluate("(".repeat(10000) + "1" + ")".repeat(10000)), null);
     assert.equal(C.evaluate("-".repeat(10000) + "1"), null);
