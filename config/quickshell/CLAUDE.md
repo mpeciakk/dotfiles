@@ -22,8 +22,8 @@ A new file in the repo is not visible to the running shell until `dotter deploy`
   (`call`, `expect`, `wait_ms`, `shot`), fails on any logged WARN/ERROR not listed in `tests/smoke/allowed-warnings.txt`,
   always kills the instance. Run it as `QS_DISABLE_CRASH_HANDLER=1 tests/smoke.sh …` (a crash otherwise leaves an
   orphan reporter process).
-- `tests/shot.sh <name>` — crop of the focused monitor to `/tmp/wyspa-shots/<name>.png` (real screenshot of the live session).
-- `tests/niri-validate.sh` — validates `config/niri/*.kdl` with this host's `output.kdl`; run it after editing niri files.
+- `tests/shot.sh <name>` — crop around the island (by `targetW` / `targetH`) to `/tmp/wyspa-shots/<name>.png` (real screenshot of the live session).
+- `tests/niri-validate.sh` — validates `config/niri/*.kdl` with `hosts/pc/niri-output.kdl` (the `pc` host's output config) on every machine; run it after editing niri files.
 - Smokes with a `shot` line take real screenshots; `19-lock-preview.sh` shows the lock card in a plain window.
   Never call `island lock` from a test.
 
@@ -34,8 +34,8 @@ A new file in the repo is not visible to the running shell until `dotter deploy`
 | `shell.qml` | `ShellRoot`: `Lock`, and per screen `Wallpaper`, `Strut`, `Island`; references the lazy singletons |
 | `Theme.qml` | singleton: tokens (`lib/theme.js`) merged with the host config, mode, glass level, IPC `theme` |
 | `IslandState.qml` | singleton: state machine, timers, OSD, line mode, launcher/lock hooks, IPC `island` |
-| `Island.qml` | per-screen full-screen panel; input mask = the shape (full in modal states, hover zone in line mode) |
-| `IslandShape.qml` | the silhouette: one path with ears, blur region, shadow |
+| `Island.qml` | per-screen full-screen panel; input mask = the shape (full in modal states, hover zone in line mode); blur region (`blurShape`, `BackgroundEffect.blurRegion`) |
+| `IslandShape.qml` | the silhouette: one path with ears, shadow, inner glow |
 | `IslandContent.qml` | one layer per state (`sources`), cross-fade |
 | `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode) |
 | `Wallpaper.qml` | wallpaper per screen |
@@ -140,7 +140,8 @@ for `namespace="^wyspa$"` in `config/niri/window_rules.kdl` has `xray false` and
 9. The lock: recovery is `qs ipc -p <dir> call island unlock` (from a TTY first
    `export XDG_RUNTIME_DIR=/run/user/1000`). `loginctl unlock-session` does NOT work. `pam_faillock` defaults: deny=3,
    unlock after 600 s.
-10. A fullscreen window on the focused output puts the island in line mode, so smokes that read rest content fail on a
-    machine with a fullscreen game running. Known gap: `services/Fullscreen.qml` has no `WYSPA_TEST` guard, so the
-    detection is live in test mode.
+10. A fullscreen window on an output puts its island in line mode. `services/Fullscreen.qml` is disabled under
+    `WYSPA_TEST` (`outputs` is `[]`), so smokes are independent of real fullscreen windows; they reach line mode only
+    through IPC `hide`. `maskMode`: `full` in a modal state, `line` while the line is wanted (only the 400x28 hover
+    zone is input), else `shape`.
 11. Test-only readable props (`restLoaded`, `contentState`, `maskMode`, …) are there for smokes; do not build features on them.

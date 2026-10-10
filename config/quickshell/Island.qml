@@ -31,7 +31,7 @@ PanelWindow {
     readonly property bool line: root.lineWanted && !root.hovered
     readonly property string effState: root.line ? "line" : root.baseState
     readonly property bool modalHere: IslandState.modal && IslandState.output === root.screen.name
-    readonly property string maskMode: root.modalHere ? "full" : "shape"
+    readonly property string maskMode: root.modalHere ? "full" : root.lineWanted ? "line" : "shape"
     readonly property var geo: IslandState.geometryFor(root.effState)
 
     function reportMask(): void {

@@ -8,10 +8,13 @@ import "../lib/fullscreen.js" as F
 // Which outputs currently show a fullscreen window (the island collapses to the line there).
 // The toplevel list is read inside the binding, so a window turning fullscreen, moving to
 // another screen or closing re-evaluates it; so do niri's windows and active workspaces.
+// In test mode (WYSPA_TEST=1) the detection is off: smokes drive the line through IPC `hide`, whatever
+// windows the machine has fullscreen.
 Singleton {
     id: root
 
-    readonly property var outputs: F.fullscreenOutputs(
+    readonly property bool testMode: Quickshell.env("WYSPA_TEST") === "1"
+    readonly property var outputs: root.testMode ? [] : F.fullscreenOutputs(
         ToplevelManager.toplevels.values.map(t => ({
             fullscreen: t.fullscreen,
             title: t.title,

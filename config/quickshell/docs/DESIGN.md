@@ -161,8 +161,8 @@ shell.qml            ShellRoot: Lock, a na każdy ekran (Variants) Wallpaper, St
 Theme.qml            singleton: tokeny z lib/theme.js + config hosta (FileView, hot-reload),
                      tryb i poziom szkła, IPC `theme`
 IslandState.qml      singleton: maszyna stanów, timery, OSD, tryb linii, IPC `island`
-Island.qml           PanelWindow per ekran (pełnoekranowa, maska = kształt, w stanach modalnych pełna)
-IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus blur i cień
+Island.qml           PanelWindow per ekran (pełnoekranowa, maska = kształt, w stanach modalnych pełna), region blura
+IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i wewnętrzna poświata
 IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
 Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
 Wallpaper.qml        tapeta per ekran

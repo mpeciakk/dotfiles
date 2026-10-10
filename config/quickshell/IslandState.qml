@@ -20,7 +20,7 @@ Singleton {
     property bool osdMuted: false
     // False while the audio and backlight values settle after startup; no OSD until then.
     property bool osdReady: false
-    // "shape" | "full": input-mask mode of the island on `output`, reported by that screen's Island.
+    // "shape" | "line" | "full": input-mask mode of the island on `output`, reported by that screen's Island.
     property string maskMode: "shape"
     // output name -> the state whose content layer is fully entered ("" while a transition runs).
     property var shownByOutput: ({})
