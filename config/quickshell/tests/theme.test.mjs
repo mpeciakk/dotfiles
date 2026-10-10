@@ -18,6 +18,16 @@ test("withAlpha() replaces alpha", () => {
     assert.equal(T.withAlpha("#B9A7F5", 0.18), "#2eb9a7f5");
 });
 
+test("raiseAlpha() adds to the alpha and stops at opaque", () => {
+    assert.equal(T.raiseAlpha("#66100e1a", 0.2), "#99100e1a");
+    assert.equal(T.raiseAlpha("#f0100e1a", 0.2), "#ff100e1a");
+    assert.equal(T.raiseAlpha("#100e1a", 0.2), "#ff100e1a");
+});
+
+test("defaults: the legibility sampler rescales to 64", () => {
+    assert.equal(T.defaults.legibility.sampleSize, 64);
+});
+
 test("merge() overrides leaves, keeps siblings, replaces arrays, never mutates", () => {
     const base = { a: { b: 1, c: 2 }, l: [1, 2] };
     assert.deepStrictEqual(plain(T.merge(base, { a: { c: 3 }, l: [9] })), { a: { b: 1, c: 3 }, l: [9] });

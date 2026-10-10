@@ -25,6 +25,11 @@ function withAlpha(c, a) {
     return "#" + pad2(Math.round(a * 255)) + hex(c).slice(3);
 }
 
+// The colour with its alpha raised by `by` (0..1), at most opaque.
+function raiseAlpha(c, by) {
+    return withAlpha(c, Math.min(1, parseInt(hex(c).slice(1, 3), 16) / 255 + by));
+}
+
 function isObject(x) {
     return x !== null && typeof x === "object" && !Array.isArray(x);
 }
@@ -63,7 +68,7 @@ var defaults = {
     location: { lat: null, lon: null },
     wallpaperLight: 0.6,            // mean luminance above which the wallpaper mode picks light
     wallpaperDark: 0.5,             // ... below which it picks dark (hysteresis between)
-    legibility: { threshold: 0.7, boost: 0.2 },
+    legibility: { threshold: 0.7, boost: 0.2, sampleSize: 64 },   // sampleSize: px the wallpaper is rescaled to for sampling
     glass: true,
     glassLevel: "ciekłe",           // "subtelne" | "mocne" | "ciekłe"
     reducedMotion: false,

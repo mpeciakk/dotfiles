@@ -12,6 +12,7 @@ Singleton {
     property string modeOverride: ""
     property string levelOverride: ""
     property string autoMode: ""
+    property bool legibilityBoost: false
 
     readonly property var tokens: T.merge(T.defaults, root.host.island ?? null)
     readonly property string mode: root.modeOverride || root.autoMode || root.tokens.mode
@@ -41,7 +42,8 @@ Singleton {
     }
 
     // One animated colour per resolved colour key: a theme or level change crossfades.
-    property color islandBg: root.c.islandBg
+    // Over a bright wallpaper the dark island gets denser (set by AutoTheme); the boost feeds the one mirror.
+    property color islandBg: root.legibilityBoost ? T.raiseAlpha(root.c.islandBg, root.tokens.legibility.boost) : root.c.islandBg
     Behavior on islandBg { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color ring: root.c.ring
     Behavior on ring { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
@@ -144,6 +146,7 @@ Singleton {
         readonly property string mode: root.mode
         readonly property string level: root.glassLevel
         readonly property color fg: root.fg
+        readonly property color islandBg: root.islandBg
 
         function setMode(m: string): void {
             root.setMode(m);
