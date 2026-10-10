@@ -204,3 +204,18 @@ test("defaults: layout.center bounds equal geom.center bounds", () => {
     assert.equal(T.defaults.layout.center.hMin, T.defaults.geom.center.hMin);
     assert.equal(T.defaults.layout.center.hMax, T.defaults.geom.center.hMax);
 });
+
+test("defaults: layout.launcher matches reference 3.6 and R29", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.launcher), {
+        pad: 10, fieldH: 48, fieldPadX: 16, fieldGap: 10, searchIcon: 18, queryFont: 16,
+        caretW: 1.5, caretH: 18, caretGap: 2,
+        kbdFont: 11, kbdPadX: 8, kbdPadY: 3, kbdPadYRow: 4,
+        chipsGap: 6, chipsPadX: 4, chipsPadTop: 10, chipsPadBottom: 8,
+        chipH: 28, chipPadX: 12, chipFont: 12, chipPrefixGap: 4,
+        visibleRows: 3, shortcuts: 9, rowGap: 4, rowPadX: 14, rowPadY: 10, rowInnerGap: 14,
+        icon: 40, iconImage: 28, iconLetter: 16, iconGlyph: 20, nameFont: 15, descFont: 12, textGap: 2, dot: 8,
+        emptyFont: 13,
+        footerPadTop: 10, footerPadX: 12, footerPadBottom: 2, footerGap: 16, footerFont: 11,
+        refreshMs: 700, refreshes: 4
+    });
+});

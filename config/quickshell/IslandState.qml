@@ -27,6 +27,15 @@ Singleton {
     // output name -> whether that output's Rest layer is loaded and lit (true from enter start until the island leaves rest).
     property var restLoadedByOutput: ({})
 
+    // The launcher, as the IPC sees it. The lit Launcher layer owns the field and mirrors its mode, row
+    // count and selected row here; `launcherQuery` is the one text both sides write. `launcherMenuRequest`
+    // is a menu id the launcher enters (and clears) as soon as it is lit.
+    property string launcherQuery: ""
+    property string launcherMode: "apps"
+    property int launcherCount: 0
+    property string launcherResult: ""
+    property string launcherMenuRequest: ""
+
     // What the user sees: the island on `output`, or at rest the one on the focused output.
     readonly property string contentState: root.shownByOutput[root.current === "rest" ? Niri.focusedOutput : root.output] ?? ""
 
@@ -168,6 +177,10 @@ Singleton {
         readonly property bool restLoaded: root.restLoadedByOutput[Niri.focusedOutput] ?? false
         readonly property int targetW: root.geometryFor(root.current).w
         readonly property int targetH: root.geometryFor(root.current).h
+        readonly property string launcherQuery: root.launcherQuery
+        readonly property int launcherCount: root.launcherCount
+        readonly property string launcherMode: root.launcherMode
+        readonly property string launcherResult: root.launcherResult
 
         function open(s: string): void {
             root.request(s);
@@ -183,6 +196,15 @@ Singleton {
 
         function hide(): void {
             root.toggleHidden();
+        }
+
+        function launcherSetQuery(q: string): void {
+            root.launcherQuery = q;
+        }
+
+        function launcherMenu(id: string): void {
+            root.launcherMenuRequest = id;
+            root.request("launcher");
         }
     }
 }

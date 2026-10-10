@@ -15,7 +15,8 @@ Item {
         rest: "states/Rest.qml",
         osd: "states/Osd.qml",
         toast: "states/Toast.qml",
-        center: "states/Center.qml"
+        center: "states/Center.qml",
+        launcher: "states/Launcher.qml"
     })
 
     // The state whose layer has fully entered; "" while a transition runs.

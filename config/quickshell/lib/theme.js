@@ -266,6 +266,20 @@ var defaults = {
             cardTitleFont: 13, cardBodyFont: 12, cardTimeFont: 11,
             dismissBtn: 28, dismissRadius: 14, dismissIcon: 12,
             scrollW: 4
+        },
+        // Launcher (reference 3.6, R29). Unspecified in the reference: rowGap, iconImage, iconGlyph, dot,
+        // emptyFont and the menu refresh (refreshes re-lists, refreshMs apart, after a command that stays open).
+        launcher: {
+            pad: 10, fieldH: 48, fieldPadX: 16, fieldGap: 10, searchIcon: 18, queryFont: 16,
+            caretW: 1.5, caretH: 18, caretGap: 2,
+            kbdFont: 11, kbdPadX: 8, kbdPadY: 3, kbdPadYRow: 4,
+            chipsGap: 6, chipsPadX: 4, chipsPadTop: 10, chipsPadBottom: 8,
+            chipH: 28, chipPadX: 12, chipFont: 12, chipPrefixGap: 4,
+            visibleRows: 3, shortcuts: 9, rowGap: 4, rowPadX: 14, rowPadY: 10, rowInnerGap: 14,
+            icon: 40, iconImage: 28, iconLetter: 16, iconGlyph: 20, nameFont: 15, descFont: 12, textGap: 2, dot: 8,
+            emptyFont: 13,
+            footerPadTop: 10, footerPadX: 12, footerPadBottom: 2, footerGap: 16, footerFont: 11,
+            refreshMs: 700, refreshes: 4
         }
     }
 };

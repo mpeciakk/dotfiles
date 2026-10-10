@@ -7,7 +7,8 @@ import Quickshell
 // ../menus/ whose `list` subcommand prints one tab-separated line per item:
 //     <active 1|0>\t<label>\t<sublabel>\t<command>
 // The launcher renders the items (with the menu's icon + an active dot) and runs
-// `command` (via sh -c) on select, then re-runs `list` to refresh the state.
+// `command` (via sh -c) on select; then it closes if the menu's `closeOnRun` is set (a
+// one-shot action, e.g. paste), else re-runs `list` to refresh the state (a toggle).
 // Add a menu: drop a script in ../menus/ and add an entry here.
 Singleton {
     id: root
@@ -20,12 +21,14 @@ Singleton {
             id: "vpn",
             title: "VPN",
             icon: "network-vpn",
+            closeOnRun: false,
             argv: ["bash", root.dir + "vpn.sh", "list"]
         },
         {
             id: "clipboard",
             title: "Clipboard",
             icon: "edit-paste",
+            closeOnRun: true,
             argv: ["bash", root.dir + "cliphist.sh", "list"]
         }
     ]

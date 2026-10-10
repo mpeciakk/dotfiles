@@ -6,10 +6,12 @@ ShellRoot {
     settings.watchFiles: true
 
     // Referenced once so the singletons load at startup: IslandState (and its IPC handler),
-    // and Niri, whose event stream must have delivered the focused workspace before the first request.
+    // Niri, whose event stream must have delivered the focused workspace before the first request,
+    // and Apps, whose DesktopEntries load asynchronously (a first launcher query would find none).
     Component.onCompleted: {
         IslandState.current;
         Niri.focusedId;
+        Apps.list;
     }
 
     Variants {
