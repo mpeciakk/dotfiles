@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Wyspa — stos powiadomień</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#C9BBF7}a:hover{color:#E2D9FF}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+button:focus-visible{outline:1.5px solid rgba(185,167,245,0.9);outline-offset:2px}
+.nlist{scrollbar-width:thin;scrollbar-color:#2C2A39 transparent}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #2A2440; font-family: 'Geist', system-ui, sans-serif; color: #ECEAF2">
+
+<svg aria-hidden="true" width="1440" height="900" viewBox="0 0 1440 900" style="position: absolute; inset: 0">
+<circle cx="1060" cy="250" r="38" fill="#F1D6AE"></circle>
+<path d="M0 560 C 180 500 360 540 520 500 C 700 455 860 520 1040 480 C 1220 440 1340 470 1440 450 V900 H0 Z" fill="#3B2F55"></path>
+<path d="M0 650 C 220 600 420 640 640 600 C 860 560 1040 630 1240 590 C 1340 572 1400 580 1440 575 V900 H0 Z" fill="#4C3660"></path>
+<path d="M0 740 C 260 700 520 740 780 710 C 1000 685 1240 730 1440 700 V900 H0 Z" fill="#5E3E64"></path>
+<rect x="0" y="815" width="1440" height="85" fill="#6B4566"></rect>
+</svg>
+<div aria-hidden="true" style="position: absolute; left: 16px; width: 760px; top: 44px; bottom: 16px; border-radius: 14px; background: rgba(18,16,28,0.88); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); padding: 18px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #8B8699">helium</span><span style="width: 60%; height: 8px; border-radius: 4px; background: #2C2A39"></span><span style="width: 44%; height: 8px; border-radius: 4px; background: #2C2A39"></span></div>
+<div aria-hidden="true" style="position: absolute; left: 792px; width: 760px; top: 44px; bottom: 16px; border-radius: 14px; background: rgba(18,16,28,0.88); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); padding: 18px 22px; box-sizing: border-box"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #8B8699">terminal</span></div>
+
+<button aria-label="Zamknij centrum powiadomień" onClick="{{toRest}}" style="position: absolute; inset: 0; opacity: 0; pointer-events: {{scrimPe}}"></button>
+
+<div aria-hidden="true" style="position: absolute; top: 0; left: {{earL}}px; width: 16px; height: 16px; background: rgba(16,14,26,0.62); backdrop-filter: blur(24px); -webkit-mask-image: radial-gradient(circle at 0 100%, transparent 15.5px, #000 16px); mask-image: radial-gradient(circle at 0 100%, transparent 15.5px, #000 16px); transition: {{earTr}}"></div>
+<div aria-hidden="true" style="position: absolute; top: 0; left: {{earR}}px; width: 16px; height: 16px; background: rgba(16,14,26,0.62); backdrop-filter: blur(24px); -webkit-mask-image: radial-gradient(circle at 100% 100%, transparent 15.5px, #000 16px); mask-image: radial-gradient(circle at 100% 100%, transparent 15.5px, #000 16px); transition: {{earTr}}"></div>
+
+<section aria-label="Wyspa" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: {{w}}px; height: {{h}}px; border-radius: 0 0 {{r}}px {{r}}px; overflow: hidden; background: rgba(16,14,26,0.62); backdrop-filter: blur(24px) saturate(1.5); box-shadow: 0 18px 60px rgba(10,6,20,0.5), inset 0 0 0 1px rgba(255,255,255,0.07); transition: {{islandTr}}">
+
+<div style="position: absolute; top: 0; left: 50%; width: {{restW}}px; height: 36px; opacity: {{L.rest.op}}; transform: {{L.rest.tf}}; filter: {{L.rest.blur}}; transition: {{L.rest.tr}}, width 460ms cubic-bezier(0.32, 0.72, 0, 1); pointer-events: {{L.rest.pe}}">
+<button aria-label="Otwórz centrum powiadomień" onClick="{{toCenter}}" style="width: 100%; height: 36px; display: flex; align-items: center; justify-content: center; gap: 14px">
+<span style="display: flex; gap: 4px; align-items: center"><span style="width: 5px; height: 5px; border-radius: 3px; background: #57536A"></span><span style="width: 14px; height: 5px; border-radius: 3px; background: {{accent}}"></span><span style="width: 5px; height: 5px; border-radius: 3px; background: #57536A"></span></span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums">18:49</span>
+<sc-if value="{{hasBadge}}" hint-placeholder-val="{{false}}">
+<span style="display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 11px; background: rgba(185,167,245,0.18); color: {{accent}}; font-family: 'Geist Mono', monospace; font-size: 11px">
+<sc-if value="{{dnd}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path></svg></sc-if>
+<sc-if value="{{notDnd}}" hint-placeholder-val="{{true}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path></svg></sc-if>
+{{count}}</span>
+</sc-if>
+</button>
+</div>
+
+<div style="position: absolute; top: 0; left: 50%; width: 420px; height: 76px; opacity: {{L.toast.op}}; transform: {{L.toast.tf}}; filter: {{L.toast.blur}}; transition: {{L.toast.tr}}; pointer-events: {{L.toast.pe}}">
+<button aria-label="Otwórz centrum powiadomień" onClick="{{toCenter}}" style="width: 420px; height: 76px; box-sizing: border-box; padding: 0 16px; display: flex; align-items: center; gap: 14px; text-align: left">
+<span style="width: 44px; height: 44px; border-radius: 14px; background: {{top.color}}; color: #121118; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0">{{top.letter}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{top.title}}</span><span style="font-size: 12px; color: #A29DB3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{top.app}} · {{top.body}}</span></span>
+<sc-if value="{{hasMore}}" hint-placeholder-val="{{false}}"><span style="height: 24px; padding: 0 9px; border-radius: 12px; background: {{accent}}; color: #121118; font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 500; display: flex; align-items: center">+{{more}}</span></sc-if>
+</button>
+</div>
+
+<div style="position: absolute; top: 0; left: 50%; width: 440px; height: {{centerH}}px; box-sizing: border-box; padding: 14px; display: flex; flex-direction: column; gap: 10px; opacity: {{L.center.op}}; transform: {{L.center.tf}}; filter: {{L.center.blur}}; transition: {{L.center.tr}}; pointer-events: {{L.center.pe}}">
+<div style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 4px">
+<span style="font-size: 15px; font-weight: 600">Powiadomienia</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29DB3">{{count}}</span>
+<span style="flex: 1"></span>
+<button role="switch" aria-checked="{{dndStr}}" onClick="{{toggleDnd}}" style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 15px; font-size: 12px; background: {{dndBg}}; color: {{dndFg}}; transition: background 200ms ease"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path></svg>Nie przeszkadzać</button>
+<button onClick="{{clearAll}}" style="height: 30px; padding: 0 10px; border-radius: 15px; font-size: 12px; color: #A29DB3">Wyczyść</button>
+</div>
+
+<sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #A29DB3; font-size: 13px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+Wszystko przeczytane
+</div>
+</sc-if>
+
+<div class="nlist" style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; height: 22px; padding: 0 4px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #A29DB3">{{g.app}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #8B8699">{{g.n}}</span>
+<span style="flex: 1"></span>
+<sc-if value="{{g.multi}}" hint-placeholder-val="{{false}}"><button onClick="{{g.toggle}}" aria-expanded="{{g.expStr}}" style="font-size: 11px; color: {{accent}}; height: 22px; padding: 0 6px">{{g.toggleLabel}}</button></sc-if>
+<button aria-label="Wyczyść grupę {{g.app}}" onClick="{{g.clear}}" style="width: 22px; height: 22px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: #A29DB3"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="position: relative; padding-bottom: {{g.stackPad}}px; display: flex; flex-direction: column; gap: 6px; transition: padding 300ms ease">
+<sc-if value="{{g.stack2}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="position: absolute; left: 16px; right: 16px; top: 14px; height: 64px; border-radius: 16px; background: #15141D"></div></sc-if>
+<sc-if value="{{g.stack1}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="position: absolute; left: 8px; right: 8px; top: 7px; height: 64px; border-radius: 16px; background: #191823"></div></sc-if>
+<sc-for list="{{g.cards}}" as="c" hint-placeholder-count="1">
+<div style="position: relative; height: 64px; box-sizing: border-box; padding: 0 8px 0 12px; border-radius: 16px; background: #1F1E2A; display: flex; align-items: center; gap: 12px">
+<span style="width: 36px; height: 36px; border-radius: 11px; background: {{c.color}}; color: #121118; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0">{{c.letter}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.title}}</span><span style="font-size: 12px; color: #A29DB3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.body}}</span></span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #8B8699">{{c.time}}</span>
+<button aria-label="Odrzuć" onClick="{{c.dismiss}}" style="width: 28px; height: 28px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #8B8699"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+</section>
+
+<div style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px">
+<span style="font-size: 12px; color: #E4DEF0">Kliknij dymek albo licznik na wyspie, żeby otworzyć centrum. Przy „Nie przeszkadzać” dymki się nie pokazują, rośnie tylko licznik.</span>
+<div style="display: flex; gap: 4px; padding: 6px; border-radius: 24px; background: rgba(11,11,16,0.7); backdrop-filter: blur(16px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)">
+<button onClick="{{pushOne}}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px">Nowe powiadomienie</button>
+<button onClick="{{burst}}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px">Seria ×3</button>
+<button onClick="{{toCenter}}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px; background: {{cBg}}; color: {{cFg}}">Centrum <span style="font-family: 'Geist Mono', monospace; font-size: 10px; opacity: 0.7">⊞ N</span></button>
+<button onClick="{{toggleDnd}}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px; background: {{dndBg}}; color: {{dndFg}}">Nie przeszkadzać</button>
+<button onClick="{{toRest}}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px">Spoczynek</button>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#B9A7F5","options":["#B9A7F5","#F1D6AE","#8FD3C1","#F2A7B8"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.SAMPLES = [
+{ app: 'niri', letter: 'n', color: '#B9A7F5', title: 'Zrzut ekranu', body: 'Obraz jest w schowku.' },
+{ app: 'Wiadomości', letter: 'W', color: '#8FD3C1', title: '[Nadawca]', body: '[treść wiadomości]' },
+{ app: 'pacman', letter: 'p', color: '#F1D6AE', title: 'Dostępne aktualizacje', body: '[n] pakietów czeka na instalację.' },
+{ app: 'Wiadomości', letter: 'W', color: '#8FD3C1', title: '[Nadawca]', body: '[kolejna wiadomość]' },
+{ app: 'Kalendarz', letter: 'K', color: '#F2A7B8', title: '[Wydarzenie] za 15 min', body: '[miejsce]' },
+{ app: 'niri', letter: 'n', color: '#B9A7F5', title: 'Nagranie zapisane', body: '~/Wideo/[plik].mp4' }
+];
+this.state = { mode: 'rest', list: [], seq: 0, dnd: false, expanded: {} };
+this.timers = [];
+this.toastT = null;
+}
+componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); clearTimeout(this.toastT); }
+push() {
+const seq = this.state.seq;
+const smp = this.SAMPLES[seq % this.SAMPLES.length];
+const min = (49 + seq) % 60;
+const item = Object.assign({ id: 'n' + seq, time: '18:' + (min < 10 ? '0' + min : min) }, smp);
+const list = [item].concat(this.state.list);
+if (this.state.dnd || this.state.mode === 'center') {
+this.setState({ list, seq: seq + 1 });
+return;
+}
+this.setState({ list, seq: seq + 1, mode: 'toast' });
+clearTimeout(this.toastT);
+this.toastT = setTimeout(() => { if (this.state.mode === 'toast') this.setState({ mode: 'rest' }); }, 3600);
+}
+renderVals() {
+const accent = this.props.accent ?? '#B9A7F5';
+const list = this.state.list;
+const count = list.length;
+const order = [];
+const byApp = {};
+list.forEach((it) => { if (!byApp[it.app]) { byApp[it.app] = []; order.push(it.app); } byApp[it.app].push(it); });
+let listH = 0;
+const groups = order.map((app) => {
+const items = byApp[app];
+const n = items.length;
+const exp = !!this.state.expanded[app];
+const shown = exp ? items : items.slice(0, 1);
+const stackPad = (!exp && n > 2) ? 14 : (!exp && n === 2) ? 7 : 0;
+listH += 28 + shown.length * 64 + (shown.length - 1) * 6 + stackPad;
+return {
+app, n,
+multi: n > 1,
+expStr: exp ? 'true' : 'false',
+toggleLabel: exp ? 'Zwiń' : 'Pokaż ' + n,
+stack1: !exp && n > 1,
+stack2: !exp && n > 2,
+stackPad,
+cards: shown.map((c) => Object.assign({}, c, { dismiss: () => this.setState({ list: this.state.list.filter((x) => x.id !== c.id) }) })),
+toggle: () => { const e = Object.assign({}, this.state.expanded); e[app] = !e[app]; this.setState({ expanded: e }); },
+clear: () => this.setState({ list: this.state.list.filter((x) => x.app !== app) })
+};
+});
+if (groups.length > 1) listH += (groups.length - 1) * 12;
+const centerH = count === 0 ? 170 : Math.min(620, 14 + 36 + 10 + listH + 16);
+const restW = count > 0 ? 252 : 200;
+const SIZES = { rest: [restW, 36, 18], toast: [420, 76, 30], center: [440, centerH, 30] };
+const mode = this.state.mode;
+const s = SIZES[mode];
+const ease = 'cubic-bezier(0.32, 0.72, 0, 1)';
+const dur = 460;
+const layer = (m) => {
+const on = m === mode;
+return {
+op: on ? 1 : 0,
+tf: on ? 'translateX(-50%) scale(1)' : 'translateX(-50%) scale(0.94)',
+blur: on ? 'blur(0px)' : 'blur(6px)',
+tr: on ? 'opacity 220ms cubic-bezier(0.2,0,0,1) 160ms, transform 320ms cubic-bezier(0.2,0,0,1) 120ms, filter 220ms ease 160ms' : 'opacity 120ms ease, transform 160ms ease, filter 120ms ease',
+pe: on ? 'auto' : 'none'
+};
+};
+const top = list[0] || { app: '', letter: '', color: '#2C2A39', title: '', body: '' };
+const dnd = this.state.dnd;
+return {
+accent,
+L: { rest: layer('rest'), toast: layer('toast'), center: layer('center') },
+w: s[0], h: s[1], r: s[2],
+islandTr: 'width ' + dur + 'ms ' + ease + ', height ' + dur + 'ms ' + ease + ', border-radius ' + dur + 'ms ' + ease,
+earL: 720 - s[0] / 2 - 16,
+earR: 720 + s[0] / 2,
+earTr: 'left ' + dur + 'ms ' + ease,
+restW, count, groups, centerH, top,
+hasBadge: count > 0,
+hasMore: count > 1,
+more: count - 1,
+empty: count === 0,
+dnd, notDnd: !dnd,
+dndStr: dnd ? 'true' : 'false',
+dndBg: dnd ? accent : 'rgba(255,255,255,0.06)',
+dndFg: dnd ? '#121118' : '#ECEAF2',
+cBg: mode === 'center' ? '#ECEAF2' : 'transparent',
+cFg: mode === 'center' ? '#0B0B10' : '#ECEAF2',
+scrimPe: mode === 'center' ? 'auto' : 'none',
+pushOne: () => this.push(),
+burst: () => { this.push(); this.timers.push(setTimeout(() => this.push(), 600)); this.timers.push(setTimeout(() => this.push(), 1200)); },
+toCenter: () => { clearTimeout(this.toastT); this.setState({ mode: 'center' }); },
+toRest: () => this.setState({ mode: 'rest' }),
+toggleDnd: () => this.setState({ dnd: !this.state.dnd }),
+clearAll: () => this.setState({ list: [], expanded: {} })
+};
+}
+}
+</script>
+</body>
+</html>

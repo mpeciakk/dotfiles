@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Wyspa — menu zasilania</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#C9BBF7}a:hover{color:#E2D9FF}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+.pbtn:hover .pcirc{background:#26243A}
+.pbtn:focus-visible{outline:1.5px solid rgba(185,167,245,0.9);outline-offset:4px;border-radius:18px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #2A2440; font-family: 'Geist', system-ui, sans-serif; color: #ECEAF2">
+
+<svg aria-hidden="true" width="1440" height="900" viewBox="0 0 1440 900" style="position: absolute; inset: 0">
+<circle cx="1060" cy="250" r="38" fill="#F1D6AE"></circle>
+<path d="M0 560 C 180 500 360 540 520 500 C 700 455 860 520 1040 480 C 1220 440 1340 470 1440 450 V900 H0 Z" fill="#3B2F55"></path>
+<path d="M0 650 C 220 600 420 640 640 600 C 860 560 1040 630 1240 590 C 1340 572 1400 580 1440 575 V900 H0 Z" fill="#4C3660"></path>
+<path d="M0 740 C 260 700 520 740 780 710 C 1000 685 1240 730 1440 700 V900 H0 Z" fill="#5E3E64"></path>
+<rect x="0" y="815" width="1440" height="85" fill="#6B4566"></rect>
+</svg>
+<div aria-hidden="true" style="position: absolute; left: 16px; width: 760px; top: 44px; bottom: 16px; border-radius: 14px; background: rgba(18,16,28,0.88); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); padding: 18px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #8B8699">helium</span><span style="width: 60%; height: 8px; border-radius: 4px; background: #2C2A39"></span><span style="width: 44%; height: 8px; border-radius: 4px; background: #2C2A39"></span></div>
+<div aria-hidden="true" style="position: absolute; left: 792px; width: 760px; top: 44px; bottom: 16px; border-radius: 14px; background: rgba(18,16,28,0.88); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); padding: 18px 22px; box-sizing: border-box"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #8B8699">terminal</span></div>
+
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,6,14,0.45); opacity: {{dimOp}}; transition: opacity 400ms ease"></div>
+<button aria-label="Zamknij menu" onClick="{{toRest}}" style="position: absolute; inset: 0; opacity: 0; pointer-events: {{scrimPe}}"></button>
+
+<div aria-hidden="true" style="position: absolute; top: 0; left: {{earL}}px; width: 16px; height: 16px; background: rgba(16,14,26,0.62); backdrop-filter: blur(24px); -webkit-mask-image: radial-gradient(circle at 0 100%, transparent 15.5px, #000 16px); mask-image: radial-gradient(circle at 0 100%, transparent 15.5px, #000 16px); transition: {{earTr}}"></div>
+<div aria-hidden="true" style="position: absolute; top: 0; left: {{earR}}px; width: 16px; height: 16px; background: rgba(16,14,26,0.62); backdrop-filter: blur(24px); -webkit-mask-image: radial-gradient(circle at 100% 100%, transparent 15.5px, #000 16px); mask-image: radial-gradient(circle at 100% 100%, transparent 15.5px, #000 16px); transition: {{earTr}}"></div>
+
+<section aria-label="Wyspa" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: {{w}}px; height: {{h}}px; border-radius: 0 0 {{r}}px {{r}}px; overflow: hidden; background: rgba(16,14,26,0.62); backdrop-filter: blur(24px) saturate(1.5); box-shadow: 0 18px 60px rgba(10,6,20,0.5), inset 0 0 0 1px rgba(255,255,255,0.07); transition: {{islandTr}}">
+
+<div style="position: absolute; top: 0; left: 50%; width: 200px; height: 36px; opacity: {{L.rest.op}}; transform: {{L.rest.tf}}; filter: {{L.rest.blur}}; transition: {{L.rest.tr}}; pointer-events: {{L.rest.pe}}">
+<button aria-label="Otwórz menu zasilania" onClick="{{toPower}}" style="width: 200px; height: 36px; display: flex; align-items: center; justify-content: center; gap: 14px">
+<span style="display: flex; gap: 4px; align-items: center"><span style="width: 5px; height: 5px; border-radius: 3px; background: #57536A"></span><span style="width: 14px; height: 5px; border-radius: 3px; background: {{accent}}"></span><span style="width: 5px; height: 5px; border-radius: 3px; background: #57536A"></span></span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums">18:49</span>
+</button>
+</div>
+
+<div style="position: absolute; top: 0; left: 50%; width: 540px; height: 180px; box-sizing: border-box; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 14px; opacity: {{L.power.op}}; transform: {{L.power.tf}}; filter: {{L.power.blur}}; transition: {{L.power.tr}}; pointer-events: {{L.power.pe}}">
+<div style="display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px">
+<span style="font-size: 14px; font-weight: 600">Zasilanie</span>
+<span style="font-size: 12px; color: #A29DB3">{{hint}}</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+<button class="pbtn" aria-label="{{it.aria}}" onClick="{{it.click}}" onMouseDown="{{it.down}}" onMouseUp="{{it.up}}" onMouseLeave="{{it.up}}" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 4px 0">
+<span class="pcirc" style="position: relative; width: 60px; height: 60px; border-radius: 30px; background: {{it.bg}}; color: {{it.fg}}; display: flex; align-items: center; justify-content: center; transition: background 200ms ease">
+<svg aria-hidden="true" width="60" height="60" viewBox="0 0 60 60" style="position: absolute; inset: 0; transform: rotate(-90deg)"><circle cx="30" cy="30" r="28" fill="none" stroke="{{it.ringColor}}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="{{it.off}}" style="transition: {{it.ringTr}}"></circle></svg>
+<sc-if value="{{it.isLock}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></sc-if>
+<sc-if value="{{it.isSleep}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path></svg></sc-if>
+<sc-if value="{{it.isLogout}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5M21 12H9"></path></svg></sc-if>
+<sc-if value="{{it.isReboot}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg></sc-if>
+<sc-if value="{{it.isOff}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.8 0"></path></svg></sc-if>
+</span>
+<span style="font-size: 12px; color: #D9D5E3">{{it.label}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: #8B8699">{{it.key}}</span>
+</button>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; top: 0; left: 50%; width: 340px; height: 56px; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 12px; opacity: {{L.done.op}}; transform: {{L.done.tf}}; filter: {{L.done.blur}}; transition: {{L.done.tr}}; pointer-events: {{L.done.pe}}">
+<span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 5px; background: {{accent}}; box-shadow: 0 0 0 4px rgba(185,167,245,0.2)"></span>
+<span role="status" style="flex: 1; font-size: 14px; font-weight: 500">{{doneLabel}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3">prototyp</span>
+</div>
+
+</section>
+
+<div style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px">
+<span style="font-size: 12px; color: #E4DEF0">Blokada i uśpienie działają od razu. Wyloguj, restart i wyłącz trzeba przytrzymać.</span>
+<div style="display: flex; gap: 4px; padding: 6px; border-radius: 24px; background: rgba(11,11,16,0.7); backdrop-filter: blur(16px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)">
+<button onClick="{{toPower}}" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px; background: {{pBg}}; color: {{pFg}}">Menu zasilania <span style="font-family: 'Geist Mono', monospace; font-size: 10px; opacity: 0.7">⊞ ⇧ E</span></button>
+<button onClick="{{toRest}}" style="display: flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px">Spoczynek</button>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#B9A7F5","options":["#B9A7F5","#F1D6AE","#8FD3C1","#F2A7B8"]},"holdMs":{"editor":"int","default":900,"min":300,"max":2500,"step":100,"unit":"ms"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { mode: 'rest', holding: null, doneLabel: '' };
+this.timers = [];
+}
+componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); clearTimeout(this.holdT); }
+finish(label) {
+clearTimeout(this.holdT);
+this.setState({ holding: null, mode: 'done', doneLabel: label });
+this.timers.push(setTimeout(() => this.setState({ mode: 'rest' }), 1800));
+}
+renderVals() {
+const SIZES = { rest: [200, 36, 18], power: [540, 180, 30], done: [340, 56, 28] };
+const hold = this.props.holdMs ?? 900;
+const ease = 'cubic-bezier(0.32, 0.72, 0, 1)';
+const dur = 460;
+const mode = this.state.mode;
+const s = SIZES[mode];
+const layer = (m) => {
+const on = m === mode;
+return {
+op: on ? 1 : 0,
+tf: on ? 'translateX(-50%) scale(1)' : 'translateX(-50%) scale(0.94)',
+blur: on ? 'blur(0px)' : 'blur(6px)',
+tr: on ? 'opacity 220ms cubic-bezier(0.2,0,0,1) 160ms, transform 320ms cubic-bezier(0.2,0,0,1) 120ms, filter 220ms ease 160ms' : 'opacity 120ms ease, transform 160ms ease, filter 120ms ease',
+pe: on ? 'auto' : 'none'
+};
+};
+const L = { rest: layer('rest'), power: layer('power'), done: layer('done') };
+const defs = [
+{ id: 'lock', label: 'Zablokuj', key: 'L', risky: false, done: 'Blokowanie…' },
+{ id: 'sleep', label: 'Uśpij', key: 'S', risky: false, done: 'Usypianie…' },
+{ id: 'logout', label: 'Wyloguj', key: 'O', risky: true, done: 'Wylogowywanie…' },
+{ id: 'reboot', label: 'Restart', key: 'R', risky: true, done: 'Ponowne uruchamianie…' },
+{ id: 'off', label: 'Wyłącz', key: 'P', risky: true, done: 'Wyłączanie…' }
+];
+const holding = this.state.holding;
+const items = defs.map((d) => {
+const h = holding === d.id;
+return {
+label: d.label,
+key: d.risky ? 'przytrzymaj ' + d.key : d.key,
+aria: d.risky ? d.label + ' — przytrzymaj, aby potwierdzić' : d.label,
+isLock: d.id === 'lock', isSleep: d.id === 'sleep', isLogout: d.id === 'logout', isReboot: d.id === 'reboot', isOff: d.id === 'off',
+bg: h ? '#2C2A39' : '#1C1B26',
+fg: d.id === 'off' ? '#F2A7B8' : '#ECEAF2',
+ringColor: d.id === 'off' ? '#F2A7B8' : (this.props.accent ?? '#B9A7F5'),
+off: h ? 0 : 175.9,
+ringTr: h ? 'stroke-dashoffset ' + hold + 'ms linear' : 'stroke-dashoffset 220ms ease',
+click: () => { if (!d.risky) this.finish(d.done); },
+down: () => {
+if (!d.risky) return;
+clearTimeout(this.holdT);
+this.setState({ holding: d.id });
+this.holdT = setTimeout(() => this.finish(d.done), hold);
+},
+up: () => {
+if (!d.risky || this.state.holding !== d.id) return;
+clearTimeout(this.holdT);
+this.setState({ holding: null });
+}
+};
+});
+return {
+accent: this.props.accent ?? '#B9A7F5',
+L, items,
+w: s[0], h: s[1], r: s[2],
+islandTr: 'width ' + dur + 'ms ' + ease + ', height ' + dur + 'ms ' + ease + ', border-radius ' + dur + 'ms ' + ease,
+earL: 720 - s[0] / 2 - 16,
+earR: 720 + s[0] / 2,
+earTr: 'left ' + dur + 'ms ' + ease,
+dimOp: mode === 'power' ? 1 : 0,
+scrimPe: mode === 'power' ? 'auto' : 'none',
+hint: holding ? 'trzymaj…' : 'Esc zamyka · strzałki + Enter',
+doneLabel: this.state.doneLabel,
+pBg: mode === 'power' ? '#ECEAF2' : 'transparent',
+pFg: mode === 'power' ? '#0B0B10' : '#ECEAF2',
+toPower: () => { this.timers.forEach((t) => clearTimeout(t)); this.setState({ mode: 'power' }); },
+toRest: () => { clearTimeout(this.holdT); this.setState({ mode: 'rest', holding: null }); }
+};
+}
+}
+</script>
+</body>
+</html>

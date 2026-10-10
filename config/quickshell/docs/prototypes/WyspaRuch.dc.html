@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Wyspa — zasady ruchu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#C9BBF7}a:hover{color:#E2D9FF}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; padding: 48px 56px; background: #121118; font-family: 'Geist', system-ui, sans-serif; color: #ECEAF2; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: flex; align-items: baseline; justify-content: space-between; height: 64px">
+<h1 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.02em">Ruch</h1>
+<p style="margin: 0; font-size: 14px; color: #A29DB3">Jeden kontener, sześć stanów. Kształt prowadzi, treść podąża.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; height: 280px">
+
+<div style="grid-column: span 7; background: #1A1922; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 16px; font-weight: 600">Choreografia przejścia</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3; letter-spacing: 0.08em">0 — 600 MS</span></div>
+<div style="display: grid; grid-template-columns: 170px minmax(0, 1fr); row-gap: 16px; align-items: center; font-size: 13px">
+<span>Kształt</span>
+<div style="position: relative; height: 10px"><div style="position: absolute; left: 0; width: 429px; top: 0; height: 10px; border-radius: 5px; background: {{accent}}"></div><span style="position: absolute; left: 438px; top: -3px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3">460</span></div>
+<span style="color: #A29DB3">Stara treść — wyjście</span>
+<div style="position: relative; height: 10px"><div style="position: absolute; left: 0; width: 112px; top: 0; height: 10px; border-radius: 5px; background: #57536A"></div><span style="position: absolute; left: 120px; top: -3px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3">120</span></div>
+<span style="color: #A29DB3">Nowa treść — skala</span>
+<div style="position: relative; height: 10px"><div style="position: absolute; left: 112px; width: 299px; top: 0; height: 10px; border-radius: 5px; background: #ECEAF2; opacity: 0.55"></div><span style="position: absolute; left: 418px; top: -3px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3">120 → 440</span></div>
+<span style="color: #A29DB3">Nowa treść — krycie, blur</span>
+<div style="position: relative; height: 10px"><div style="position: absolute; left: 149px; width: 206px; top: 0; height: 10px; border-radius: 5px; background: #ECEAF2"></div><span style="position: absolute; left: 362px; top: -3px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3">160 → 380</span></div>
+<span></span>
+<div style="position: relative; height: 18px; border-top: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 10px; color: #8B8699">
+<span style="position: absolute; left: 0; top: 4px">0</span><span style="position: absolute; left: 93px; top: 4px">100</span><span style="position: absolute; left: 187px; top: 4px">200</span><span style="position: absolute; left: 280px; top: 4px">300</span><span style="position: absolute; left: 373px; top: 4px">400</span><span style="position: absolute; left: 467px; top: 4px">500</span>
+</div>
+</div>
+</div>
+
+<div style="grid-column: span 5; background: #1A1922; border-radius: 24px; padding: 24px; display: flex; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 14px; flex: 1">
+<span style="font-size: 16px; font-weight: 600">Krzywe</span>
+<div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="display: flex; align-items: center; gap: 8px"><span style="width: 14px; height: 3px; border-radius: 2px; background: {{accent}}"></span>Kształt — płynny</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3">0.32, 0.72, 0, 1</span></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="display: flex; align-items: center; gap: 8px"><span style="width: 14px; height: 3px; border-radius: 2px; background: #F1D6AE"></span>Kształt — sprężysty</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3">0.34, 1.3, 0.5, 1</span></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="display: flex; align-items: center; gap: 8px"><span style="width: 14px; height: 3px; border-radius: 2px; background: #ECEAF2"></span>Treść — wejście</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29DB3">0.2, 0, 0, 1</span></span>
+</div>
+</div>
+<svg role="img" aria-label="Wykres trzech krzywych przejścia" width="200" height="220" viewBox="-10 -60 220 220" style="flex-shrink: 0">
+<rect x="0" y="0" width="200" height="140" fill="none" stroke="#2C2A39" stroke-width="1"></rect>
+<line x1="0" y1="0" x2="200" y2="0" stroke="#2C2A39" stroke-dasharray="3 3"></line>
+<path d="M0 140 C 40 140 0 0 200 0" fill="none" stroke="#ECEAF2" stroke-width="2"></path>
+<path d="M0 140 C 68 -42 100 0 200 0" fill="none" stroke="#F1D6AE" stroke-width="2"></path>
+<path d="M0 140 C 64 39 0 0 200 0" fill="none" stroke="{{accent}}" stroke-width="2.5"></path>
+</svg>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; flex: 1; min-height: 0">
+
+<div style="grid-column: span 7; background: #1A1922; border-radius: 24px; padding: 24px; display: flex; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 16px; font-weight: 600">Rodzina kształtów <span style="font-weight: 400; color: #A29DB3">· skala 50%, wspólna kotwica</span></span>
+<div style="position: relative; width: 360px; height: 240px">
+<div style="position: absolute; left: 50%; top: 4px; width: 2px; height: 6px; margin-left: -1px; background: {{accent}}"></div>
+<div style="position: absolute; top: 14px; left: 10px; width: 340px; height: 178px; border-radius: 15px; border: 1.5px solid rgba(236,234,242,0.22); box-sizing: border-box"></div>
+<div style="position: absolute; top: 14px; left: 50px; width: 260px; height: 220px; border-radius: 15px; border: 1.5px solid rgba(236,234,242,0.32); box-sizing: border-box"></div>
+<div style="position: absolute; top: 14px; left: 75px; width: 210px; height: 38px; border-radius: 15px; border: 1.5px solid rgba(236,234,242,0.45); box-sizing: border-box"></div>
+<div style="position: absolute; top: 14px; left: 85px; width: 190px; height: 28px; border-radius: 14px; border: 1.5px solid rgba(236,234,242,0.6); box-sizing: border-box"></div>
+<div style="position: absolute; top: 14px; left: 105px; width: 150px; height: 22px; border-radius: 11px; border: 1.5px solid rgba(236,234,242,0.75); box-sizing: border-box"></div>
+<div style="position: absolute; top: 14px; left: 130px; width: 100px; height: 18px; border-radius: 9px; background: {{accent}}"></div>
+</div>
+</div>
+<div style="flex: 1; display: flex; flex-direction: column; padding-top: 34px; font-size: 13px">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 16px; row-gap: 0; font-variant-numeric: tabular-nums">
+<span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-weight: 500">Spoczynek</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px">200×36</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29DB3">zawsze</span>
+<span style="padding: 8px 0; border-bottom: 1px solid #2C2A39">Głośność / jasność</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px">300×44</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29DB3">1,6 s</span>
+<span style="padding: 8px 0; border-bottom: 1px solid #2C2A39">Media</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px">380×56</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29DB3">hover / ⊞M</span>
+<span style="padding: 8px 0; border-bottom: 1px solid #2C2A39">Powiadomienie</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px">420×76</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29DB3">3,6 s</span>
+<span style="padding: 8px 0; border-bottom: 1px solid #2C2A39">Panel</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px">520×440</span><span style="padding: 8px 0; border-bottom: 1px solid #2C2A39; font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29DB3">do Esc</span>
+<span style="padding: 8px 0">Launcher</span><span style="padding: 8px 0; font-family: 'Geist Mono', monospace; font-size: 12px">680×356</span><span style="padding: 8px 0; font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29DB3">do Esc</span>
+</div>
+<p style="margin: 14px 0 0; font-size: 12px; color: #A29DB3; line-height: 1.5">Promień = min(wysokość / 2, 30). Priorytet przy kolizji: launcher › panel › powiadomienie › OSD › media.</p>
+</div>
+</div>
+
+<div style="grid-column: span 5; background: #1A1922; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 16px; font-weight: 600">Zasady</span>
+<ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 1.45; color: #D9D5E3">
+<li>Treść ma docelową szerokość od początku, więc nie przelewa się w trakcie morfingu.</li>
+<li>Wyjście szybsze niż wejście: 120 vs 220 ms.</li>
+<li>Przerwanie startuje z bieżącego rozmiaru, bez skoku.</li>
+<li>Jedna kotwica: górny środek ekranu aktywnego monitora.</li>
+<li>Ograniczony ruch: sam crossfade 120 ms, bez skali i blura.</li>
+</ol>
+<pre style="margin: auto 0 0; padding: 14px 16px; border-radius: 14px; background: #0F0E14; font-family: 'Geist Mono', monospace; font-size: 11px; line-height: 1.6; color: #CFC8E0; white-space: pre-wrap">Behavior on implicitWidth {
+  NumberAnimation {
+    duration: 460
+    easing.type: Easing.BezierSpline
+    easing.bezierCurve: [0.32,0.72, 0,1, 1,1]
+  }
+}</pre>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#B9A7F5","options":["#B9A7F5","#F1D6AE","#8FD3C1","#F2A7B8"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#B9A7F5' };
+}
+}
+</script>
+</body>
+</html>
