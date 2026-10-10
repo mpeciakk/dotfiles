@@ -69,6 +69,7 @@ test("defaults: choices", () => {
     assert.equal(T.defaults.fonts.ui, "JetBrainsMono Nerd Font");
     assert.equal(T.defaults.fonts.mono, "JetBrainsMono Nerd Font");
     assert.equal(T.defaults.sizes.iconStroke, 1.6);
+    assert.equal(T.defaults.sizes.iconGrid, 24);
     assert.equal(T.defaults.sizes.sheenGlow, 30);
     assert.equal(T.defaults.sizes.sheenMidStop, 0.45);
 });
