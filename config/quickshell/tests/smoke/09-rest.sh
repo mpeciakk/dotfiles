@@ -1,4 +1,10 @@
 wait_ms 600
+# Two unread notifications (DND keeps the island at rest): the badge must read "2".
+call notifs dnd true
+call notifs inject a x y
+call notifs inject a x y
+expect notifs unread 2
+wait_ms 600
 shot rest
 expect island contentState rest
 # contentState is "rest" even for an empty host; this proves the Rest layer itself loaded and went active.

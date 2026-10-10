@@ -18,7 +18,8 @@ Item {
     readonly property bool playing: Players.active?.isPlaying ?? false
     readonly property var dots: Niri.workspaces.filter(w => w.output === root.output).sort((a, b) => a.idx - b.idx)
 
-    // Lets the island report that this layer is mounted and entered (IPC `restLoaded`).
+    // Lets the island report that this layer is loaded and lit on its output (IPC `restLoaded`);
+    // true from the start of the enter transition, false again once the island leaves rest.
     readonly property bool ready: root.active && root.output !== ""
     onReadyChanged: IslandState.reportRest(root.output, root.ready)
 
@@ -150,7 +151,7 @@ Item {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Notifs.history.length
+                    text: Notifs.unread
                     color: Theme.accent
                     font.family: Theme.fonts.mono
                     font.pixelSize: root.spec.badgeFont

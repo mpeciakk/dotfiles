@@ -20,7 +20,7 @@ Singleton {
     property string maskMode: "shape"
     // output name -> the state whose content layer is fully entered ("" while a transition runs).
     property var shownByOutput: ({})
-    // output name -> whether that output's Rest layer is mounted and entered.
+    // output name -> whether that output's Rest layer is loaded and lit (true from enter start until the island leaves rest).
     property var restLoadedByOutput: ({})
 
     // What the user sees: the island on `output`, or at rest the one on the focused output.
