@@ -14,7 +14,7 @@ Singleton {
     property string output: ""
     property bool hidden: false
     property int centerHeight: Theme.geom.center.hMin
-    property bool badge: false
+    property bool badge: Notifs.unread > 0
     property string osdKind: "volume"
     // "shape" | "full": input-mask mode of the island on `output`, reported by that screen's Island.
     property string maskMode: "shape"

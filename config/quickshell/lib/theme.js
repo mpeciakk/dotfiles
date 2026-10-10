@@ -225,7 +225,16 @@ var defaults = {
     },
 
     // Per-state extras, filled in by the state tasks.
-    layout: {}
+    layout: {
+        // Notification centre height terms (reference 3.5, R28). hMin/hMax mirror geom.center so
+        // lib/notifs.js centerHeight() needs only this object.
+        center: {
+            hMin: 170, hMax: 620,
+            pad: 14, header: 36, gap: 10, bottom: 16,
+            groupHeader: 28, card: 64, cardGap: 6, groupGap: 12,
+            stackPad1: 7, stackPad2: 14
+        }
+    }
 };
 
 function resolve(tokens, mode, level, glass) {

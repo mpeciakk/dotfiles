@@ -2,41 +2,60 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Notifications
+import "../lib/notifs.js" as N
 
-// Becomes the desktop notification daemon. `list` is the currently-shown
-// (tracked) notifications driving the popups; `history` is a kept log of every
-// notification (snapshotted so it survives expiry/dismissal) for the
-// notification center. `dnd` suppresses popups (the notification still lands in
-// history) — swaync-style.
+// Becomes the desktop notification daemon. Every notification is snapshotted into `history`
+// (popups are not tracked; the island's toast and centre render from the snapshots).
+// `unread` feeds the island badge, `series` the toast's "+N", `dnd` silences the toast only.
 Singleton {
     id: root
 
-    readonly property alias list: server.trackedNotifications
-    readonly property int count: list.values.length
-
+    property var history: []          // snapshots {id, appName, summary, body, appIcon, image, time}, newest first, max 50
+    readonly property var groups: N.group(root.history)
+    readonly property var latest: root.history[0] ?? null
+    property int unread: 0
+    property int series: 0            // notifications since the toast opened
     property bool dnd: false
-    property var history: []          // snapshots, newest first
 
-    // Enabling DND also dismisses the popups already on screen (not just future).
-    onDndChanged: {
-        if (root.dnd)
-            for (const n of root.list.values)
-                n.tracked = false;
+    signal arrived(var snap)
+
+    // Negative ids for IPC-injected snapshots never collide with the server's.
+    property int injected: 0
+
+    // The single arrival path (D-Bus server and IPC).
+    function push(snap: var): void {
+        root.history = [snap].concat(root.history).slice(0, 50);
+        root.unread += 1;
+        if (!root.dnd)
+            root.series += 1;
+        root.arrived(snap);
     }
 
-    function clearHistory(): void {
-        root.history = [];
+    function markRead(): void {
+        root.unread = 0;
     }
-    // Remove by identity (the history array mutates while the center is open, so
-    // a captured index could point at the wrong card).
-    function removeItem(item: var): void {
-        const i = root.history.indexOf(item);
-        if (i < 0)
-            return;
-        const h = root.history.slice();
-        h.splice(i, 1);
+
+    function resetSeries(): void {
+        root.series = 0;
+    }
+
+    function keep(h: var): void {
         root.history = h;
+        root.unread = Math.min(root.unread, h.length);
+    }
+
+    function dismiss(id: int): void {
+        root.keep(root.history.filter(s => s.id !== id));
+    }
+
+    function dismissApp(app: string): void {
+        root.keep(root.history.filter(s => s.appName !== app));
+    }
+
+    function clearAll(): void {
+        root.keep([]);
     }
 
     NotificationServer {
@@ -48,20 +67,36 @@ Singleton {
         actionsSupported: false
 
         onNotification: notif => {
-            // Snapshot for history (kept after the popup is gone).
-            root.history = [
-                {
-                    appName: notif.appName ?? "",
-                    summary: notif.summary ?? "",
-                    body: notif.body ?? "",
-                    appIcon: notif.appIcon ?? "",
-                    time: new Date()
-                }
-            ].concat(root.history).slice(0, 50);
+            root.push({
+                id: notif.id,
+                appName: notif.appName ?? "",
+                summary: notif.summary ?? "",
+                body: notif.body ?? "",
+                appIcon: notif.appIcon ?? "",
+                image: notif.image ?? "",
+                time: new Date()
+            });
+        }
+    }
 
-            // Show the popup unless Do Not Disturb is on.
-            if (!root.dnd)
-                notif.tracked = true;
+    IpcHandler {
+        target: "notifs"
+
+        readonly property int count: root.history.length
+        readonly property int unread: root.unread
+        readonly property bool dndOn: root.dnd
+
+        function inject(app: string, summary: string, body: string): void {
+            root.injected -= 1;
+            root.push({ id: root.injected, appName: app, summary: summary, body: body, appIcon: "", image: "", time: new Date() });
+        }
+
+        function dnd(on: bool): void {
+            root.dnd = on;
+        }
+
+        function clear(): void {
+            root.clearAll();
         }
     }
 }
