@@ -13,7 +13,8 @@ Item {
     // state -> component url; every state task adds exactly one entry here.
     property var sources: ({
         rest: "states/Rest.qml",
-        osd: "states/Osd.qml"
+        osd: "states/Osd.qml",
+        toast: "states/Toast.qml"
     })
 
     // The state whose layer has fully entered; "" while a transition runs.

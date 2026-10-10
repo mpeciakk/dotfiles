@@ -159,3 +159,23 @@ test("defaults: layout.osd matches reference 3.2", () => {
         padX: 16, gap: 12, icon: 18, barH: 6, barRadius: 3, valueW: 28, valueFont: 12, volumeHighFrom: 0.5, percent: 100
     });
 });
+
+test("defaults: layout.toast matches reference 3.4 variant B", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.toast), {
+        padX: 16, gap: 14, icon: 44, iconRadius: 14, iconImage: 28, iconLetter: 16, textGap: 2,
+        titleFont: 14, bodyFont: 12, chipH: 24, chipPad: 9, chipRadius: 12, chipFont: 11,
+        barInset: 30, barH: 2
+    });
+});
+
+test("resolve(): appColors are the accent followed by its three alternatives (R30)", () => {
+    const dark = T.resolve(T.defaults, "dark", "ciekłe", true).appColors;
+    assert.deepStrictEqual(plain(dark), ["#ffb9a7f5", "#fff1d6ae", "#ff8fd3c1", "#fff2a7b8"]);
+    const light = T.resolve(T.defaults, "light", "ciekłe", true).appColors;
+    assert.deepStrictEqual(plain(light), ["#ff5e48b8", "#ff8a5a1e", "#ff2f7a68", "#ffa23d5c"]);
+});
+
+test("resolve(): appColors follow an accent override", () => {
+    const tokens = T.merge(T.defaults, { palette: { dark: { accent: "#112233" } } });
+    assert.equal(T.resolve(tokens, "dark", "ciekłe", true).appColors[0], "#ff112233");
+});

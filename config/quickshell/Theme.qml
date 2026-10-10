@@ -25,6 +25,7 @@ Singleton {
     readonly property var sizes: root.tokens.sizes
     readonly property var fonts: root.tokens.fonts
     readonly property var layout: root.tokens.layout
+    readonly property var appColors: root.c.appColors
     readonly property var lockWallpaper: root.c.lockWallpaper
     readonly property string wallpaper: {
         const p = root.host.wallpaper ?? "~/.config/dotfiles/wp2.jpg";

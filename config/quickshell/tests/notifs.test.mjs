@@ -43,3 +43,14 @@ test("centerHeight(): empty, collapsed group of 3, expanded group of 3", () => {
     assert.equal(N.centerHeight(three, {}, L), 182);
     assert.equal(N.centerHeight(three, { a: true }, L), 308);
 });
+
+test("iconSource(): image wins, then an absolute or image:// appIcon, then the theme icon, else empty", () => {
+    const theme = name => (name === "firefox" ? "/icons/firefox.png" : "");
+    assert.equal(N.iconSource({ image: "image://qsimage/1", appIcon: "firefox" }, theme), "image://qsimage/1");
+    assert.equal(N.iconSource({ image: "", appIcon: "/tmp/a.png" }, theme), "/tmp/a.png");
+    assert.equal(N.iconSource({ image: "", appIcon: "image://qsimage/2" }, theme), "image://qsimage/2");
+    assert.equal(N.iconSource({ image: "", appIcon: "file:///tmp/a.png" }, theme), "file:///tmp/a.png");
+    assert.equal(N.iconSource({ image: "", appIcon: "firefox" }, theme), "/icons/firefox.png");
+    assert.equal(N.iconSource({ image: "", appIcon: "nope" }, theme), "");
+    assert.equal(N.iconSource({ image: "", appIcon: "" }, theme), "");
+});

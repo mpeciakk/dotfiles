@@ -110,6 +110,27 @@ Singleton {
         onTriggered: root.osdReady = true
     }
 
+    // The series ends when the toast does: whatever the island moves on to (rest, centre).
+    property bool toastShown: false
+    onCurrentChanged: {
+        if (root.toastShown && root.current !== "toast")
+            Notifs.resetSeries();
+        root.toastShown = root.current === "toast";
+    }
+
+    // The toast needs request() to accept it (not while the centre or a higher state is up) and no DND;
+    // a notification the toast does not show never counts towards "+N".
+    Connections {
+        target: Notifs
+
+        function onArrived(): void {
+            if (Notifs.dnd)
+                return;
+            if (!root.request("toast"))
+                Notifs.resetSeries();
+        }
+    }
+
     Connections {
         target: Audio
 

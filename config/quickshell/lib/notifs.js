@@ -43,3 +43,15 @@ function appColor(appName, colors) {
 function initial(appName) {
     return appName.length > 0 ? appName.charAt(0).toUpperCase() : "?";
 }
+
+// The picture of a notification (R30): its image, else its appIcon (a path or file:// / image:// URL
+// as is, a theme icon name through `iconPath`), else "" for the initial fallback.
+function iconSource(snap, iconPath) {
+    if (snap.image)
+        return snap.image;
+    if (!snap.appIcon)
+        return "";
+    if (snap.appIcon.charAt(0) === "/" || /^(file|image):\/\//.test(snap.appIcon))
+        return snap.appIcon;
+    return iconPath(snap.appIcon);
+}

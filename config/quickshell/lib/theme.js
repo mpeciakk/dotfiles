@@ -140,7 +140,7 @@ var defaults = {
     // Colours that do not depend on the glass level. Omitted keys are derived in
     // resolve(): fgSoft = fg, fgLock = fgMuted, track = chip, lockField = tile,
     // lockGlass = islandBg.
-    // Accent alternatives — dark: #F1D6AE #8FD3C1 #F2A7B8; light: #8A5A1E #2F7A68 #A23D5C
+    // `accentAlternatives` + `accent` are the four app colours of notification icons (R30).
     palette: {
         dark: {
             ring: rgba(255, 255, 255, 0.07),
@@ -149,6 +149,7 @@ var defaults = {
             fgDim: "#8B8699",
             fgLock: "#CFC8E0",
             accent: "#B9A7F5",
+            accentAlternatives: ["#F1D6AE", "#8FD3C1", "#F2A7B8"],
             onAccent: "#121118",
             inverseBg: "#ECEAF2",
             inverseFg: "#121118",
@@ -167,6 +168,7 @@ var defaults = {
             fgMuted: "#5C5770",
             fgDim: "#77728A",
             accent: "#5E48B8",
+            accentAlternatives: ["#8A5A1E", "#2F7A68", "#A23D5C"],
             onAccent: "#FFFFFF",
             inverseBg: "#1E1B2A",
             inverseFg: "#EFECF3",
@@ -237,6 +239,13 @@ var defaults = {
         osd: {
             padX: 16, gap: 12, icon: 18, barH: 6, barRadius: 3, valueW: 28, valueFont: 12, volumeHighFrom: 0.5, percent: 100
         },
+        // Toast (reference 3.4 variant B, R26). iconImage: size of an image / app icon inside the icon box
+        // (unspecified in the reference); barInset/barH: the progress bar.
+        toast: {
+            padX: 16, gap: 14, icon: 44, iconRadius: 14, iconImage: 28, iconLetter: 16, textGap: 2,
+            titleFont: 14, bodyFont: 12, chipH: 24, chipPad: 9, chipRadius: 12, chipFont: 11,
+            barInset: 30, barH: 2
+        },
         // Notification centre height terms (reference 3.5, R28). hMin/hMax mirror geom.center so
         // lib/notifs.js centerHeight() needs only this object.
         center: {
@@ -285,6 +294,7 @@ function resolve(tokens, mode, level, glass) {
         fgSoft: hex(pick(p.fgSoft, p.fg)),
         fgLock: hex(pick(p.fgLock, p.fgMuted)),
         accent: accent,
+        appColors: [accent].concat(p.accentAlternatives.map(hex)),
         accentSoft: withAlpha(accent, tokens.accentAlpha.soft),
         accentHalo: withAlpha(accent, tokens.accentAlpha.halo),
         focusRing: withAlpha(accent, tokens.accentAlpha.focus),
