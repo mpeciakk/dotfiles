@@ -1,6 +1,6 @@
 ---
 name: development-workflow
-description: Use when opening a planned run for a code change that spans several domains, needs more than one sitting, or carries decisions for the user — and when resuming one ("kontynuuj", "go", "continue the run"). Small and single-domain changes are done inline without it.
+description: Use when opening a planned run for a code change that spans several domains or needs more than one sitting — and when resuming one ("kontynuuj", "go", "continue the run"). Small and single-domain changes are done inline without it.
 ---
 
 # Development Workflow
@@ -10,8 +10,9 @@ there. Run continuously between the two user gates (✋).
 
 ## When a run, when inline
 
-Triage is in CLAUDE.md. In short: one domain of the change, one sitting, no
-decision the user has to make → inline, no run. Anything else → a run. Inline
+Triage is in CLAUDE.md. In short: one domain of the change, one sitting →
+inline, no run; a single decision for the user is a question, not a run.
+Several domains or several sittings → a run. Inline
 work that changes behaviour across modules or touches a spec decision still
 gets a `branch-reviewer` before it lands on main (requesting-code-review).
 
@@ -57,7 +58,8 @@ first task not marked done.
 - **Facts get checked, not recalled.** A SHA, a branch's state, a test's
   output, an API's shape — look it up before you write it down.
 - **The living spec is context in and output out** (CLAUDE.md rule 6): the
-  decision row at the plan gate, the state sections at finish.
+  decision row at the plan gate, the state sections after the last task,
+  before the branch review.
 
 ## Models
 

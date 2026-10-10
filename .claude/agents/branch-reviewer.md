@@ -24,14 +24,17 @@ judge only whether those findings are fixed and nothing broke.
 ## Read the change
 
 Run `~/.claude/skills/subagent-driven-development/scripts/review-package <BASE> <HEAD>`
-(literal SHAs) and read the file it prints once. An exit 4 means the range has no
-commits: report BLOCKED with its message. Use `git show <sha>:<path>` for other
+(literal SHAs; `--worktree` in place of HEAD when you are told the change is
+uncommitted) and read the file it prints once. An exit 4 means there is nothing
+to review in that range: report BLOCKED with its message. Use `git show <sha>:<path>` for other
 revisions and cbm (`trace_path`, `get_code_snippet`) for callers outside the
 diff. Never move HEAD, touch the index, or create a worktree.
 
 ## Run it
 
-1. The project's test suite, once.
+1. The project's test suite, once, and note the HEAD it ran on. Re-reviewing a
+   fix range: the tests of the area it touched. A change with no code: check
+   its content and links instead.
 2. The verification you were given — the scenario, command or data run that
    shows the change works for real. If it cannot run here (needs hardware,
    credentials, a service), say exactly what you could not run.
@@ -44,7 +47,9 @@ Untracked artifacts from these runs are fine; changes to tracked files are not.
   matter? A green suite with a broken scenario is a failed review.
 - **Spec decisions.** Does the code still honour every decision in the spec
   that this change touches? A decision reversed without a new decision row is
-  Critical or Important, however reasonable the new behaviour looks.
+  Critical or Important, however reasonable the new behaviour looks. Spec
+  sections describing state that the change updated must describe the code as
+  it now is.
 - **Seams.** Interfaces that drifted between tasks, duplication by tasks that
   could not see each other, error handling that stops at a boundary, a pattern
   applied inconsistently.
@@ -66,7 +71,7 @@ behaviour, a missed requirement, damage worth blocking over. Polish is
 Your final message IS the report. No preamble.
 
     ### Verification
-    [suite: command + result; scenario: what you ran + result, or what you could not run]
+    [suite: command + result + the HEAD it ran on; scenario: what you ran + result, or what you could not run]
 
     ### Issues
     #### Critical

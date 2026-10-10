@@ -3,10 +3,12 @@
 Domyślnie pracujesz **inline**: czytasz potrzebny kontekst, robisz najmniejszą
 sensowną zmianę i weryfikujesz wynik. **Run** (skill `development-workflow`:
 plan z decyzjami → worktree → implementer na task → review gałęzi → finisz)
-otwierasz, gdy zmiana obejmuje kilka domen, nie zmieści się w jednym
-posiedzeniu albo zostawia decyzję, którą muszę podjąć ja. Zmiana inline, która
+otwierasz, gdy zmiana obejmuje kilka domen albo nie zmieści się w jednym
+posiedzeniu. Pojedynczą decyzję, którą muszę podjąć ja, zadajesz pytaniem
+i pracujesz dalej inline — sama nie jest powodem do runu. Zmiana inline, która
 zmienia zachowanie między modułami albo dotyka decyzji ze speca, przed wejściem
-na main dostaje `branch-reviewer` (skill `requesting-code-review`).
+na main dostaje `branch-reviewer` (skill `requesting-code-review`); przed
+pierwszą edycją takiej zmiany zanotuj SHA `HEAD`.
 „kontynuuj" przy otwartym runie = wznowienie ze stanu `flow-state`.
 Ambientowo, gdy pasuje trigger: test-driven-development, systematic-debugging,
 receiving-code-review.
@@ -35,7 +37,7 @@ Zasady:
 6. Projekt ma zwykle **żywy `spec.md`** (w rootcie albo per komponent) — czym
    jest, decyzje w mocy, punkty otwarte. Czytasz go PRZED pytaniami do mnie
    i zostawiasz prawdziwym: decyzja wchodzi na bramce planu, sekcje opisujące
-   stan aktualizujesz przy finiszu. Spec, który kłamie, jest gorszy niż
+   stan aktualizujesz po ostatnim tasku, przed review gałęzi. Spec, który kłamie, jest gorszy niż
    ubogi. Gdy projekt speca nie ma — to osobna robota, skill `writing-specs`,
    nie produkt uboczny bieżącej zmiany.
 

@@ -660,5 +660,39 @@ awk '/^## Per task/,/^## After the last task/' "$SK/subagent-driven-development/
 [ ! -e "$HERE/../agents/task-reviewer.md" ] && [ ! -e "$HERE/../agents/fixer.md" ] \
   && report ok "task-reviewer and fixer are gone" || report no "removed agents still present"
 
+
+# ------------------------------------------------- review-package --worktree
+SCR=$SK/subagent-driven-development/scripts
+RP=$ROOT/rp; mkrepo "$RP" || fixture_fail "could not build $RP"
+printf '*.diff\n' > "$RP/.gitignore"; mkdir -p "$RP/.flow/sdd"; printf '*.diff\n' > "$RP/.flow/sdd/.gitignore"
+git -C "$RP" add -A && git -C "$RP" commit -q --no-gpg-sign -m "archiving-era ignore" || fixture_fail "rp commit"
+RB=$(git -C "$RP" rev-parse HEAD)
+(cd "$RP" && "$SCR/review-package" "$RB" --worktree >/dev/null 2>&1); rc=$?
+[ "$rc" -eq 4 ] && report ok "--worktree with no changes exits 4" || report no "--worktree empty exit" "rc=$rc"
+(cd "$RP" && "$SCR/review-package" "$RB" HEAD >/dev/null 2>&1); rc=$?
+[ "$rc" -eq 4 ] && report ok "empty commit range still exits 4" || report no "commit range empty exit" "rc=$rc"
+echo changed > "$RP/app.py"; echo fresh > "$RP/new file.py"
+pkg=$(cd "$RP" && "$SCR/review-package" "$RB" --worktree 2>/dev/null)
+grep -q '^+changed' "$pkg" && report ok "--worktree package has the uncommitted edit" || report no "uncommitted edit missing" "$pkg"
+grep -q '^+fresh' "$pkg" && report ok "--worktree package has the untracked file (name with a space)" || report no "untracked file missing" "$pkg"
+grep -q 'review-.*\.diff' "$pkg" && report no "package lists itself" || report ok "package does not list itself"
+git -C "$RP" add -A && git -C "$RP" commit -q --no-gpg-sign -m change
+pkg=$(cd "$RP" && "$SCR/review-package" "$RB" HEAD 2>/dev/null)
+grep -q '^+changed' "$pkg" && report ok "commit range package after committing" || report no "commit range package" "$pkg"
+
+# --------------------------------------------- sdd-workspace scratch ignore
+(cd "$RP" && "$SCR/sdd-workspace" >/dev/null && "$SCR/sdd-workspace" >/dev/null)
+[ "$(grep -cxF '/.flow/sdd/' "$RP/.git/info/exclude")" = 1 ] \
+  && report ok "sdd-workspace adds .flow/sdd to info/exclude once" || report no "info/exclude entry" "$(cat "$RP/.git/info/exclude")"
+[ "$(cat "$RP/.flow/sdd/.gitignore")" = '*.diff' ] \
+  && report ok "sdd-workspace leaves a tracked .gitignore alone" || report no "tracked .gitignore rewritten"
+echo brief > "$RP/.flow/sdd/task-1-brief.md"
+[ -z "$(git -C "$RP" status --porcelain)" ] \
+  && report ok "briefs in an archiving-era project are not untracked" || report no "scratch shows in git status" "$(git -C "$RP" status --porcelain)"
+grep -q 'Above ~1500' "$SK/requesting-code-review/SKILL.md" \
+  && report no "requesting-code-review still splits reviewers by size" || report ok "one branch reviewer, no size split"
+awk '/^## After the last task/,/^## Never/' "$SK/subagent-driven-development/SKILL.md" | grep -q 'Spec state' \
+  && report ok "spec state is updated before the branch review" || report no "spec state step missing before review"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

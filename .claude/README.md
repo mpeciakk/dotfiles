@@ -10,17 +10,17 @@ discipline (candor, verification) and a codebase-memory navigation layer.
 change, verify it. Inline work that changes behaviour across modules or
 touches a spec decision gets a `branch-reviewer` before it lands on main.
 
-**A run** (`development-workflow`) when the change spans several domains,
-needs more than one sitting, or leaves a decision for the user (✋ = you
-decide):
+**A run** (`development-workflow`) when the change spans several domains or
+needs more than one sitting; a single decision for you is a question inline,
+not a run (✋ = you decide):
 
 | # | Stage | Skill | Gate |
 |---|-------|-------|------|
 | 1 | Plan — decisions + tasks in one document | `writing-plans` (+ red-team for 2+ tasks) | ✋ "go" |
 | 2 | Isolate | `using-git-worktrees` | — |
 | 3 | Implement — one implementer per task (a domain of the change), in the background | `subagent-driven-development` | — |
-| 4 | Review — the whole branch, tests and real verification run | `requesting-code-review` | — |
-| 5 | Finish — suite, spec state sections, merge | `finishing-a-development-branch` | ✋ merge / PR / keep / discard |
+| 4 | Review — spec state sections first, then the whole branch: tests, real verification, spec | `requesting-code-review` | — |
+| 5 | Finish — suite unless the review's run still holds, merge | `finishing-a-development-branch` | ✋ merge / PR / keep / discard |
 
 Run state lives in `flow-state`, so "kontynuuj" in a fresh session resumes at
 the first task not done. Plans → `.flow/plans/`; `.flow/sdd/` is scratch.

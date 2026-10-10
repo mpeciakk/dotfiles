@@ -38,7 +38,9 @@ recommendation. Where there is none, do not invent one.
 ## 3. The plan
 
 Save to `.flow/plans/YYYY-MM-DD-<slug>.md`. Target 100–250 lines. Past ~300,
-the change is too big for one run — split it and plan the first part.
+look at why before going on: usually the plan carries what an implementer can
+decide — cut it; if the scope itself is too big for one run, propose a split
+to the user.
 
 ```markdown
 # <Change> — plan
@@ -96,8 +98,8 @@ that owns the section, and the index's next free D number moves in the same
 commit. If the file you write into is over 40 KB, say so in one line — the
 split is a separate writing-specs job.
 
-Sections describing state (architecture, data model, API) change at finish,
-not here — the code does not exist yet.
+Sections describing state (architecture, data model, API) change after the
+last task, before the branch review — not here: the code does not exist yet.
 
 No living spec: the plan's Decisions section is the record; offer
 writing-specs as a separate job.

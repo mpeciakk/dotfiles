@@ -32,9 +32,12 @@ gathered 2026-10-10:
 ## L1 — Default is inline; a run is opened deliberately
 
 **Chosen:** triage lives in `CLAUDE.md`. Inline when the change sits in one
-domain, fits one sitting and leaves no decision for the user. Otherwise a run
-(development-workflow). Inline work that changes behaviour across modules or
-touches a spec decision gets a `branch-reviewer` before it lands on main.
+domain and fits one sitting; a single decision for the user is a question
+asked inline, not a reason for a run. Otherwise a run (development-workflow).
+Inline work that changes behaviour across modules or touches a spec decision
+gets a `branch-reviewer` before it lands on main; its BASE is the HEAD noted
+before the first edit, and `review-package BASE --worktree` covers work not
+yet committed.
 
 **Rejected:** keeping `development-workflow` as the mandatory entry for every
 code task (the cost the user feels); a plain "lean mode" layered on top
@@ -53,7 +56,8 @@ helped).
 **Chosen:** brainstorming is folded into writing-plans. The plan holds the
 change's decisions (chosen + rejected, one line each), tasks, and the final
 verification scenario. The decision row still lands in the living spec at the
-gate. Target 100–250 lines; above ~300 the run is split. No separate
+gate. Target 100–250 lines; above ~300 the plan is first cut back to what an
+implementer cannot decide, and only a scope that is still too big is split. No separate
 `.flow/specs/*-design.md` per run. The `/clear` + `/model` ritual between
 design and execution goes.
 
@@ -86,10 +90,21 @@ message is lower usage. Worktree stays the default.
 
 **Chosen:** no task-reviewer and no fixer agent. The branch reviewer runs the
 suite and the plan's verification scenario, checks the spec decisions the
-branch touches, and looks at seams between tasks. A branch above ~1500
-changed lines is split between parallel reviewers by area. Fixes go to one
-implementer dispatch with the full finding list; Critical fixes get a focused
-re-review of the fix range.
+branch touches and the state sections updated before it, and looks at seams
+between tasks. One reviewer per branch: parallel reviewers would share the
+package path and the test workspace. Fixes go to one implementer dispatch with
+the full finding list; Critical fixes get a focused re-review of the fix range.
+
+The suite runs where it adds information: an implementer runs it once per code
+task (with no per-task review it is the only regression check between tasks),
+the branch reviewer once on the final code. Docs-only work gets a content and
+link check instead; a fix range gets the tests of its area; finish reuses the
+reviewer's run while HEAD has not moved; after a fast-forward merge nothing
+reruns.
+
+**Rejected:** a single full-suite run per branch (Codex/Astra) — a regression
+from task 1 would surface only after the last task, far from the code that
+made it.
 
 **Rejected:** keeping per-task review on an Opus trigger list (most of its
 output was process compliance; the finding that mattered came from the branch
@@ -111,13 +126,25 @@ test code.
 ## L9 — `.flow/sdd` is scratch
 
 **Chosen:** briefs and reports are ignored and die with the worktree. The
-record of a run is the plan, the spec and the commits.
+record of a run is the plan, the spec and the commits. `sdd-workspace` adds
+`/.flow/sdd/` to `info/exclude`, so projects that track an older `.gitignore`
+there do not show scratch as untracked.
 
 ## Measuring it
 
 Rollback: tag `workflow-v1` on main before the merge. Check after two weeks of
 use: `fix` commits to freshly merged code within 7 days, time from "go" to
-merge, the user's interventions during a run.
+ready to integrate (branch review green) with time spent waiting on the user
+counted separately, the user's interventions during a run.
+
+## After the Astra review (same day)
+
+A review of the first draft (Codex, Astra 6) found five gaps, all fixed in L1,
+L3, L6, L9 and the measurement above: inline review could not see uncommitted
+work or commits on main; scratch stayed visible in older projects; the suite
+ran up to four times; parallel reviewers shared a workspace; the spec's state
+sections were updated after the only review. Its point on the suite was taken
+in part (see L6).
 
 ## Cutover (after the wyspa-shell run is closed)
 
@@ -127,7 +154,4 @@ merge, the user's interventions during a run.
   `~/.claude/skills/brainstorming/*`.
 - Memory `plan-granularity-experiment.md` ("kept: middle-variant plans")
   becomes false; update it.
-- Projects from the archiving era track `.flow/sdd/.gitignore` with `*.diff`;
-  `sdd-workspace` leaves an existing file alone, so their reports stay visible
-  as untracked files, as before.
 - Tell the vault session (CLAUDE.md cross-session rule): pointer to this file.

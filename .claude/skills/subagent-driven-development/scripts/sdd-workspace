@@ -20,4 +20,9 @@ mkdir -p "$dir"
 # Only when absent: projects from the archiving era track a `*.diff` version,
 # and rewriting a tracked file would leave the tree dirty for the implementer.
 [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore"
+# Those projects would still show briefs and reports as untracked, so ignore
+# the directory in info/exclude too: shared by every worktree, never tracked.
+exclude="$(git rev-parse --git-common-dir)/info/exclude"
+grep -qxF '/.flow/sdd/' "$exclude" 2>/dev/null \
+  || { mkdir -p "$(dirname "$exclude")" && echo '/.flow/sdd/' >> "$exclude"; } || true
 cd "$dir" && pwd

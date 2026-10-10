@@ -9,16 +9,15 @@ Verify tests → detect the workspace → present options → execute → clean 
 
 ## Step 1 — tests green, on the real suite
 
-Run the project's full suite. If anything fails, report the failures and stop:
-merging red code or opening a failing PR costs more than the delay.
+If the branch review ran the suite green on the current HEAD (its
+Verification section names the commit), cite that run. Otherwise — fixes landed
+after the review — run the project's full suite. A branch with no code changes
+needs no suite. If anything fails, report the failures and stop: merging red
+code or opening a failing PR costs more than the delay.
 
-Then bring the living spec up to date (`~/.claude/hooks/flow-state get spec`).
-The decision rows went in at the plan gate; the sections describing state —
-architecture, data model, API, documented behaviour — change now, for every
-section this branch made untrue. You hold the whole change and no implementer
-is in flight, so edit them yourself and commit on the branch. Cite code by path
-and symbol, never by line. Nothing touched the spec's claims: say so in one
-line.
+The living spec was brought up to date before the branch review
+(subagent-driven-development). If a fix after the review changed something the
+spec describes, update that section now and commit it.
 
 ## Step 2 — what kind of workspace is this?
 
@@ -83,7 +82,7 @@ MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-tople
 cd "$MAIN_ROOT"
 git checkout <base-branch> && git pull
 git merge <feature-branch>
-<test command>                     # verify the merged result, not just the branch
+<test command>                     # only if the merge was not a fast-forward
 codebase-memory-mcp cli index_repository --repo-path "$MAIN_ROOT"
 ```
 
@@ -156,8 +155,8 @@ next step is `/clear` before the next change.
 
 ## Never
 
-- Offer options before the suite is green, or merge without re-running tests on
-  the merged result.
+- Offer options before the suite is green, or land a non-fast-forward merge
+  without running the suite on the merged result.
 - Remove a worktree before the merge succeeded, or remove one you did not
   create.
 - Delete the branch before removing the worktree that has it checked out.

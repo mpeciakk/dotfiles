@@ -55,9 +55,15 @@ ambiguity the plan does not settle, or the end of the plan.
 
 ## After the last task
 
-Branch review: requesting-code-review. Pass it the plan path, `base` from the
-run state, HEAD, and any concerns implementers raised. Act on it per that
-skill, then record:
+1. **Spec state.** Bring the living spec up to date (`flow-state get spec`).
+   The decision rows went in at the plan gate; the sections describing state —
+   architecture, data model, API, documented behaviour — change now, for every
+   section this branch made untrue. You hold the whole change and no
+   implementer is in flight: edit them yourself, cite code by path and symbol,
+   commit on the branch. Nothing touched the spec's claims: say so in one line.
+2. **Branch review:** requesting-code-review. Pass it the plan path, `base`
+   from the run state, HEAD, the spec sections you updated, and any concerns
+   implementers raised. Act on it per that skill, then record:
 
 ```bash
 ~/.claude/hooks/flow-state task branch-review done "<base7>..<head7>"

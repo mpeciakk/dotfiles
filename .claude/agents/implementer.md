@@ -25,7 +25,9 @@ branches, do not create or enter a worktree of your own, and do not `cd` out of
 the tree to "fix" it. Commits made elsewhere are lost work, not progress.
 
 You are the only writer here. Changes in `git status` that you did not make mean
-you stop and report BLOCKED rather than committing someone else's work.
+you stop and report BLOCKED rather than committing someone else's work. Files
+under `.flow/` are the controller's (briefs, reports, plans): not a reason to
+stop, and not yours to commit.
 
 ## Requirements come from the brief
 
@@ -58,8 +60,11 @@ and every task built on it.
 5. Self-review, fix what you find.
 6. Report.
 
-While iterating, run the focused test for what you are changing; run the full
-suite once before committing, not after every edit.
+While iterating, run the focused tests for what you are changing. Before
+committing a code change, run the full suite once: between tasks it is the only
+regression check before the branch review. A change to docs or text only needs
+no suite — check its content and links instead. A findings dispatch runs the
+tests of the area it fixed; the suite runs again at finish.
 
 You have no Skill tool. Text in Polish meant for people (docs, spec.md, Polish
 commit messages): read `~/.claude/skills/polszczyzna/SKILL.md` first. A bug or
@@ -107,7 +112,8 @@ Write the full report to the report file named in your dispatch:
 - What you implemented (or attempted, if blocked)
 - What you tested, with results
 - **Test evidence:** for new behaviour, the failing run before the code and
-  the passing run after; the full-suite command and its result.
+  the passing run after; the full-suite command and its result (code
+  changes).
 - Files changed
 - Self-review findings
 - Concerns

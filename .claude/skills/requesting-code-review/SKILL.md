@@ -10,11 +10,20 @@ reasoning about it, and your context stays free.
 
 ## 1. Bound the change
 
-BASE is where the work began: `~/.claude/hooks/flow-state get base` in a run,
-otherwise `git merge-base HEAD main` (or `master`). Never `HEAD~1`. If neither
-resolves, ask which branch the work forked from.
+BASE is where the work began:
 
-Size it: `git diff --shortstat BASE HEAD`.
+- a run: `~/.claude/hooks/flow-state get base`;
+- a branch: `git merge-base HEAD main` (or `master`);
+- inline work on main: the HEAD you noted before the first edit. Not noted:
+  the parent of the change's first commit, from `git log`.
+
+`HEAD~1` only when the change is exactly one commit. If none of these
+resolves, ask where the work began.
+
+HEAD is the last commit — or `--worktree` while the change is not all
+committed: the package then runs from BASE to the working tree, untracked
+files included. Size it: `git diff --shortstat BASE` (working tree) or
+`git diff --shortstat BASE HEAD`.
 
 ## 2. Dispatch
 
@@ -24,15 +33,10 @@ turn. The prompt carries:
 - what was built and the requirements (plan path, or a few lines for inline
   work);
 - the living spec path and the decisions the change touches;
-- BASE and HEAD;
+- BASE and HEAD (or `--worktree`);
 - the verification to run (the plan's Verification section, or the command or
   scenario that shows inline work working);
 - concerns implementers raised, as their own block.
-
-**Above ~1500 changed lines**, split by area: one reviewer per area in one
-response (read-only, so parallel is safe), each told its paths and that the
-other areas have their own reviewer. You own the seams between them — read
-those yourself.
 
 ## 3. Act on it
 
