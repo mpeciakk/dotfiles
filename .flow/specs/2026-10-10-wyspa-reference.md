@@ -733,7 +733,7 @@ Numbers refer to §6. Where a resolution invents a value, it is a default token 
 - R8 [C#8] Tokens `onAccent` (dark `#121118`, light `#FFFFFF`) and `inverseBg`/`inverseFg` (dark `#ECEAF2`/`#121118`, light `#1E1B2A`/`#EFECF3`). `#0B0B10` is not used.
 - R9 [C#9] Accent alphas computed from `accent`: `accentSoft` = accent @0.18, `accentHalo` = accent @0.2, `focusRing` = accent @0.9 (1.5 px). Never hard-coded.
 - R10 [C#10] Light lock wallpaper keeps saturate 1.2 and scale 1.08; blur 18, brightness 0.92.
-- R11 [C#11,13] Blur radius, saturation and brightness are compositor-side and static: niri `blur { passes 3; offset 5; }` (tuned visually for `ciekłe`), `layer-rule` for namespace `^wyspa$` with `background-effect { blur true; xray false; saturation 2.0; }`. Runtime glass-level switching changes bg/tile/sel/chip/card/sheen only. Brightness 1.05 is dropped.
+- R11 [C#11,13] Blur radius, saturation and brightness are compositor-side and static: niri `blur { passes 3; offset 5; }` (tuned visually for `ciekłe`), `layer-rule` for namespace `^wyspa$` with `background-effect { xray false; saturation 2.0; }` — no `blur true` (with no client region it would blur the whole full-screen surface; the client `blurRegion` alone enables blur). Already on main (`config/niri/window_rules.kdl`). Runtime glass-level switching changes bg/tile/sel/chip/card/sheen only. Brightness 1.05 is dropped.
 - R12 [C#12] Light per-level values taken verbatim from Jasny.
 - R13 [C#14,18] One fill path (body + ears, no seam). Ring and sheen are drawn on the body rectangle only; ears get fill + blur only. Ears fade with `motion.earFadeMs` 160.
 - R14 [C#15] Fixed widths stay as tokens; letter-spacing tokens applied as given.
