@@ -3,8 +3,10 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../lib/niri.js" as N
 
-// Talks to niri over its IPC event stream and exposes the live workspace list.
+// Talks to niri over its IPC event stream and exposes the live workspace list
+// and open windows.
 // Each workspace: { id, idx, name, output, active_window_id, ... }.
 //
 // `workspaces` is the structural list — it only changes when workspaces are
@@ -20,6 +22,11 @@ Singleton {
     property var activeByOutput: ({})    // output name -> active workspace id
     property var urgentIds: ({})         // workspace id -> true
 
+    // Open windows keyed by id, and the same set most-recently-focused first
+    // (consumed by the launcher's `@` mode).
+    property var windows: ({})
+    readonly property var windowList: N.sortWindows(root.windows)
+
     // The output of the focused workspace = the monitor the user is on. Used to
     // place global popups (launcher) on the active monitor.
     readonly property string focusedOutput: {
@@ -33,6 +40,10 @@ Singleton {
         Quickshell.execDetached(["sh", "-c", `niri msg action focus-monitor '${output}' && niri msg action focus-workspace ${idx}`]);
     }
 
+    function focusWindow(id: int): void {
+        Quickshell.execDetached(["niri", "msg", "action", "focus-window", "--id", String(id)]);
+    }
+
     function applyEvent(line: string): void {
         let ev;
         try {
@@ -40,6 +51,10 @@ Singleton {
         } catch (e) {
             return;
         }
+
+        const windows = N.reduceWindows(root.windows, ev);
+        if (windows !== root.windows)
+            root.windows = windows;
 
         if (ev.WorkspacesChanged) {
             const list = ev.WorkspacesChanged.workspaces;
