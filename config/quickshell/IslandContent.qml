@@ -12,7 +12,8 @@ Item {
     property string output: ""
     // state -> component url; every state task adds exactly one entry here.
     property var sources: ({
-        rest: "states/Rest.qml"
+        rest: "states/Rest.qml",
+        osd: "states/Osd.qml"
     })
 
     // The state whose layer has fully entered; "" while a transition runs.

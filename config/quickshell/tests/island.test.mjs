@@ -63,3 +63,12 @@ test("isModal()", () => {
     for (const s of ["launcher", "control", "power", "center"]) assert.equal(I.isModal(s), true, s);
     for (const s of ["rest", "osd", "media", "toast", "powerDone", "line"]) assert.equal(I.isModal(s), false, s);
 });
+
+test("osdIcon: brightness is a sun; volume by level, mute and zero is volume-x", () => {
+    assert.equal(I.osdIcon("brightness", 0.5, false, 0.5), "sun");
+    assert.equal(I.osdIcon("volume", 0.4, true, 0.5), "volume-x");
+    assert.equal(I.osdIcon("volume", 0, false, 0.5), "volume-x");
+    assert.equal(I.osdIcon("volume", 0.4, false, 0.5), "volume-1");
+    assert.equal(I.osdIcon("volume", 0.5, false, 0.5), "volume-2");
+    assert.equal(I.osdIcon("volume", 1.2, false, 0.5), "volume-2");
+});

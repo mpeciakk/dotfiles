@@ -16,6 +16,10 @@ Singleton {
     property int centerHeight: Theme.geom.center.hMin
     property bool badge: Notifs.unread > 0
     property string osdKind: "volume"
+    property real osdValue: 0
+    property bool osdMuted: false
+    // False while the audio and backlight values settle after startup; no OSD until then.
+    property bool osdReady: false
     // "shape" | "full": input-mask mode of the island on `output`, reported by that screen's Island.
     property string maskMode: "shape"
     // output name -> the state whose content layer is fully entered ("" while a transition runs).
@@ -57,6 +61,15 @@ Singleton {
         return true;
     }
 
+    function showOsd(kind: string, value: real, muted: bool): void {
+        if (!root.osdReady)
+            return;
+        root.osdKind = kind;
+        root.osdValue = value;
+        root.osdMuted = muted;
+        root.request("osd");
+    }
+
     function reportMask(output: string, m: string): void {
         if (output === root.output)
             root.maskMode = m;
@@ -89,6 +102,33 @@ Singleton {
     Timer {
         id: autoClose
         onTriggered: root.close()
+    }
+
+    Timer {
+        running: true
+        interval: Theme.motion.osdTimeoutMs
+        onTriggered: root.osdReady = true
+    }
+
+    Connections {
+        target: Audio
+
+        function onVolumeChanged(): void {
+            root.showOsd("volume", Audio.volume, Audio.muted);
+        }
+
+        function onMutedChanged(): void {
+            root.showOsd("volume", Audio.volume, Audio.muted);
+        }
+    }
+
+    Connections {
+        target: Brightness
+
+        function onValueChanged(): void {
+            if (Brightness.available)
+                root.showOsd("brightness", Brightness.value, false);
+        }
     }
 
     IpcHandler {

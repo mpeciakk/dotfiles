@@ -153,3 +153,9 @@ test("defaults: layout.rest matches reference 3.1", () => {
         badgeGap: 5, badgeH: 22, badgePad: 8, badgeRadius: 11, badgeFont: 11, badgeIcon: 12
     });
 });
+
+test("defaults: layout.osd matches reference 3.2", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.osd), {
+        padX: 16, gap: 12, icon: 18, barH: 6, barRadius: 3, valueW: 28, valueFont: 12, volumeHighFrom: 0.5, percent: 100
+    });
+});

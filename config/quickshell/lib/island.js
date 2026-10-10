@@ -31,3 +31,12 @@ function geometry(state, geom, ctx) {
     var g = geom[state];
     return { w: g.w, h: g.h, r: g.r, ears: ears };
 }
+
+// The OSD icon: a sun for brightness; for volume by mute, level and `highFrom`.
+function osdIcon(kind, value, muted, highFrom) {
+    if (kind === "brightness")
+        return "sun";
+    if (muted || value <= 0)
+        return "volume-x";
+    return value >= highFrom ? "volume-2" : "volume-1";
+}

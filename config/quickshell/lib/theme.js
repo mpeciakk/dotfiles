@@ -232,6 +232,11 @@ var defaults = {
             eqGap: 2, eqH: 12, eqBarW: 2, eqScaleMin: 0.35, eqDelayMs: [0, -300, -600],
             badgeGap: 5, badgeH: 22, badgePad: 8, badgeRadius: 11, badgeFont: 11, badgeIcon: 12
         },
+        // OSD (reference 3.2). volumeHighFrom: volume at or above this shows volume-2, below it volume-1
+        // (the 3-level split is unspecified in the reference).
+        osd: {
+            padX: 16, gap: 12, icon: 18, barH: 6, barRadius: 3, valueW: 28, valueFont: 12, volumeHighFrom: 0.5, percent: 100
+        },
         // Notification centre height terms (reference 3.5, R28). hMin/hMax mirror geom.center so
         // lib/notifs.js centerHeight() needs only this object.
         center: {
