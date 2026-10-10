@@ -116,6 +116,8 @@ Singleton {
         if (root.toastShown && root.current !== "toast")
             Notifs.resetSeries();
         root.toastShown = root.current === "toast";
+        if (root.current === "center")
+            Notifs.markRead();
     }
 
     // The toast needs request() to accept it (not while the centre or a higher state is up) and no DND;
@@ -124,6 +126,9 @@ Singleton {
         target: Notifs
 
         function onArrived(): void {
+            // What lands in an open centre is read as it lands, or the badge would count it once the centre closes.
+            if (root.current === "center")
+                Notifs.markRead();
             if (Notifs.dnd)
                 return;
             if (!root.request("toast"))

@@ -14,7 +14,8 @@ Item {
     property var sources: ({
         rest: "states/Rest.qml",
         osd: "states/Osd.qml",
-        toast: "states/Toast.qml"
+        toast: "states/Toast.qml",
+        center: "states/Center.qml"
     })
 
     // The state whose layer has fully entered; "" while a transition runs.

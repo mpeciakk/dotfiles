@@ -179,3 +179,28 @@ test("resolve(): appColors follow an accent override", () => {
     const tokens = T.merge(T.defaults, { palette: { dark: { accent: "#112233" } } });
     assert.equal(T.resolve(tokens, "dark", "ciekłe", true).appColors[0], "#ff112233");
 });
+
+test("defaults: layout.center matches reference 3.5 and R28", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.center), {
+        hMin: 170, hMax: 620,
+        pad: 14, header: 36, gap: 10, bottom: 16,
+        groupHeader: 28, card: 64, cardGap: 6, groupGap: 12,
+        stackPad1: 7, stackPad2: 14,
+        headerPadX: 4, headerGap: 10, titleFont: 15, countFont: 12,
+        btnH: 30, btnPadX: 10, btnRadius: 15, btnFont: 12, dndGap: 8, dndIcon: 13,
+        emptyGap: 6, emptyIcon: 22, emptyFont: 13,
+        groupHeadH: 22, groupHeadPadX: 4, groupHeadGap: 8, groupFont: 11, groupLetterEm: 0.08, groupCountFont: 11,
+        toggleFont: 11, togglePadX: 6, groupBtn: 22, groupBtnRadius: 11, groupBtnIcon: 12,
+        layer1Inset: 8, layer2Inset: 16, stack1Opacity: 0.7, stack2Opacity: 0.45,
+        cardRadius: 16, cardPadL: 12, cardPadR: 8, cardInnerGap: 12,
+        cardIcon: 36, cardIconRadius: 11, cardIconImage: 24, cardIconLetter: 14, cardTextGap: 2,
+        cardTitleFont: 13, cardBodyFont: 12, cardTimeFont: 11,
+        dismissBtn: 28, dismissRadius: 14, dismissIcon: 12,
+        scrollW: 4
+    });
+});
+
+test("defaults: layout.center bounds equal geom.center bounds", () => {
+    assert.equal(T.defaults.layout.center.hMin, T.defaults.geom.center.hMin);
+    assert.equal(T.defaults.layout.center.hMax, T.defaults.geom.center.hMax);
+});
