@@ -2,10 +2,11 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import "../lib/fuzzy.js" as F
 
 // Desktop application index + fuzzy search over Quickshell's DesktopEntries.
-// Self-contained (no fuzzysort/sqlite plugin): a small JS scorer ranks by name
-// prefix/substring/subsequence, with a weaker pass over comment/keywords.
+// Self-contained (no fuzzysort/sqlite plugin): lib/fuzzy.js ranks the name by
+// prefix/word start/substring/subsequence, with a weaker pass over comment/keywords.
 Singleton {
     id: root
 
@@ -16,50 +17,44 @@ Singleton {
             entry.execute();
     }
 
-    // Returns matching DesktopEntry objects, best match first. Empty query lists
-    // everything alphabetically.
+    // Score for a hit only in genericName/comment/keywords: below a name prefix/word start/
+    // substring, above a scattered name subsequence (lib/fuzzy.js leaves 2000 free for this).
+    readonly property int extraScore: 2000
+
+    // Returns [{entry: DesktopEntry, ranges: [[start, end)]}], best match first; `ranges`
+    // are the matched characters of entry.name (empty for the empty query and for
+    // keyword/comment hits). Empty query lists everything alphabetically.
     function query(search: string): list<var> {
-        const q = search.trim().toLowerCase();
+        const q = search.trim();
         if (q === "")
-            return root.list.slice().sort((a, b) => a.name.localeCompare(b.name));
+            return root.list.slice().sort((a, b) => a.name.localeCompare(b.name)).map(entry => ({
+                        entry,
+                        ranges: []
+                    }));
 
         const scored = [];
-        for (const app of root.list) {
-            const s = root.score(app, q);
-            if (s > 0)
+        for (const entry of root.list) {
+            const m = F.match(q, entry.name ?? "");
+            if (m) {
                 scored.push({
-                    app,
-                    s
+                    entry,
+                    ranges: m.ranges,
+                    score: m.score
+                });
+                continue;
+            }
+            const extra = [entry.genericName ?? "", entry.comment ?? "", (entry.keywords ?? []).join(" ")].join(" ").toLowerCase();
+            if (extra.includes(q.toLowerCase()))
+                scored.push({
+                    entry,
+                    ranges: [],
+                    score: root.extraScore
                 });
         }
-        scored.sort((a, b) => b.s - a.s || a.app.name.localeCompare(b.app.name));
-        return scored.map(e => e.app);
-    }
-
-    function score(app: var, q: string): int {
-        const name = (app.name ?? "").toLowerCase();
-        if (name === q)
-            return 1000;
-        if (name.startsWith(q))
-            return 600 - name.length;
-        const idx = name.indexOf(q);
-        if (idx >= 0)
-            return 300 - idx;
-
-        const extra = [app.genericName ?? "", app.comment ?? "", (app.keywords ?? []).join(" ")].join(" ").toLowerCase();
-        if (extra.includes(q))
-            return 100;
-        if (root.subsequence(q, name))
-            return 40;
-        return 0;
-    }
-
-    // Does `q` appear in `text` as an in-order subsequence? (fuzzy "gimp" -> "GNU…")
-    function subsequence(q: string, text: string): bool {
-        let i = 0;
-        for (let j = 0; j < text.length && i < q.length; j++)
-            if (text[j] === q[i])
-                i++;
-        return i === q.length;
+        scored.sort((a, b) => b.score - a.score || a.entry.name.localeCompare(b.entry.name));
+        return scored.map(r => ({
+                    entry: r.entry,
+                    ranges: r.ranges
+                }));
     }
 }
