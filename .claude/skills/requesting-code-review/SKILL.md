@@ -42,13 +42,14 @@ turn. The prompt carries:
 
 Evaluate findings with receiving-code-review before acting on them.
 
-- **Critical or Important:** one implementer dispatch with the complete list
-  (file:line each), the plan path, and the report path
-  `.flow/sdd/<plan basename>/branch-review-report.md` (created if absent;
-  outside a run, any path under `.flow/sdd/`). After a
-  fix to a Critical finding, re-review only the fix range
-  (`<pre-fix HEAD>..HEAD`): a `branch-reviewer` whose requirements are the
-  findings list, not the plan.
+- **Critical or Important:** in a run, one implementer dispatch with the
+  complete list (file:line each), the plan path, and the report path
+  `.flow/sdd/<plan basename>/branch-review-report.md` (created if absent).
+  Inline work you fix yourself: you wrote the change, and an implementer
+  stops on uncommitted changes it did not make. After a fix to a Critical
+  finding, re-review only the fix range (`<pre-fix HEAD>..HEAD`, or the same
+  BASE with `--worktree` while inline work is uncommitted): a
+  `branch-reviewer` whose requirements are the findings list, not the plan.
 - **Minor you keep:** fix them yourself or in the same dispatch; no re-review.
 - **Minor you drop:** say which and why in one line.
 - **A finding that contradicts the plan:** the user's call.

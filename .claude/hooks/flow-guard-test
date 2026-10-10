@@ -676,6 +676,15 @@ pkg=$(cd "$RP" && "$SCR/review-package" "$RB" --worktree 2>/dev/null)
 grep -q '^+changed' "$pkg" && report ok "--worktree package has the uncommitted edit" || report no "uncommitted edit missing" "$pkg"
 grep -q '^+fresh' "$pkg" && report ok "--worktree package has the untracked file (name with a space)" || report no "untracked file missing" "$pkg"
 grep -q 'review-.*\.diff' "$pkg" && report no "package lists itself" || report ok "package does not list itself"
+mkdir -p "$RP/sub"; echo polish > "$RP/zażółć.py"; echo inner > "$RP/sub/in.py"
+pkg=$(cd "$RP/sub" && "$SCR/review-package" "$RB" --worktree 2>/dev/null)
+grep -q '^+polish' "$pkg" && report ok "--worktree package has a non-ASCII untracked name" || report no "non-ASCII untracked file missing" "$pkg"
+grep -q '^+fresh' "$pkg" && grep -q '^+inner' "$pkg" \
+  && report ok "--worktree from a subdirectory covers the whole repo" || report no "subdirectory run misses files" "$pkg"
+pkg=$(cd "$RP/sub" && "$SCR/review-package" "$RB" --worktree rel.diff 2>/dev/null)
+[ "$pkg" = "$RP/sub/rel.diff" ] && [ -f "$pkg" ] \
+  && report ok "relative OUTFILE resolves against the caller's directory" || report no "relative OUTFILE" "$pkg"
+rm -f "$RP/sub/rel.diff"
 git -C "$RP" add -A && git -C "$RP" commit -q --no-gpg-sign -m change
 pkg=$(cd "$RP" && "$SCR/review-package" "$RB" HEAD 2>/dev/null)
 grep -q '^+changed' "$pkg" && report ok "commit range package after committing" || report no "commit range package" "$pkg"

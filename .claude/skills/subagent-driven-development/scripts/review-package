@@ -35,6 +35,7 @@ fi
 
 if [ $# -eq 3 ]; then
   out=$3
+  case "$out" in /*) ;; *) out="$PWD/$out" ;; esac
   caller_chose_path=1
 else
   caller_chose_path=0
@@ -42,9 +43,13 @@ else
   out="$dir/review-$(git rev-parse --short "$base")..$label.diff"
 fi
 
-# Listed before the package file exists, so it never lists itself.
-untracked=""
-[ "$worktree" -eq 1 ] && untracked=$(git ls-files --others --exclude-standard)
+# From the root: run in a subdirectory, ls-files would list only its files.
+cd "$(git rev-parse --show-toplevel)"
+
+# Listed before the package file exists, so it never lists itself. NUL-separated:
+# the text form quotes non-ASCII names, which then match no file.
+untracked=()
+[ "$worktree" -eq 1 ] && mapfile -d '' -t untracked < <(git ls-files -z --others --exclude-standard)
 
 {
   echo "# Review package: ${base}..${label}"
@@ -55,7 +60,7 @@ untracked=""
   echo "## Files changed"
   if [ "$worktree" -eq 1 ]; then
     git diff --stat "$base"
-    if [ -n "$untracked" ]; then printf '%s\n' "$untracked" | sed 's/^/untracked: /'; fi
+    for f in "${untracked[@]}"; do printf 'untracked: %s\n' "$f"; done
   else
     git diff --stat "${base}..${head}"
   fi
@@ -63,9 +68,10 @@ untracked=""
   echo "## Diff"
   if [ "$worktree" -eq 1 ]; then
     git diff -U10 "$base"
-    while IFS= read -r f; do
-      [ -z "$f" ] || git diff --no-index -U10 /dev/null "$f" || true
-    done <<< "$untracked"
+    for f in "${untracked[@]}"; do
+      # Exit 1 means "differs" — the expected case; anything above is an error.
+      git diff --no-index -U10 /dev/null "$f" || [ $? -eq 1 ]
+    done
   else
     git diff -U10 "${base}..${head}"
   fi
@@ -82,7 +88,7 @@ commits=$(git rev-list --count "${base}..${head}")
 # which reads as "nothing wrong".
 empty=0
 if [ "$worktree" -eq 1 ]; then
-  [ "$commits" -eq 0 ] && git diff --quiet "$base" && [ -z "$untracked" ] && empty=1
+  [ "$commits" -eq 0 ] && git diff --quiet "$base" && [ ${#untracked[@]} -eq 0 ] && empty=1
 else
   [ "$commits" -eq 0 ] && empty=1
 fi
