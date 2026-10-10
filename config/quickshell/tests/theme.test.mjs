@@ -219,3 +219,21 @@ test("defaults: layout.launcher matches reference 3.6 and R29", () => {
         refreshMs: 700, refreshes: 4
     });
 });
+
+test("defaults: layout.control matches reference 3.7 and R24", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.control), {
+        pad: 16, gap: 10,
+        headPadX: 6, headPadTop: 2, headPadBottom: 4, clockFont: 44, clockLetterEm: -0.03, dateFont: 13, dateGap: 2,
+        tilePad: 12, tileGap: 10, tileCircle: 38, tileIcon: 17, tileTitleFont: 14, tileSubFont: 12, tileTextGap: 1,
+        cardPadX: 14, cardPadY: 16, cardGap: 16, sliderGap: 12, sliderIcon: 17, trackH: 6, trackRadius: 3,
+        valueW: 28, valueFont: 12, hitH: 24, wheelStep: 0.05, percent: 100,
+        toggleCols: 4, togglePadY: 2, toggleGap: 6, toggle: 50, toggleIcon: 18, toggleLabelFont: 11
+    });
+});
+
+test("defaults: layout.miniPlayer matches reference 3.7", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.miniPlayer), {
+        pad: 10, gap: 12, art: 40, artRadius: 12, textGap: 1, titleFont: 13, artistFont: 12,
+        play: 38, playIcon: 14, skip: 32, skipIcon: 15, disabledOpacity: 0.4
+    });
+});
