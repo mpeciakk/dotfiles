@@ -685,7 +685,7 @@ call island close
 
 **Files:**
 - Create: `tests/smoke/05b-material.sh`
-- Modify: `Island.qml`, `IslandShape.qml`, `lib/theme.js` (`sizes.sheenGlow 30`, shadow padding token), `config/niri/window_rules.kdl`, `config/niri/config.kdl`
+- Modify: `Island.qml`, `IslandShape.qml`, `lib/theme.js` (`sizes.sheenGlow 30`, shadow padding token). The niri side is already on main (commit before the run: `layer-rule` for `^wyspa$` with `xray false`, `saturation 2.0`, and `blur { passes 3; offset 5; }`) — do not touch niri files here.
 
 Reference: §2.4, §2.5, §2a, §7 R2, R11, R13, R16, R23; DESIGN W1, W2.
 
@@ -711,21 +711,8 @@ call island close
   - Shadow (W2): drawn only *outside* the shape — `MultiEffect` with `shadowEnabled`, `shadowColor: Theme.shadowColor`, `shadowVerticalOffset: Theme.shadowY`, `blurMax: Theme.shadowBlur`, `shadowBlur: 1`, applied to an opaque copy of the path and masked with `maskEnabled + maskInverted` by the same path, so the translucent interior is not darkened. The effect's source item is sized to the shape bounds plus `Theme.shadowBlur + Theme.shadowY` padding — never the full-screen window (a 3840×2160 FBO per morph frame on DP-2).
   - Ring (R13): a `Rectangle` the size of `body`, `color: "transparent"`, `border.color: Theme.ring`, `border.width: Theme.sizes.ringWidth`, bottom radii `animR`.
   - Gloss (§2a, R23): above content, clipped to body, `opacity: Theme.sheen`: vertical `Gradient` stops `0 → Theme.sheenTop`, `0.45 → Theme.sheenMid`, `1 → transparent`; 1 px outline `Theme.sheenOutline`; 1 px bottom-edge highlight `Theme.sheenEdge` following the bottom radius; inner glow `Theme.sheenGlow` with blur radius `Theme.sizes.sheenGlow`. Ring, gloss and shadow hidden when `lineMode` (R16).
-  - niri: append to `config/niri/window_rules.kdl` (no `blur true` — the client region alone enables blur; a rule-level `blur true` would blur the whole full-screen surface whenever no region is set):
-
-```kdl
-layer-rule {
-    match namespace="^wyspa$"
-    background-effect {
-        xray false
-        saturation 2.0
-    }
-}
-```
-
-    and at top level of `config/niri/config.kdl` (check there is no `blur {}` yet): `blur { passes 3; offset 5; }`. Live niri sees this only after merge (or earlier if the user lands it on main — plan-gate decision).
-- [ ] **Step 4: Run** `tests/smoke.sh tests/smoke/05b-material.sh`, `node --test 'tests/*.test.mjs'`, `tests/niri-validate.sh`; Read PNGs → glass shot: translucent fill, gloss gradient brighter at the top, 1 px ring, soft shadow outside only (no dark halo inside); solid shot: opaque fill, no gloss, and the area around the island NOT blurred. All PASS.
-- [ ] **Step 5: Commit** — `git add -A . ../niri` — `quickshell: island glass material; niri layer rule`
+- [ ] **Step 4: Run** `tests/smoke.sh tests/smoke/05b-material.sh`, `node --test 'tests/*.test.mjs'`; Read PNGs → glass shot: translucent fill, gloss gradient brighter at the top, 1 px ring, soft shadow outside only (no dark halo inside); solid shot: opaque fill, no gloss, and the area around the island NOT blurred. All PASS.
+- [ ] **Step 5: Commit** — `git add -A .` — `quickshell: island glass material`
 
 ### Task 6: Content host with enter/exit choreography
 
@@ -755,7 +742,7 @@ expect island contentState rest
 - [ ] **Step 4: Run** all tests → PASS.
 - [ ] **Step 5: Commit** — `quickshell: island content host with enter/exit choreography`
 
-**— USER GATE 2 —** test: morph between states via `qs ipc -p … call island open launcher|control|toast|osd|media|power|center`, `close`; interrupt a morph mid-way; Esc/click-outside closes launcher/control (gate instance runs without `WYSPA_TEST`, so it has keyboard focus); exclusive zone (windows shift down) on every monitor; glass/gloss/ring look; `"island": {"glass": false}` in the gate's `WYSPA_CONFIG` copy → solid, nothing blurred around. Unless the niri rule was landed on main at the plan gate, blur over windows (xray off) and the 44 px window offset appear only after merge.
+**— USER GATE 2 —** test: morph between states via `qs ipc -p … call island open launcher|control|toast|osd|media|power|center`, `close`; interrupt a morph mid-way; Esc/click-outside closes launcher/control (gate instance runs without `WYSPA_TEST`, so it has keyboard focus); exclusive zone (windows shift down) on every monitor; glass/gloss/ring look; `"island": {"glass": false}` in the gate's `WYSPA_CONFIG` copy → solid, nothing blurred around. The niri blur rule is live already; the 44 px window offset (struts removal) appears only after merge.
 
 ---
 

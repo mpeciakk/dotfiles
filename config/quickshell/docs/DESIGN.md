@@ -23,12 +23,12 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 
 | # | Decyzja |
 |---|---|
-| W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura globalna w niri (`blur { passes offset }`), `layer-rule` dla przestrzeni nazw wyspy z `xray false`. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
+| W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura globalna w niri (`blur { passes 3; offset 5 }`), `layer-rule` dla przestrzeni nazw `wyspa` z `xray false` i `saturation 2.0` (bez `blur true`). Poziomy szkła zmieniają w locie tylko tło, kafle i połysk. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
 | W2 | Cień `0 18 60` rysuje QML (`MultiEffect` pod kształtem) — cień z `layer-rule` niri jest prostokątem powierzchni. |
 | W3 | Powierzchnia wyspy pełnoekranowa (`ExclusionMode.Ignore`, maska = kształt; w stanach modalnych pełna — scrim i „klik poza”). Exclusive zone 36/0 trzyma osobny pusty `Strut` przy górnej krawędzi. Blok `struts` w `config/niri/layout.kdl` usunięty (kompensował stary `Border`). |
 | W4 | Pełny ekran: `ToplevelManager` (`fullscreen` + `screens`), zawężony do aktywnego obszaru niri danego monitora. |
 | W5 | Font UI i mono konfigurowalne; domyślnie oba `JetBrainsMono Nerd Font` (Geist niezainstalowany). |
-| W6 | Ikony: SVG z Lucide w `assets/icons/`, barwione kolorem z Theme. |
+| W6 | Ikony: ścieżki Lucide (dane `d` na siatce 24) w `lib/icons.js`, rysowane `Shape` + `PathSvg` kolorem z Theme. |
 | W7 | Nadpisania tokenów: klucz `island` w `~/.config/dotfiles/config.json` (per host), hot-reload przez `FileView`. |
 | W8 | Poza zakresem na razie: przełączniki Ciepłe światło i Nagrywanie (panel ma DND i Zasilanie), tryb `/` pliki. Launcher: aplikacje, `=` kalkulator (JS), `>` polecenie, `@` okna, menu VPN i schowka. |
 | W9 | Bindy niri dopiero na końcu; do tego czasu stany wywołuje `qs ipc call island <stan>`. Kolizje `Mod+Shift+E` (zrzut) i `Mod+M` (makro) rozstrzygamy wtedy. |
