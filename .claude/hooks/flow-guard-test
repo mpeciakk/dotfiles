@@ -174,26 +174,18 @@ report ok "payload builder works (no jq dependency)"
   || fixture_fail "one-call set (plan+worktree+stage ordering scope)"
 report ok "set stage=implement with plan+worktree in one call"
 
-echo "=== controller must not write code ==="
-check "controller edits code in the worktree" deny "$(edit_payload "$WT" "$WT/app.py")"
-check "controller edits code in the main checkout" deny "$(edit_payload "$REPO" "$REPO/app.py")"
-check "controller edits with a relative path" deny "$(edit_payload "$REPO" app.py)"
-check "controller edits the project's spec.md" deny "$(edit_payload "$WT" "$WT/spec.md")"
-check "Write, not just Edit" deny "$(edit_payload "$REPO" "$REPO/app.py" "" "" Write)"
+echo "=== the controller may write code ==="
+check "controller edits code in the worktree" allow "$(edit_payload "$WT" "$WT/app.py")"
+check "controller edits the project's spec.md" allow "$(edit_payload "$WT" "$WT/spec.md")"
+check "controller edits in an external worktree of this repo" allow "$(edit_payload "$EXT" "$EXT/app.py")"
 check "subagent edits code" allow "$(edit_payload "$WT" "$WT/app.py" sub-1 general-purpose)"
-check "subagent edits spec.md (the spec-sync task)" allow "$(edit_payload "$WT" "$WT/spec.md" sub-1 general-purpose)"
-check "fork subagent (controller by proxy)" deny "$(edit_payload "$WT" "$WT/app.py" sub-2 fork)"
 check "controller edits .flow/ in the main checkout" allow "$(edit_payload "$REPO" "$REPO/.flow/plans/p.md")"
-check "controller edits .flow/sdd/ inside the worktree" allow "$(edit_payload "$WT" "$WT/.flow/sdd/task-1-brief.md")"
-check "controller edits outside the repo" allow "$(edit_payload "$REPO" "$ROOT/outside/x.md")"
-check "cwd outside the repo, target inside it" deny "$(edit_payload "$ROOT/outside" "$REPO/app.py")"
-check "controller edits in an external worktree of this repo" deny "$(edit_payload "$EXT" "$EXT/app.py")"
 
 echo "=== the state file is not hand-editable ==="
 check "controller writes state.json" deny "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" "" "" Write)"
 check "subagent writes state.json" deny "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" sub-3 general-purpose Write)"
 echo '{"stage":"inline"}' > "$REPO/src/.flow/run/state.json"
-check "decoy state.json deeper in the tree is ignored" deny "$(edit_payload "$REPO/src" "$REPO/src/app.py")"
+check "decoy state.json deeper in the tree is ignored" deny "$(edit_payload "$REPO/src" "$REPO/.flow/run/state.json" "" "" Write)"
 rm -rf "$REPO/src/.flow"
 
 echo "=== one workspace per run ==="
@@ -211,7 +203,7 @@ check "unrelated bash command" allow "$(bash_payload "$WT" 'npm test')"
 check "git commit (not enforced, by design)" allow "$(bash_payload "$REPO" 'git commit -m x')"
 
 echo "=== deny messages carry the run, not an off switch ==="
-r=$(deny_reason "$(edit_payload "$WT" "$WT/app.py")")
+r=$(deny_reason "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" "" "" Write)")
 case "$r" in *"run 'demo'"*) report ok "deny names the run and its state file";; *) report no "deny lacks run label" "$r";; esac
 case "$r" in *"set stage=inline"*|*"flow-state clear"*) report no "deny hands over the disarm command";; *) report ok "deny does not hand over the disarm command";; esac
 
@@ -233,7 +225,7 @@ cp "$ROOT/state.bak" "$SP"
 check "empty stdin" allow ""
 check "non-JSON stdin" allow "not json at all"
 check "wrong-typed payload fields" allow '{"tool_name":"Edit","cwd":5,"tool_input":{"file_path":["a"]}}'
-check "guard still denies after all that" deny "$(edit_payload "$REPO" "$REPO/app.py")"
+check "guard still denies after all that" deny "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" "" "" Write)"
 
 echo "=== state file semantics ==="
 [ "$("$STATE" --cwd "$WT" get stage)" = implement ] \
@@ -337,8 +329,8 @@ KNOWN = {"name","description","tools","disallowedTools","model","permissionMode"
          "initialPrompt"}
 MODELS = {"sonnet","opus","haiku","fable","inherit"}
 EFFORT = {"low","medium","high","xhigh","max"}
-READ_ONLY = {"task-reviewer","branch-reviewer","plan-red-team"}
-WRITERS = {"implementer","fixer"}
+READ_ONLY = {"branch-reviewer","plan-red-team"}
+WRITERS = {"implementer"}
 d = sys.argv[1]
 seen, bad = {}, []
 for f in sorted(os.listdir(d)):
@@ -380,9 +372,9 @@ python3 "$ROOT/validate-agents.py" "$(cd "$HERE/.." && pwd)/agents" \
 
 # Prove the validator has teeth: a reviewer that can edit must fail it.
 BAD=$ROOT/bad-agents; mkdir -p "$BAD"
-printf -- '---\nname: task-reviewer\ndescription: broken on purpose\nmodel: sonnet\n---\nbody\n' \
-  > "$BAD/task-reviewer.md"
-for role in branch-reviewer plan-red-team implementer fixer; do
+printf -- '---\nname: branch-reviewer\ndescription: broken on purpose\nmodel: sonnet\n---\nbody\n' \
+  > "$BAD/branch-reviewer.md"
+for role in plan-red-team implementer; do
   printf -- '---\nname: %s\ndescription: ok\ndisallowedTools: Edit, Write\n---\nbody\n' "$role" > "$BAD/$role.md"
 done
 python3 "$ROOT/validate-agents.py" "$BAD" >/dev/null 2>&1 \
@@ -391,16 +383,16 @@ python3 "$ROOT/validate-agents.py" "$BAD" >/dev/null 2>&1 \
 
 AG=$(cd "$HERE/../agents" && pwd)
 fm() { awk '/^---$/{n++; next} n==1' "$AG/$1.md"; }
-for a in implementer fixer task-reviewer branch-reviewer plan-red-team; do
+for a in implementer branch-reviewer plan-red-team; do
   d=$(fm "$a" | grep '^disallowedTools:')
   case "$d" in *Artifact*Skill*|*Skill*Artifact*) report ok "$a withholds Artifact and Skill";;
     *) report no "$a withholds Artifact and Skill" "$d";; esac
 done
-for a in task-reviewer branch-reviewer; do
+for a in branch-reviewer; do
   grep -q 'scripts/review-package' "$AG/$a.md" && grep -q 'exit 4' "$AG/$a.md" && grep -q 'BLOCKED' "$AG/$a.md" \
     && report ok "$a builds its own diff package; exit 4 is BLOCKED" || report no "$a review-package step"
 done
-for a in implementer fixer; do
+for a in implementer; do
   grep -q 'polszczyzna/SKILL.md' "$AG/$a.md" && grep -q 'systematic-debugging/SKILL.md' "$AG/$a.md" \
     && report ok "$a knows the skill files it can no longer invoke" || report no "$a skill pointers"
 done
@@ -409,37 +401,6 @@ for f in subagent-driven-development/SKILL.md requesting-code-review/SKILL.md; d
   grep -qE 'PKG=|generate the review package|without a diff file|\[review-package|Package it with' "$SK/$f" \
     && report no "$f still has the controller build the review package" || report ok "$f: reviewer builds the package"
 done
-grep -q 'BLOCKED' "$SK/subagent-driven-development/SKILL.md" && grep -q 'git log --all --oneline -5' "$SK/subagent-driven-development/SKILL.md" \
-  && report ok "SDD says what a reviewer BLOCKED on an empty range means" || report no "SDD reviewer BLOCKED handling"
-
-echo "=== a task gets at most two fix rounds ==="
-FR=$ROOT/fixrounds; mkrepo "$FR" >/dev/null || fixture_fail "fix-rounds repo"
-"$STATE" --cwd "$FR" init fixr >/dev/null
-"$STATE" --cwd "$FR" set worktree="$FR" >/dev/null
-check "first fix round is allowed"  allow "$(fixer_payload "$FR" 1)"
-check "second fix round is allowed" allow "$(fixer_payload "$FR" 1)"
-check "third fix round is denied"   deny  "$(fixer_payload "$FR" 1)"
-check "a fourth stays denied"       deny  "$(fixer_payload "$FR" 1)"
-check "a different task keeps its own budget" allow "$(fixer_payload "$FR" 2)"
-# The loop this cap exists for alternates fixer and reviewer, so a review must
-# not hand the task a fresh budget.
-decide "$(fixer_payload "$FR" 2 task-reviewer)" >/dev/null
-check "a review does not reset the budget" allow "$(fixer_payload "$FR" 2)"
-check "the third round is denied after a review too" deny "$(fixer_payload "$FR" 2)"
-check "a reviewer is never capped" allow "$(fixer_payload "$FR" 2 task-reviewer)"
-check "an implementer is never capped" allow "$(fixer_payload "$FR" 2 implementer)"
-r=$(deny_reason "$(fixer_payload "$FR" 1)")
-case "$r" in *brief*) report ok "cap deny points at the brief, not at more patching";;
-  *) report no "cap deny message" "$r";; esac
-case "$r" in *fix-rounds.json*) report ok "cap deny names the escape hatch and whose call it is";;
-  *) report no "cap deny hides the escape hatch" "$r";; esac
-# Clearing the counter must actually work, or the hatch is decoration.
-rm -f "$FR/.flow/run/fix-rounds.json"
-check "clearing the counter restores the budget" allow "$(fixer_payload "$FR" 1)"
-# Rule 2 must still fire on the same tool.
-check "worktree isolation still denied on an Agent dispatch" deny "$(agent_payload "$WT" worktree)"
-check "a plain dispatch still passes" allow "$(agent_payload "$WT")"
-
 echo "=== controller must not poll a dispatched subagent ==="
 check "short wakeup naming an implementer is denied" deny \
   "$(wakeup_payload "$REPO" 300 "Waiting on Task 1 implementer to finish before dispatching review" "Check whether the Task 1 implementer has finished.")"
@@ -599,19 +560,11 @@ hint_case() { # stage model_id expected_substring_or_NONE label
     case "$line" in *"$3"*) report ok "$4";; *) report no "$4" "$line";; esac
   fi
 }
-hint_case design claude-sonnet-5 "⚠ /model opus (session only)" "design on Sonnet: asks for Opus"
-hint_case design "claude-opus-5-5[1m]" NONE "design on Opus: no hint"
-hint_case plan "claude-opus-5-5[1m]" "go → /clear · /model sonnet (session only) · go" "plan on Opus: shows the handoff"
-"$STATE" --cwd "$HNT" set plan= >/dev/null || fixture_fail "could not clear plan for negative hint case"
-hint_case plan "claude-opus-5-5[1m]" NONE "plan on Opus, no plan written yet: no handoff hint"
-"$STATE" --cwd "$HNT" set plan="$HNT/p.md" >/dev/null || fixture_fail "could not restore plan for hint fixture"
-hint_case plan claude-sonnet-5 NONE "plan on Sonnet: no hint"
-hint_case implement claude-opus-5-5 "⚠ /clear · /model sonnet (session only)" "implement on Opus: asks for Sonnet"
-hint_case isolate claude-opus-5-5 "⚠ /clear · /model sonnet (session only)" "isolate on Opus: asks for Sonnet"
-hint_case finish claude-opus-5-5 "⚠ /clear · /model sonnet (session only)" "finish on Opus: asks for Sonnet"
-hint_case implement claude-sonnet-5 NONE "implement on Sonnet: no hint"
-hint_case inline claude-opus-5-5 NONE "inline: no hint"
-hint_case design "" NONE "no model in payload: no hint"
+for st in plan isolate implement finish inline; do
+  for m in claude-opus-5-5 claude-sonnet-5-5; do
+    hint_case "$st" "$m" NONE "$st on $m: no /model hint"
+  done
+done
 
 echo "=== context reflects the real vocabulary ==="
 CTX=$ROOT/ctxvocab; mkrepo "$CTX" >/dev/null || fixture_fail "ctx repo"
@@ -667,7 +620,7 @@ brief=$(cd "$LIT" && "$TB" 1 2>/dev/null)
 SK=$(cd "$HERE/../skills" && pwd)
 grep -qE '\$\(' "$SK/using-git-worktrees/SKILL.md" "$SK/requesting-code-review/SKILL.md" \
   && report no "skills still prescribe \$(…) commands" || report ok "worktree/review skills prescribe literal commands"
-awk '/^## The per-task loop/,/^## Implementer status/' "$SK/subagent-driven-development/SKILL.md" | grep -q '\$(' \
+awk '/^## Per task/,/^## After the last task/' "$SK/subagent-driven-development/SKILL.md" | grep -q '\$(' \
   && report no "SDD loop still uses \$(…)" || report ok "SDD loop is literal"
 
 echo "=== branch-review fixes ==="
@@ -685,7 +638,7 @@ case "$out" in *"detached HEAD"*) report ok "branch=. on a detached HEAD says so
 c=$(context_of "$(python3 -c '
 import json, sys
 print(json.dumps({"hook_event_name": "SubagentStart", "cwd": sys.argv[1],
-                  "agent_id": "r1", "agent_type": "task-reviewer"}))' "$WT")")
+                  "agent_id": "r1", "agent_type": "branch-reviewer"}))' "$WT")")
 case "$c" in *"BASE..HEAD lives in"*) report ok "reviewer context names the tree BASE..HEAD lives in";;
   *) report no "reviewer workspace wording" "$c";; esac
 sl_far() { python3 -c '
@@ -700,11 +653,12 @@ line=$(sl_far "$COLD" 1790000000 | "$SL" | head -1)
 printf '%s' "$line" | grep -qE '→[0-9]{2}:[0-9]{2}' \
   && report ok "normal resets_at shows →HH:MM" || report no "reset time missing" "$line"
 
-grep -q 'archive sdd reports for \$(' "$SK/finishing-a-development-branch/SKILL.md" \
-  && report no "archive commit still nests \$(…) inside git commit" \
-  || report ok "archive commit is two literal steps"
-awk '/^6\. \*\*Fix loop/,/^7\./' "$SK/subagent-driven-development/SKILL.md" | grep -q 'run_in_background: true' \
-  && report ok "SDD fixer dispatch runs in the background" || report no "fixer dispatch lacks run_in_background"
+grep -q 'archive sdd' "$SK/finishing-a-development-branch/SKILL.md" \
+  && report no "finishing still archives .flow/sdd" || report ok "finishing does not archive .flow/sdd"
+awk '/^## Per task/,/^## After the last task/' "$SK/subagent-driven-development/SKILL.md" | grep -q 'run_in_background: true' \
+  && report ok "SDD implementer dispatch runs in the background" || report no "implementer dispatch lacks run_in_background"
+[ ! -e "$HERE/../agents/task-reviewer.md" ] && [ ! -e "$HERE/../agents/fixer.md" ] \
+  && report ok "task-reviewer and fixer are gone" || report no "removed agents still present"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

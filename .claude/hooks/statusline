@@ -9,7 +9,7 @@ require, so this has nothing left to lose.
 Renders one line normally, two while a pipeline run is open:
 
     ~/dotfiles  main*   Opus 5 · xhigh   ctx 412K   5h 40% →16:20  7d 12%   +156/-23
-    flow  json-export · plan · 0/5 tasks · no workspace · go → /clear · /model sonnet (session only) · go
+    flow  json-export · implement · 2/4 tasks · feat/json-export
 
 Input schema is the documented statusLine payload (model, workspace, cost,
 context_window, effort, rate_limits). Every field is optional here: a missing one drops its
@@ -155,26 +155,7 @@ def plan_total(path):
     return len(numbers) or None
 
 
-OPUS_STAGES = {"design"}
-SONNET_STAGES = {"isolate", "implement", "finish"}
-
-
-def model_hint(stage, payload, has_plan):
-    """What to switch to, if this stage wants a different model (design D2)."""
-    model = (payload.get("model") or {}).get("id") or ""
-    if not model:
-        return None
-    opus = "opus" in model.lower()
-    if stage in OPUS_STAGES and not opus:
-        return f"{YELLOW}⚠ /model opus (session only){RESET}"
-    if stage == "plan" and opus and has_plan:
-        return f"{CYAN}go → /clear · /model sonnet (session only) · go{RESET}"
-    if stage in SONNET_STAGES and opus:
-        return f"{YELLOW}⚠ /clear · /model sonnet (session only){RESET}"
-    return None
-
-
-def flow_line(state, payload):
+def flow_line(state):
     if not state:
         return None
     stage = state.get("stage")
@@ -194,9 +175,6 @@ def flow_line(state, payload):
         bits.append(state["branch"])
     if not state.get("worktree"):
         bits.append(f"{RED}no workspace{RESET}")
-    hint = model_hint(stage, payload, bool(state.get("plan")))
-    if hint:
-        bits.append(hint)
     return f"{DIM}flow{RESET}  " + f"{DIM} · {RESET}".join(bits)
 
 
@@ -218,7 +196,7 @@ def main():
             segments.append(segment)
     print(f"{DIM}   {RESET}".join(segments))
 
-    line = flow_line(run_state(cwd), payload)
+    line = flow_line(run_state(cwd))
     if line:
         print(line)
 

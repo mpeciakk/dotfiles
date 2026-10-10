@@ -1,290 +1,140 @@
 ---
 name: writing-plans
-description: Use when you have a spec or requirements for a multi-step task, before touching code
+description: Use when opening a planned run — turns a request, an idea or a provided spec into one plan with the change's decisions and its tasks, before any code. The first stage of development-workflow.
 ---
 
 # Writing Plans
 
-## Overview
+One document per run: what this change decides, and the tasks that build it.
+The user approves it once, at the plan gate. No code before that "go".
 
-A plan is complete when an implementer with no session history can execute each task from the task text alone. Complete, not comprehensive — nothing in it that a task does not need. Write it assuming the engineer has zero context for our codebase and does not know its patterns, so every approach names the one to follow. Document everything they need to know: files, interfaces, the tests in full, exact values, the pattern to follow, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+## 1. Context first
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+Open the run if nobody has: `~/.claude/hooks/flow-state init <slug>`, then
+`flow-state set stage=plan`.
 
-**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+Read the project's living spec before asking anything — for a split spec, the
+index and the topic files this change touches. Then the code: cbm
+(`get_architecture`, `search_graph`, `trace_path`) for structure and blast
+radius, Read for branch-new code and non-code files. Recent commits.
 
-**Three things the next stage depends on — do them, don't just read them:**
-1. **Commit the plan file** before any worktree exists. The worktree branches
-   from HEAD, so an uncommitted plan is absent from the branch the implementers
-   build on and from its history.
-2. **Record it absolute:** `flow-state set stage=plan plan="$(git rev-parse
-   --show-toplevel)/.flow/plans/<file>.md"`. A relative path breaks from any
-   subdirectory.
-3. **Wait for the user's "go"** before execution. Details in Execution Handoff.
+If the request spans several independent subsystems, say so first and plan
+the first one; each gets its own run.
 
-**Save plans to:** `.flow/plans/YYYY-MM-DD-<feature-name>.md`
-- (User preferences for plan location override this default)
+**A provided spec** ("implement @spec.md", an attached file) is the design.
+Do not re-author it: grill its gaps, fold the answers back into it, commit it
+into the repo (copy it under `.flow/` if it lives outside), then plan from it.
 
-## Scope Check
+## 2. Questions and decisions
 
-If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
+Ask one question at a time, each with your recommended default. Facts you look
+up; decisions you ask. Before writing the plan, run the grill scan
+(`grill-gate.md` in this directory): stay silent when nothing is open, grill
+until nothing is.
 
-## File Structure
+Where there is a real fork, give 2–3 options with trade-offs and your
+recommendation. Where there is none, do not invent one.
 
-Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
+## 3. The plan
 
-Do this mapping with cbm before Grep/Read: `search_graph` to locate the code you'll touch, `trace_path` to see what calls it (impact / blast radius), and `get_code_snippet` to copy exact signatures verbatim into each task's Interfaces block.
-
-- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
-- You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
-- Files that change together should live together. Split by responsibility, not by technical layer.
-- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
-
-This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
-
-## External Dependencies Get Verified Before They Get Built On
-
-If a task's correctness depends on the real behavior of something outside this
-codebase — a third-party API's response shape, a tool's actual flag semantics,
-a service's real data — that assumption gets one task making one real,
-low-cost check (a single request, reading the actual docs, a smoke call)
-**before** any task that builds validation, parsing, or handling logic on top
-of it. Put it early in the task order, not folded into the task that uses it.
-
-This is not caution for its own sake: in a real run, four review rounds
-confirmed a ClickUp integration matched its design spec, and none of them could
-catch that the spec described a different ClickUp instance than the real one
-— because nothing had made one real call yet to check. Internal review
-verifies the code against the plan; it cannot verify the plan against reality.
-One cheap empirical check up front is worth more than an arbitrarily thorough
-review of code built on an unverified assumption.
-
-## Keeping the Living Spec True
-
-The decision this change made is already in the spec's decision table
-(brainstorming put it there at the gate). What is *not* there yet is everything
-the spec says about **state** — architecture, data model, API contracts,
-behaviour it documents — because none of it existed when the design was approved.
-
-**If this change alters any of that, the plan's last task updates those spec
-sections**, listing each by file and heading (`docs/player.md` §7.2, not "the
-player section"), alongside the code that made them true. Cite code by path
-and symbol, never by line, and when a file it writes into is over 40 KB, the
-task says so in one line, and splitting stays a separate writing-specs job.
-For a split spec: that task's implementer reads those files only, never the
-whole spec. It is a normal task: dispatched, diffed, reviewed with the
-change it describes. That is the whole mechanism — a spec updated in the same
-branch, by the same review, is a spec that stays true; a "remember to update
-the docs" note at the end is how specs here went stale while their code moved
-on.
-
-Skip that task when the change genuinely alters nothing the spec states (a
-bugfix restoring documented behaviour, an internal refactor). Say so in one line
-in the plan rather than leaving it ambiguous.
-
-## What the Plan Fixes, and What It Leaves to the Implementer
-
-A plan fixes the contract every task must satisfy; it does not have to fix
-how each task gets there. Some things belong in the task text in full,
-always — they are what a reviewer checks the diff against. Everything else
-stays fixed only when getting it wrong would be a defensible mistake rather
-than a bug.
-
-| Always in full | Only when the implementation is itself a decision |
-|---|---|
-| Interface signatures (Produces/Consumes) | Implementation code |
-| Full test code for every RED, with its expected failure | |
-| Exact values — names, constants, messages, formats, paths | |
-| Verified external API shapes | |
-
-The line between the two columns: implementation code belongs in the task
-when a reviewer would reject a reasonable alternative — an algorithm, a
-storage format, a lock order, a specific error-handling contract. Get one of
-those wrong and the diff is a bug, not a style choice.
-
-Otherwise, give the approach in 1–3 sentences plus the pattern to follow —
-an existing `file:line` or symbol, or a symbol from an earlier task's
-Produces line. When no pattern exists at all, the first instance of it is
-itself a decision, and gets full code.
-
-Why, briefly: full-code plans ran 8–22k words, which slowed red-team and
-review, sat in the controller's context for the whole run, and froze code
-written before earlier tasks existed and without ever being run. The test is
-the contract the reviewer holds the implementation to, which is why it stays
-in full regardless.
-
-For the rejected options, see the design record:
-`~/dotfiles/.flow/specs/2026-09-23-plan-granularity-design.md`.
-
-## Task Right-Sizing
-
-A task is the smallest unit that carries its own test cycle and is worth a
-fresh reviewer's gate. When drawing task boundaries: fold setup,
-configuration, scaffolding, and documentation steps into the task whose
-deliverable needs them; split only where a reviewer could meaningfully
-reject one task while approving its neighbor. Each task ends with an
-independently testable deliverable.
-
-## Bite-Sized Task Granularity
-
-**Each step is one action (2-5 minutes):**
-- "Write the failing test" - step
-- "Run it to make sure it fails" - step
-- "Implement the minimal code to make the test pass" - step
-- "Run the tests and make sure they pass" - step
-- "Commit" - step
-
-## Plan Document Header
-
-**Every plan MUST start with this header:**
+Save to `.flow/plans/YYYY-MM-DD-<slug>.md`. Target 100–250 lines. Past ~300,
+the change is too big for one run — split it and plan the first part.
 
 ```markdown
-# [Feature Name] Implementation Plan
+# <Change> — plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+## Goal
+One sentence. Spec: <path to the living spec>, <decision number(s) added>
+(omit if the project has none).
 
-**Goal:** [One sentence describing what this builds]
+## Decisions
+- D<n> <decision> — <why>. Rejected: <alternative> (<why not>).
 
-**Architecture:** [2-3 sentences about approach]
+## Constraints
+Project-wide requirements a task must not break, one line each, values
+verbatim from the spec. `None.` if there are none.
 
-**Tech Stack:** [Key technologies/libraries]
+## Verification
+The end-to-end check the branch review runs: the scenario, command or data
+that shows the change works for real, not only that tests pass.
 
-**Spec:** [absolute path to the project's living spec.md, and the decision
-number this change added to it — e.g. `spec.md` D18. For a split spec, the
-index plus the topic files this change touches. Omit only if the project has
-no living spec.]
-
-**Design record:** [path to `.flow/specs/<date>-<topic>-design.md`]
-
-## Global Constraints
-
-[The spec's project-wide requirements — version floors, dependency limits,
-naming and copy rules, platform requirements — one line each, with exact
-values copied verbatim from the spec. If the spec has none, write `None.` and
-keep the heading: `task-brief` prepends this section to every task's brief, and
-the reviewer is handed it verbatim.]
-
----
+## Task 1: <domain of the change>
+**Outcome:** what exists and works when this task is done.
+**Acceptance:** the behaviours its tests must show, including the edge cases
+that matter.
+**Area:** modules and files it owns.
+**Context:** spec sections to read, the pattern to follow (path + symbol),
+what earlier tasks produced that it builds on.
 ```
 
-## Task Structure
+Everything above the first `## Task` reaches every implementer: `task-brief`
+prepends it to each brief.
 
-````markdown
-### Task N: [Component Name]
+**A task is one domain of this change** — "session core: status contract and
+events, session tests green", not "add a field to the model". It ends with a
+checkable result and leaves the tree in a state you could stop at and resume
+from. Most runs have 2–5 tasks.
 
-**Files:**
-- Create: `exact/path/to/file.py`
-- Modify: `exact/path/to/existing.py:123-145`
-- Test: `tests/exact/path/to/test.py`
+**What the plan fixes and what it leaves.** The implementer writes the tests
+and the code. The plan fixes only what the implementer cannot decide alone:
+names of a public API, formats, exact values the user chose, the shape of an
+external API. No code, no test code, no step lists.
 
-**Interfaces:**
-- Consumes: [what this task uses from earlier tasks — exact signatures]
-- Produces: [what later tasks rely on — exact function names, parameter
-  and return types. A task's implementer sees only their own task; this
-  block is how they learn the names and types neighboring tasks use.]
+**Verify external assumptions first.** If a task depends on how a third-party
+API, tool or real dataset actually behaves, the first task makes one cheap
+real call and the rest build on its result. Review checks code against the
+plan; only a real call checks the plan against reality.
 
-- [ ] **Step 1: Write the failing test**
+## 4. The living spec
 
-```python
-def test_specific_behavior():
-    result = function(input)
-    assert result == expected
-```
+At the gate, write the approved decisions into the living spec the way it
+already records them: a row in its decision table (continue the numbering) or
+a dated sentence in the section the decision governs. New unknowns go to its
+open points; unknowns this change closes get struck, dated. Cite code by path
+and symbol, never by line. For a split spec, the row goes into the topic file
+that owns the section, and the index's next free D number moves in the same
+commit. If the file you write into is over 40 KB, say so in one line — the
+split is a separate writing-specs job.
 
-- [ ] **Step 2: Run test to verify it fails**
+Sections describing state (architecture, data model, API) change at finish,
+not here — the code does not exist yet.
 
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: FAIL on the assertion, naming the wrong value — not ImportError,
-NameError or a collection error. A test that fails only because the code does
-not exist yet proves nothing about behaviour, and goes green the moment the
-symbol appears, whatever it does.
+No living spec: the plan's Decisions section is the record; offer
+writing-specs as a separate job.
 
-- [ ] **Step 3: Implement**
+## 5. Self-check
 
-[The approach, 1–3 sentences.]
+- Every requirement has a task; every task has acceptance a test can fail on.
+- No "handle errors appropriately", "add validation", "TBD": name the
+  behaviour.
+- Names and interfaces agree across tasks.
+- The Verification section is something someone can actually run.
 
-Follow: `src/path/existing.py:40-62` (`parse_header`)
+## 6. Red-team (2+ tasks)
 
-A code block goes here only when the implementation is itself a decision
-(see "What the Plan Fixes, and What It Leaves to the Implementer" above).
+Dispatch `plan-red-team` with `run_in_background: true`, passing the plan and
+spec paths only, then end the turn. Skip it for a single-task plan.
 
-- [ ] **Step 4: Run test to verify it passes**
+On return: blocking or serious objections go to the user verbatim, with your
+take on each, and get resolved — by amending the plan or by the user accepting
+the risk — before "go". Minor objections only: apply them yourself and name
+them in one line at the gate.
 
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: PASS
+## 7. The gate
 
-- [ ] **Step 5: Commit**
+Commit the plan and the spec change together, then record:
 
 ```bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
-```
-````
-
-## No Placeholders
-
-Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
-- "TBD", "TODO", "implement later", "fill in details"
-- "Add appropriate error handling" / "add validation" / "handle edge cases"
-- "Write tests for the above" (without actual test code)
-- An expected RED that is an ImportError, NameError or collection error — the
-  failure must be the assertion, or the test does not discriminate
-- "Similar to Task N" (repeat the test code and values — the engineer may be reading tasks out of order)
-- Test code is always shown in full; implementation code only when it is a
-  decision (see "What the Plan Fixes, and What It Leaves to the
-  Implementer") — an approach with no pattern to follow, or with nothing
-  concrete in it, is a placeholder
-- References to types, functions, or methods not defined in any task
-
-## Self-Review
-
-After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
-
-**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps. Then the reverse check: which sections of the *living* spec will this change make untrue? Each one is either named in the final spec-sync task or explicitly out of scope.
-
-**2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
-
-**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
-
-If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
-
-## Red-Team Pass
-
-After self-review, before offering execution, dispatch a fresh adversarial subagent to argue the plan is wrong — see [red-team.md](red-team.md) for when to run it, when to skip it, and the dispatch. Any blocking or serious objection: surface its ranked objections with your own honest take on each, and resolve the blocking ones — by amending the plan or an explicit user decision — before execution starts. Minor objections only, or none: verdict PROCEED; apply the list to the plan without a gate and name it in one line at the plan gate (red-team.md has the detail).
-
-## Execution Handoff
-
-Save the plan, record it, run the red-team pass, then present a short summary
-(plan location, task count, red-team verdict) and **wait for the user's "go"**.
-This is a gate — do not start execution on your own.
-
-This is also where the user sees what brainstorming wrote — there is no separate
-spec-review gate before it. Name the design commit (`git log -1 --format='%h %s'
--- <spec>`), the living spec's path with the decision it gained, and the
-deliberation record's path, so one "go" approves the written design and the plan
-together. An objection to the written design gets fixed first (brainstorming's
-self-review), then the plan is amended if the fix touches it.
-
-```bash
-git add .flow/plans/<filename>.md && git commit -m "plan: <feature>"
-~/.claude/hooks/flow-state set stage=plan plan="$(git rev-parse --show-toplevel)/.flow/plans/<filename>.md"
+git add .flow/plans/<file>.md <spec files> && git commit -m "plan: <change>"
+~/.claude/hooks/flow-state set stage=plan plan="$(git rev-parse --show-toplevel)/.flow/plans/<file>.md" spec=<absolute spec path>
 ```
 
-Note for the user in your summary: this commit and the spec commit land on the
-branch they are on now (often `main`), before any worktree exists. That is
-deliberate — the worktree branches from HEAD and needs them — but say it rather
-than leaving them to discover two commits on main.
+The commit lands on the current branch before any worktree exists — the
+worktree branches from HEAD and needs it. Say so.
 
-Announce: "Plan complete and saved to `.flow/plans/<filename>.md`. [Red-team verdict.] [Design commit, spec decision, record path.] To execute: /clear, /model sonnet (session only), then 'go'."
+Present: the decisions, the tasks (one line each), the red-team verdict, the
+commit. Wait for "go".
 
-**Once the user approves, unless they ask otherwise:**
-- **REQUIRED SUB-SKILL (first):** using-git-worktrees — isolated workspace, recorded in the run state, clean test baseline, before any task runs.
-- **THEN REQUIRED SUB-SKILL:** subagent-driven-development — a fresh implementer subagent per task, a per-task review (one reviewer, two verdicts: spec compliance + code quality), and a whole-branch review at the end. You coordinate; you do not write the code.
-
-**Inline execution** — only when the user explicitly asks for it in this turn,
-never as your own shortcut past dispatching. Record the decision so the
-guards stand down and it stays visible: `~/.claude/hooks/flow-state set
-stage=inline`. Then work each task's bite-sized steps in order, run the
-verifications each step specifies, pause at natural checkpoints — still in a
-worktree (using-git-worktrees), still finishing via
-finishing-a-development-branch.
+On "go": using-git-worktrees, then subagent-driven-development. If the user
+asks to run it inline instead, record `flow-state set stage=inline` and work
+the tasks yourself in the worktree.

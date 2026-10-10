@@ -1,17 +1,18 @@
 # Workflow (domyślny dla wszystkich projektów)
 
-Każde zadanie na kodzie zaczynasz od skilla `development-workflow` — to mapa
-całego pipeline'u i bramek, z **triage'em na wejściu**: trywialne mechaniczne
-zmiany (config, styl, literówka, wpis w .gitignore) robisz bezpośrednio, bez
-pipeline'u; reszta idzie przez bramki. Skrót kolejności:
-brainstorming (z wbudowanym grill-gate) → writing-plans → using-git-worktrees →
-subagent-driven-development (implementacja w TDD + review per-task + finalny
-review całej gałęzi) → finishing-a-development-branch.
+Domyślnie pracujesz **inline**: czytasz potrzebny kontekst, robisz najmniejszą
+sensowną zmianę i weryfikujesz wynik. **Run** (skill `development-workflow`:
+plan z decyzjami → worktree → implementer na task → review gałęzi → finisz)
+otwierasz, gdy zmiana obejmuje kilka domen, nie zmieści się w jednym
+posiedzeniu albo zostawia decyzję, którą muszę podjąć ja. Zmiana inline, która
+zmienia zachowanie między modułami albo dotyka decyzji ze speca, przed wejściem
+na main dostaje `branch-reviewer` (skill `requesting-code-review`).
+„kontynuuj" przy otwartym runie = wznowienie ze stanu `flow-state`.
 Ambientowo, gdy pasuje trigger: test-driven-development, systematic-debugging,
 receiving-code-review.
 
 Zasady:
-1. Skille procesowe (development-workflow, brainstorming, systematic-debugging,
+1. Skille procesowe (development-workflow przy runie, systematic-debugging,
    TDD) PRZED domenowymi.
 2. Nawigacja po kodzie — cbm MCP PRZED Grep/Read. Szukasz symbolu/funkcji/klasy →
    search_graph; kto-co-woła / łańcuch wywołań → trace_path; źródło symbolu →
@@ -26,14 +27,15 @@ Zasady:
    (SHA, stan gałęzi, wynik komendy, istnienie symbolu) → sprawdź, nie zgaduj
    z pamięci.
 4. Nic nie jest „zrobione" bez uruchomienia i dowodu.
-5. Implementacja idzie do **worktree** (natywne `EnterWorktree` — to ta jawna
-   instrukcja projektu, której narzędzie wymaga), a stan runu trzyma
-   `~/.claude/hooks/flow-state` (dotyczy głównego wątku). Gdy worktree jest zapisany, kodu nie piszesz
-   sam — dispatchujesz implementerów; szczegóły i bramki: development-workflow.
+5. Implementacja runu idzie do **worktree** (natywne `EnterWorktree` — to ta
+   jawna instrukcja projektu, której narzędzie wymaga), a stan runu trzyma
+   `~/.claude/hooks/flow-state` (dotyczy głównego wątku). Kod tasków piszą
+   implementerzy; sam edytujesz tylko wtedy, gdy żaden implementer nie pracuje
+   — jeden piszący na drzewo. Szczegóły i bramki: development-workflow.
 6. Projekt ma zwykle **żywy `spec.md`** (w rootcie albo per komponent) — czym
    jest, decyzje w mocy, punkty otwarte. Czytasz go PRZED pytaniami do mnie
-   i zostawiasz prawdziwym: decyzja wchodzi na bramce designu, sekcje opisujące
-   stan aktualizuje ostatnie zadanie planu. Spec, który kłamie, jest gorszy niż
+   i zostawiasz prawdziwym: decyzja wchodzi na bramce planu, sekcje opisujące
+   stan aktualizujesz przy finiszu. Spec, który kłamie, jest gorszy niż
    ubogi. Gdy projekt speca nie ma — to osobna robota, skill `writing-specs`,
    nie produkt uboczny bieżącej zmiany.
 
@@ -129,4 +131,4 @@ z ayghri/i-have-adhd — mała pamięć robocza, najtrudniejszy jest start):
 - Nie dotyczy raportów subagentów — ich format ustala dispatcher albo
   definicja w `agents/`.
 
-Pełny opis pipeline'u i bramek: skill `development-workflow`.
+Pełny opis runu i bramek: skill `development-workflow`.

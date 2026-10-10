@@ -23,7 +23,7 @@ import sys
 FLOW_STATE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "flow-state")
 # Roles whose agent definition withholds Edit/Write (see ~/.claude/agents/).
 # Anything unknown is treated as a writer: the writer contract is the safe default.
-READ_ONLY_AGENTS = {"task-reviewer", "branch-reviewer", "plan-red-team", "Explore"}
+READ_ONLY_AGENTS = {"branch-reviewer", "plan-red-team", "Explore"}
 
 
 def load_state(cwd):

@@ -220,13 +220,6 @@ You MUST complete each phase before proceeding to the next.
 
    This is NOT a failed hypothesis - this is a wrong architecture.
 
-   **Inside a plan run this threshold is enforced, not advised.** The third
-   `fixer` dispatch on one task is denied by `hooks/flow-guard`, which counts
-   rounds per task in `.flow/run/fix-rounds.json` — see subagent-driven-development
-   step 7. Same number, arrived at independently: the transcripts show 39 tasks
-   that went past two rounds, 29 of them alternating fix and review so each round
-   looked like progress. If you change the threshold here, change it there too.
-
 ## Red Flags - STOP and Follow Process
 
 If you catch yourself thinking:

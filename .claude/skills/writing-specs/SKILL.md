@@ -1,6 +1,6 @@
 ---
 name: writing-specs
-description: Use when a project has no living spec and needs one — a new project starting from an idea, or existing code whose purpose, decisions and open questions live only in someone's head. Triggers on "napisz spec", "stwórz spec.md", "zbierz wymagania", "write a spec for this project", "co ten projekt właściwie robi", and on reaching a project with no spec at the start of pipeline work, or an existing spec has passed 40 KB and needs splitting into docs/. Otherwise this skill does not amend an existing spec — brainstorming does that per change.
+description: Use when a project has no living spec and needs one — a new project starting from an idea, or existing code whose purpose, decisions and open questions live only in someone's head. Triggers on "napisz spec", "stwórz spec.md", "zbierz wymagania", "write a spec for this project", "co ten projekt właściwie robi", and on reaching a project with no spec at the start of pipeline work, or an existing spec has passed 40 KB and needs splitting into docs/. Otherwise this skill does not amend an existing spec — writing-plans does that per change.
 ---
 
 # Writing Specs
@@ -100,7 +100,7 @@ wiem" for half of them — including the ones the code already answers.
    recommended default so a nod is a complete answer. Ask about intent,
    constraints, non-functional requirements and scope boundaries: the things no
    amount of code reading can tell you. **REQUIRED BACKGROUND:** the grill
-   protocol at `~/.claude/skills/brainstorming/grill-gate.md` (a reference file,
+   protocol at `~/.claude/skills/writing-plans/grill-gate.md` (a reference file,
    not a skill — read it directly) — apply it to the decisions this spec is about
    to record, and stay silent where nothing is genuinely open.
 
