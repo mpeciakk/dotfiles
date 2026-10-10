@@ -13,9 +13,21 @@ PanelWindow {
 
     readonly property string baseState: IslandState.output === root.screen.name ? IslandState.current : "rest"
     // The line (reference 2.6) is an override, not an IslandState state: only at rest, and not while the
-    // pointer is on the hover zone. Leaving the zone ends `hovered` after Theme.motion.lineLeaveDelayMs.
-    readonly property bool lineWanted: IslandState.lineWanted(root.screen.name) && root.baseState === "rest"
+    // pointer is on the hover zone or the island body (which is taller than the zone). Leaving both ends
+    // `hovered` after Theme.motion.lineLeaveDelayMs.
+    readonly property bool lineWanted: IslandState.lineRequested(root.screen.name) && root.baseState === "rest"
     property bool hovered: false
+    property bool zoneHovered: false
+    property bool bodyHovered: false
+    readonly property bool pointerOn: root.zoneHovered || root.bodyHovered
+    onPointerOnChanged: {
+        if (root.pointerOn) {
+            lineLeave.stop();
+            root.hovered = true;
+        } else {
+            lineLeave.restart();
+        }
+    }
     readonly property bool line: root.lineWanted && !root.hovered
     readonly property string effState: root.line ? "line" : root.baseState
     readonly property bool modalHere: IslandState.modal && IslandState.output === root.screen.name
@@ -138,14 +150,7 @@ PanelWindow {
             height: Theme.geom.hoverZone.h
 
             HoverHandler {
-                onHoveredChanged: {
-                    if (hovered) {
-                        lineLeave.stop();
-                        root.hovered = true;
-                    } else {
-                        lineLeave.restart();
-                    }
-                }
+                onHoveredChanged: root.zoneHovered = hovered
             }
         }
 
@@ -188,6 +193,10 @@ PanelWindow {
                 output: root.screen.name
                 onShownChanged: IslandState.reportShown(root.screen.name, content.shown)
                 Component.onCompleted: IslandState.reportShown(root.screen.name, content.shown)
+            }
+
+            HoverHandler {
+                onHoveredChanged: root.bodyHovered = hovered
             }
 
             // The pointer on the island body (the shape's content area fills it). Leaving it while in the

@@ -113,7 +113,7 @@ Singleton {
 
     // Whether this output wants the line (fullscreen there, or hidden by the user); Island adds that the
     // island is at rest and not hovered, Strut only gives its strip back.
-    function lineWanted(output: string): bool {
+    function lineRequested(output: string): bool {
         return Fullscreen.on(output) || root.hidden;
     }
 
