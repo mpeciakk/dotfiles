@@ -138,7 +138,7 @@ var defaults = {
     },
 
     // What the power menu runs (reference 3.8); overridable under "island.power.commands". The lock has no
-    // command: it asks the session lock. Only states/Power.qml perform() ever reads these.
+    // command: it asks the session lock. Only components/PowerActions.qml perform() ever reads these.
     power: {
         commands: {
             suspend: ["systemctl", "suspend"],

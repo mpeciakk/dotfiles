@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
-import Quickshell
 import ".."
 import "../components" as Components
 import "../lib/power.js" as P
@@ -10,8 +9,10 @@ import "../lib/power.js" as P
 // Restart and Wyłącz must be held for Theme.motion.holdMs while a ring fills, and letting go early rewinds
 // it. Keyboard: left/right move the focus, Enter acts like the pointer, the letters L S O R P act like a
 // press on that button (the risky three still need the hold).
-// perform() is the ONLY place that runs a command or asks for the session lock. In test mode
-// (WYSPA_TEST=1) it only logs what it would do; tests/power.test.mjs keeps it that way.
+// Every key, pointer, focus, layer and timer event goes to P.reduce() (lib/power.js), which decides what
+// happens; this file applies the answer. Nothing here runs a command: a confirmed button goes through
+// PowerActions.perform(), the one gate (components/PowerActions.qml), which in test mode (WYSPA_TEST=1) only
+// logs what it would do. tests/power.test.mjs keeps both true.
 Item {
     id: root
 
@@ -20,115 +21,68 @@ Item {
     property string output: ""
 
     readonly property var spec: Theme.layout.power
-    readonly property bool testMode: Quickshell.env("WYSPA_TEST") === "1"
 
-    // The button being held ("" = none), the button the keyboard is on, and whether its focus ring shows.
-    property string holding: ""
-    property int focused: 0
-    property bool keyboard: false
+    // The state of lib/power.js: the button being held ("" = none), the button the keyboard is on, and
+    // whether its focus ring shows.
+    property var menu: P.initial()
+    readonly property string holding: root.menu.holding
+    readonly property int focused: root.menu.focused
+    readonly property bool keyboard: root.menu.keyboard
 
-    // The one gate: what to do for `kind` is decided by P.plan(); test mode never executes and never locks.
-    function perform(kind: string): void {
-        const p = P.plan(kind, Theme.tokens.power.commands, root.testMode);
-        console.info(p.message);
-        if (!p.execute)
-            return;
-        if (p.lock)
-            IslandState.lockRequested();
-        else
-            Quickshell.execDetached(p.argv);
+    Components.PowerActions {
+        id: actions
+    }
+
+    // Hands one event to the reducer and applies its effect; true when a key was used.
+    function dispatch(ev: var): bool {
+        const pressing = ev.type === "keyDown" || ev.type === "pointerPress" || ev.type === "pointerClick";
+        if (pressing && !root.active)
+            return false;
+        const r = P.reduce(root.menu, ev);
+        root.menu = r.state;
+        if (r.effect.type === "start")
+            holdTimer.restart();
+        else if (r.effect.type === "cancel")
+            holdTimer.stop();
+        else if (r.effect.type === "finish")
+            root.finish(r.effect.kind);
+        return r.handled;
     }
 
     // The button is confirmed: powerDone shows its label and the action runs at once.
     function finish(kind: string): void {
         holdTimer.stop();
-        root.holding = "";
         if (!root.active || !IslandState.request("powerDone"))
             return;
         IslandState.powerLabel = P.label(kind);
-        root.perform(kind);
-    }
-
-    // Press: a risky button starts its hold, the others act now.
-    function press(kind: string): void {
-        if (!root.active)
-            return;
-        if (P.isHold(kind)) {
-            root.holding = kind;
-            holdTimer.restart();
-        } else {
-            root.finish(kind);
-        }
-    }
-
-    // Release (and the pointer leaving, and a cancelled grab): the ring rewinds, nothing runs.
-    function release(kind: string): void {
-        if (root.holding !== kind)
-            return;
-        holdTimer.stop();
-        root.holding = "";
-    }
-
-    function indexOfKind(kind: string): int {
-        return P.ITEMS.findIndex(it => it.id === kind);
+        actions.perform(kind);
     }
 
     onActiveChanged: {
-        holdTimer.stop();
-        root.holding = "";
-        root.focused = 0;
-        root.keyboard = false;
+        root.dispatch({ type: "active", on: root.active });
         if (root.active)
             root.forceActiveFocus();
+    }
+
+    // A release that goes to another item (the focus moved away) would never reach Keys.onReleased.
+    onActiveFocusChanged: {
+        if (!root.activeFocus)
+            root.dispatch({ type: "focusLost" });
     }
 
     Timer {
         id: holdTimer
 
         interval: Theme.motion.holdMs
-        // Only a hold that is still on when it ends confirms.
-        onTriggered: {
-            if (root.holding !== "")
-                root.finish(root.holding);
-        }
+        onTriggered: root.dispatch({ type: "timerElapsed" })
     }
 
     Keys.onPressed: event => {
-        if (!root.active)
-            return;
-        const kind = P.kindForKey(event.text);
-        if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
-            // Moving off a button ends its hold, as the pointer leaving does: the Enter release that follows
-            // would otherwise look at the new button and leave the old hold running.
-            root.release(root.holding);
-            root.keyboard = true;
-            root.focused = P.step(root.focused, event.key === Qt.Key_Left ? -1 : 1, P.ITEMS.length);
-            event.accepted = true;
-        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            if (!event.isAutoRepeat) {
-                root.keyboard = true;
-                root.press(P.ITEMS[root.focused].id);
-            }
-            event.accepted = true;
-        } else if (kind !== "") {
-            if (!event.isAutoRepeat) {
-                root.keyboard = true;
-                root.focused = root.indexOfKind(kind);
-                root.press(kind);
-            }
-            event.accepted = true;
-        }
+        const chord = (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) !== 0;
+        event.accepted = root.dispatch({ type: "keyDown", code: event.key, repeat: event.isAutoRepeat, chord: chord });
     }
 
-    Keys.onReleased: event => {
-        if (event.isAutoRepeat)
-            return;
-        const kind = P.kindForKey(event.text);
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
-            root.release(P.ITEMS[root.focused].id);
-        else if (kind !== "")
-            root.release(kind);
-    }
+    Keys.onReleased: event => root.dispatch({ type: "keyUp", code: event.key, repeat: event.isAutoRepeat })
 
     ColumnLayout {
         anchors.fill: parent
@@ -279,18 +233,11 @@ Item {
 
                         anchors.fill: parent
                         hoverEnabled: true
-                        onPressed: {
-                            root.keyboard = false;
-                            if (btn.modelData.hold)
-                                root.press(btn.modelData.id);
-                        }
-                        onClicked: {
-                            if (!btn.modelData.hold)
-                                root.press(btn.modelData.id);
-                        }
-                        onReleased: root.release(btn.modelData.id)
-                        onCanceled: root.release(btn.modelData.id)
-                        onExited: root.release(btn.modelData.id)
+                        onPressed: root.dispatch({ type: "pointerPress", kind: btn.modelData.id })
+                        onClicked: root.dispatch({ type: "pointerClick", kind: btn.modelData.id })
+                        onReleased: root.dispatch({ type: "pointerRelease", kind: btn.modelData.id })
+                        onCanceled: root.dispatch({ type: "pointerRelease", kind: btn.modelData.id })
+                        onExited: root.dispatch({ type: "pointerRelease", kind: btn.modelData.id })
                     }
                 }
             }
