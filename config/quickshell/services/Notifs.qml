@@ -84,6 +84,7 @@ Singleton {
 
         readonly property int count: root.history.length
         readonly property int unread: root.unread
+        readonly property int series: root.series
         readonly property bool dndOn: root.dnd
 
         function inject(app: string, summary: string, body: string): void {
