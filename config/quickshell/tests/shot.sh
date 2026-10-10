@@ -12,8 +12,16 @@ H="$(qs ipc -p "$DIR" prop get island targetH 2>/dev/null || echo 500)"
 [[ "$W" =~ ^[0-9]+$ ]] || W=800
 [[ "$H" =~ ^[0-9]+$ ]] || H=500
 SCALE="$(niri msg -j focused-output | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["logical"]["scale"])')"
+rm -f "$RAW" "/tmp/wyspa-shots/$1.png"
 niri msg action screenshot-screen --show-pointer false --path "$RAW" >/dev/null
-sleep 0.5
+# niri writes the file asynchronously: wait until it is non-empty and its size stops changing
+prev=-1; ready=0
+for _ in $(seq 50); do
+  cur="$(stat -c %s "$RAW" 2>/dev/null || echo 0)"
+  if [ "$cur" -gt 0 ] && [ "$cur" -eq "$prev" ]; then ready=1; break; fi
+  prev="$cur"; sleep 0.1
+done
+if [ "$ready" -ne 1 ]; then echo "shot: niri produced no screenshot" >&2; exit 1; fi
 python3 -I - "$RAW" "/tmp/wyspa-shots/$1.png" "$W" "$H" "$SCALE" <<'PY'
 import sys
 from PIL import Image
