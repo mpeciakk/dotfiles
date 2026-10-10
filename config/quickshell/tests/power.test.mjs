@@ -182,23 +182,66 @@ test("reduce: Enter, Right, Enter up: the arrow ends the hold and nothing is lef
 });
 
 test("reduce: a letter during an Enter hold does not take the hold over", () => {
-    const r = run([down(K.return), down(K.p), up(K.p), TIMER], onLogout());
+    const r = run([down(K.return), down(K.p), TIMER], onLogout());
     assert.deepEqual(r.effects[0], { type: "start", kind: "logout" });
     assert.deepEqual(r.effects[1], NO);
     assert.equal(r.results[1].state.holding, "logout");
     assert.equal(r.results[1].state.focused, 2);
-    assert.deepEqual(r.effects[2], NO);
     // the Enter hold is still running and still belongs to Enter: it finishes Wyloguj, never Wyłącz
-    assert.deepEqual(r.effects[3], { type: "finish", kind: "logout" });
+    assert.deepEqual(r.effects[2], { type: "finish", kind: "logout" });
     // ... and Enter up cancels it
     assert.deepEqual(run([down(K.return), down(K.p), up(K.return)], onLogout()).last.effect, { type: "cancel", kind: "logout" });
 });
 
-test("reduce: a letter up with a modifier in between still cancels (matched by key code, not text)", () => {
-    const CONTROL = 0x01000021;
+// AltGr (ISO_Level3_Shift) is in constant use on the pl layout and changes the key code of the key's release:
+// P up arrives as Key_THORN (0xde), O up as oacute (0xd3), R up as copyright (0xa9). No key code can be trusted
+// to match the press, so any key release ends a hold (fail-safe: it costs the user a re-press).
+const CONTROL = 0x01000021;
+const SHIFT = 0x01000020;
+const ALTGR = 0x01001103;
+
+test("reduce: a modifier press during a key hold starts nothing and cancels nothing", () => {
+    const r = run([down(K.p), down(CONTROL), down(SHIFT), down(ALTGR), TIMER]);
+    assert.deepEqual(r.effects, [{ type: "start", kind: "off" }, NO, NO, NO, { type: "finish", kind: "off" }]);
+    assert.equal(r.results[3].state.holding, "off");
+});
+
+test("reduce: P down, AltGr down, P up as THORN: the hold is cancelled and the timer finds nothing", () => {
+    const r = run([down(K.p), down(ALTGR), up(0xde), TIMER]);
+    assert.deepEqual(r.effects, [{ type: "start", kind: "off" }, NO, { type: "cancel", kind: "off" }, NO]);
+    assert.equal(r.state.holding, "");
+});
+
+test("reduce: O and R holds are cancelled the same way when AltGr changes their release code", () => {
+    assert.deepEqual(run([down(K.o), down(ALTGR), up(0xd3), TIMER]).effects.map(e => e.type), ["start", "none", "cancel", "none"]);
+    assert.deepEqual(run([down(K.r), down(ALTGR), up(0xa9), TIMER]).effects.map(e => e.type), ["start", "none", "cancel", "none"]);
+});
+
+test("reduce: a letter up with a modifier in between still cancels", () => {
     const r = run([down(K.p), down(CONTROL), up(K.p), TIMER]);
     assert.deepEqual(r.effects, [{ type: "start", kind: "off" }, NO, { type: "cancel", kind: "off" }, NO]);
     assert.equal(r.state.holding, "");
+});
+
+test("reduce: any key release cancels a running hold, a modifier's or an unknown code's included", () => {
+    for (const code of [K.o, K.return, SHIFT, CONTROL, ALTGR, 0x58, 0x01000000, 0])
+        assert.deepEqual(run([down(K.p), up(code), TIMER]).effects, [{ type: "start", kind: "off" }, { type: "cancel", kind: "off" }, NO], String(code));
+});
+
+test("reduce: an Enter hold is cancelled by a modifier chord pressed and released meanwhile", () => {
+    const r = run([down(K.return), down(SHIFT), up(SHIFT), TIMER], onLogout());
+    assert.deepEqual(r.effects, [{ type: "start", kind: "logout" }, NO, { type: "cancel", kind: "logout" }, NO]);
+});
+
+test("reduce: a key release during a pointer hold cancels it too (the safe side)", () => {
+    const r = run([mouseDown("off"), up(SHIFT), TIMER]);
+    assert.deepEqual(r.effects, [{ type: "start", kind: "off" }, { type: "cancel", kind: "off" }, NO]);
+    assert.equal(r.state.holding, "");
+});
+
+test("reduce: a key release without a hold changes nothing and is not handled", () => {
+    const idle = run([down(K.right)]).state;
+    assert.deepEqual(run([up(K.p), up(ALTGR), up(0)], idle).results.map(r => [r.effect, r.handled]), [[NO, false], [NO, false], [NO, false]]);
 });
 
 test("reduce: Ctrl/Alt/Meta + letter or Enter is a chord, not a press", () => {
@@ -207,14 +250,16 @@ test("reduce: Ctrl/Alt/Meta + letter or Enter is a chord, not a press", () => {
     assert.equal(run([down(K.return, { chord: true })]).last.handled, false);
 });
 
-test("reduce: mouse press then Enter on the same button: Enter neither restarts nor cancels the pointer's hold", () => {
+test("reduce: mouse press then Enter on the same button: Enter down neither restarts nor cancels the pointer's hold", () => {
     const r = run([mouseDown("off"), down(K.return), up(K.return), TIMER], onOff());
     assert.deepEqual(r.effects[0], { type: "start", kind: "off" });
     assert.deepEqual(r.effects[1], NO);
-    assert.deepEqual(r.effects[2], NO);
-    assert.equal(r.results[2].state.holding, "off");
-    assert.deepEqual(r.effects[3], { type: "finish", kind: "off" });
-    assert.deepEqual(run([mouseDown("off"), down(K.return), up(K.return), mouseUp("off")], onOff()).last.effect, { type: "cancel", kind: "off" });
+    // Enter's release is a key release: like any, it ends the hold (see the AltGr tests below)
+    assert.deepEqual(r.effects[2], { type: "cancel", kind: "off" });
+    assert.deepEqual(r.effects[3], NO);
+    // without that release the pointer hold runs on and its own release ends it
+    assert.deepEqual(run([mouseDown("off"), down(K.return), TIMER], onOff()).last.effect, { type: "finish", kind: "off" });
+    assert.deepEqual(run([mouseDown("off"), down(K.return), mouseUp("off")], onOff()).last.effect, { type: "cancel", kind: "off" });
 });
 
 test("reduce: a pointer release or exit does not end a hold the keyboard started", () => {
@@ -275,11 +320,9 @@ test("reduce: key auto-repeat changes nothing, down or up", () => {
     assert.equal(r.results[1].handled, true);
 });
 
-test("reduce: keys that are no button are not handled; an unrelated key up does not cancel", () => {
+test("reduce: keys that are no button are not handled", () => {
     assert.equal(run([down(0x58)]).last.handled, false);
     assert.equal(run([down(0x01000000)]).last.handled, false);
-    const r = run([down(K.p), up(K.o), up(K.return)]);
-    assert.deepEqual(r.effects, [{ type: "start", kind: "off" }, NO, NO]);
 });
 
 test("reduce: never mutates the state it is given", () => {
@@ -416,4 +459,10 @@ test("guard: no QML spells a real power command, in either quote style (they liv
 test("guard: lockRequested() is called nowhere but the gate", () => {
     const callers = sources.filter(s => /\.lockRequested\s*\(/.test(s.code)).map(s => s.rel);
     assert.deepEqual(callers, [GATE]);
+});
+
+test("guard: the only QML that mentions PowerActions (instantiates it, so calls perform() on it) is states/Power.qml", () => {
+    // Task 19 adds states/Lock.qml to this list (the lock screen's own power buttons go through the same gate).
+    const users = sources.filter(s => s.rel !== GATE && /\bPowerActions\b/.test(s.code)).map(s => s.rel).sort();
+    assert.deepEqual(users, ["states/Power.qml"]);
 });

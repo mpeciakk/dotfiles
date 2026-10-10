@@ -165,8 +165,10 @@ function reduce(state, ev) {
         return press(patch(state, { keyboard: true, focused: focused }), ITEMS[focused].id, sourceOfKey(ev.code));
     }
     if (ev.type === "keyUp") {
-        // Only the release of the key that started the hold ends it; auto-repeat is not a release.
-        if (!ev.repeat && !idle && state.source === sourceOfKey(ev.code))
+        // Any key release ends a running hold, whichever key it is: a modifier (AltGr on the pl layout) changes
+        // the key code of the release, so it cannot be matched to the press. Cancelling is the safe side; it
+        // costs a re-press. Auto-repeat is not a release.
+        if (!ev.repeat && !idle)
             return stopHold(state, {});
         return answer(state, "none", "", false);
     }
