@@ -461,8 +461,17 @@ test("guard: lockRequested() is called nowhere but the gate", () => {
     assert.deepEqual(callers, [GATE]);
 });
 
-test("guard: the only QML that mentions PowerActions (instantiates it, so calls perform() on it) is states/Power.qml", () => {
-    // Task 19 adds states/Lock.qml to this list (the lock screen's own power buttons go through the same gate).
+test("guard: the lock screen gets its Uśpij / Wyłącz from the gate and only calls perform() on it", () => {
+    const lock = sources.find(s => s.rel === "Lock.qml");
+    assert.ok(lock, "Lock.qml missing");
+    assert.match(lock.code, /\bPowerActions\s*\{/);
+    assert.deepEqual([...new Set([...lock.code.matchAll(/(\w+)\.perform\(/g)].map(m => m[1]))], ["actions"]);
+    assert.doesNotMatch(lock.code, /function\s+perform\b/);
+});
+
+test("guard: the only QML that mentions PowerActions (instantiates it, so calls perform() on it) is the power menu and the lock screen", () => {
+    // The power menu (states/Power.qml) and the lock screen's corner buttons (Lock.qml, Task 19) both go through
+    // the gate; any other user is a new way to the machine's power and must be added here on purpose.
     const users = sources.filter(s => s.rel !== GATE && /\bPowerActions\b/.test(s.code)).map(s => s.rel).sort();
-    assert.deepEqual(users, ["states/Power.qml"]);
+    assert.deepEqual(users, ["Lock.qml", "states/Power.qml"]);
 });

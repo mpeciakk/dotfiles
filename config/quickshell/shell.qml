@@ -14,6 +14,9 @@ ShellRoot {
         Apps.list;
     }
 
+    // The session lock: one WlSessionLock, which makes its own surface per screen.
+    Lock {}
+
     Variants {
         model: Quickshell.screens
 

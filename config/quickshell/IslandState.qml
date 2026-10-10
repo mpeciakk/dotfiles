@@ -37,9 +37,16 @@ Singleton {
     property string launcherMenuRequest: ""
 
     // The power menu: the label powerDone shows (set when a button is confirmed), and the request for the
-    // session lock. Nothing is connected to lockRequested until the lock screen (Task 19).
+    // session lock (emitted only by components/PowerActions.qml perform(); Lock.qml engageLock() answers it).
     property string powerLabel: ""
     signal lockRequested
+
+    // The session lock (Lock.qml): `locked` mirrors its WlSessionLock (reportLocked() is its only writer). The
+    // IPC lock() / unlock() reach Lock.qml through lockAsked / unlockAsked, never through lockRequested, which
+    // tests/power.test.mjs pins to the power gate. Lock.qml decides: in test mode a lock request only logs.
+    property bool locked: false
+    signal lockAsked
+    signal unlockAsked
 
     // What the user sees: the island on `output`, or at rest the one on the focused output.
     readonly property string contentState: root.shownByOutput[root.current === "rest" ? Niri.focusedOutput : root.output] ?? ""
@@ -91,6 +98,10 @@ Singleton {
 
     function reportShown(output: string, s: string): void {
         root.shownByOutput = Object.assign({}, root.shownByOutput, { [output]: s });
+    }
+
+    function reportLocked(on: bool): void {
+        root.locked = on;
     }
 
     function reportRest(output: string, loaded: bool): void {
@@ -187,6 +198,7 @@ Singleton {
         readonly property string launcherMode: root.launcherMode
         readonly property string launcherResult: root.launcherResult
         readonly property string powerLabel: root.powerLabel
+        readonly property bool locked: root.locked
 
         function open(s: string): void {
             root.request(s);
@@ -211,6 +223,17 @@ Singleton {
         function launcherMenu(id: string): void {
             root.launcherMenuRequest = id;
             root.request("launcher");
+        }
+
+        // Asks for the session lock (in test mode Lock.qml only logs).
+        function lock(): void {
+            root.lockAsked();
+        }
+
+        // The recovery hatch: drops the session lock at once, without PAM. The IPC socket is reachable only by
+        // this user's processes, e.g. from a TTY: qs ipc -p <config dir> call island unlock
+        function unlock(): void {
+            root.unlockAsked();
         }
     }
 }

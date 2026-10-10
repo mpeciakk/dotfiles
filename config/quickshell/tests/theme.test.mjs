@@ -257,3 +257,22 @@ test("defaults: layout.power and layout.powerDone match reference 3.8 / 3.9", ()
         padX: 20, gap: 12, dot: 10, dotRadius: 5, haloWidth: 4, labelFont: 14
     });
 });
+
+test("defaults: layout.lock matches reference 3.10 and §4.6", () => {
+    assert.deepStrictEqual(plain(T.defaults.layout.lock), {
+        padTop: 30, padX: 28, padBottom: 24,
+        clockFont: 88, clockLetterEm: -0.045, dateGap: 10, dateFont: 15,
+        fieldGap: 30, fieldW: 340, fieldH: 52, fieldPadX: 8, fieldInnerGap: 12, fieldRing: 1, errorRing: 1.5,
+        focusWidth: 1.5, focusGap: 3, focusAlpha: 0.8,
+        avatar: 36, avatarFont: 16, inputH: 40, inputFont: 15, inputLetterEm: 0.12, submit: 36, submitIcon: 16,
+        statusGap: 12, statusFont: 13, statusH: 18,
+        bottomGap: 18, bottomFont: 12, bottomItemGap: 6, bottomIcon: 14, percent: 100,
+        shakeSteps: [-10, 8, -6, 3, 0],
+        contentScaleFrom: 0.92, contentBlur: 8,
+        enterDelayMs: 260, enterOpacityMs: 260, enterScaleLeadMs: 40, enterScaleMs: 380, enterBlurMs: 260,
+        exitOpacityMs: 140, exitScaleMs: 180, exitBlurMs: 140,
+        playerW: 380, playerH: 56, playerRadius: 28, edge: 32,
+        cornerGap: 10, cornerButton: 48, cornerIcon: 18, ringRadius: 22,
+        extrasDelayMs: 520, extrasMs: 300
+    });
+});

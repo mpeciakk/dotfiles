@@ -137,6 +137,9 @@ var defaults = {
         shakeMs: 380
     },
 
+    // The session lock: idle-lock timeout in seconds when the host config has no lock.timeout (0 there disables it).
+    lock: { timeoutDefault: 300 },
+
     // What the power menu runs (reference 3.8); overridable under "island.power.commands". The lock has no
     // command: it asks the session lock. Only components/PowerActions.qml perform() ever reads these.
     power: {
@@ -332,6 +335,27 @@ var defaults = {
         // powerDone (reference 3.9): the "prototyp" demo marker is dropped.
         powerDone: {
             padX: 20, gap: 12, dot: 10, dotRadius: 5, haloWidth: 4, labelFont: 14
+        },
+        // Lock screen (reference 3.10, 4.6, R21, R32). The card is geom.lock; shakeSteps are the shake's x offsets,
+        // one per shakeMs/5 step. Content enters after enterDelayMs (opacity, blur) and scales enterScaleLeadMs
+        // earlier; exits have no delay. edge: the mini player's and the corner buttons' distance from the screen
+        // edge; ringRadius: the hold ring round a corner button (its width, start and sweep come from layout.power).
+        // The extras (mini player, corner buttons) fade in after extrasDelayMs and out at once.
+        lock: {
+            padTop: 30, padX: 28, padBottom: 24,
+            clockFont: 88, clockLetterEm: -0.045, dateGap: 10, dateFont: 15,
+            fieldGap: 30, fieldW: 340, fieldH: 52, fieldPadX: 8, fieldInnerGap: 12, fieldRing: 1, errorRing: 1.5,
+            focusWidth: 1.5, focusGap: 3, focusAlpha: 0.8,
+            avatar: 36, avatarFont: 16, inputH: 40, inputFont: 15, inputLetterEm: 0.12, submit: 36, submitIcon: 16,
+            statusGap: 12, statusFont: 13, statusH: 18,
+            bottomGap: 18, bottomFont: 12, bottomItemGap: 6, bottomIcon: 14, percent: 100,
+            shakeSteps: [-10, 8, -6, 3, 0],
+            contentScaleFrom: 0.92, contentBlur: 8,
+            enterDelayMs: 260, enterOpacityMs: 260, enterScaleLeadMs: 40, enterScaleMs: 380, enterBlurMs: 260,
+            exitOpacityMs: 140, exitScaleMs: 180, exitBlurMs: 140,
+            playerW: 380, playerH: 56, playerRadius: 28, edge: 32,
+            cornerGap: 10, cornerButton: 48, cornerIcon: 18, ringRadius: 22,
+            extrasDelayMs: 520, extrasMs: 300
         }
     }
 };
