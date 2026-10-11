@@ -31,6 +31,9 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 - `tests/niri-validate.sh` — validates `config/niri/*.kdl` with `hosts/pc/niri-output.kdl` (the `pc` host's output config) on every machine; run it after editing niri files.
 - Smokes with a `shot` line take real screenshots; `19-lock-preview.sh` shows the lock card in a plain window.
   Never call `island lock` from a test.
+- Smokes draw on the real screens, and a modal state's full input mask catches real clicks: a click anywhere closes
+  the state (a flaky FAIL such as `contentState expected 'launcher' got 'rest'`) and is taken from the app under it.
+  Run them while nobody uses the machine (not during a game).
 
 ## Structure
 
