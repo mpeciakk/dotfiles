@@ -37,7 +37,7 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 | `Theme.qml` | singleton: tokens (`lib/theme.js`) merged with the host config, mode, glass level, IPC `theme` |
 | `IslandState.qml` | singleton: state machine, timers, OSD, line mode, launcher/lock hooks, IPC `island` |
 | `Island.qml` | per-screen full-screen panel; input mask = the shape (full in modal states, hover zone (plus the body while it grows) in line mode); blur region (`blurShape`, `BackgroundEffect.blurRegion`) |
-| `IslandShape.qml` | the silhouette: one path with ears, shadow, glass rim |
+| `IslandShape.qml` | the silhouette: one path with ears, shadow, ring stroked along it |
 | `IslandContent.qml` | one layer per state (`sources`), cross-fade |
 | `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode) |
 | `Wallpaper.qml` | wallpaper per screen |

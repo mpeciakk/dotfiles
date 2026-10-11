@@ -181,65 +181,16 @@ Item {
             anchors.fill: parent
             clip: true
         }
-
-        // Bottom-edge highlight of the glass (§2a): 1 px along the bottom edge and both bottom corners.
-        Shape {
-            anchors.fill: parent
-            visible: !root.lineMode && Theme.sheen > 0
-            opacity: Theme.sheen
-            preferredRendererType: Shape.CurveRenderer
-
-            ShapePath {
-                id: edgePath
-                readonly property real inset: 0.5
-
-                fillColor: Qt.alpha(Theme.sheenEdge, 0)
-                strokeColor: Theme.sheenEdge
-                strokeWidth: Theme.sizes.ringWidth
-
-                startX: edgePath.inset
-                startY: root.animH - root.animR
-                PathArc {
-                    x: root.animR
-                    y: root.animH - edgePath.inset
-                    radiusX: root.animR - edgePath.inset
-                    radiusY: root.animR - edgePath.inset
-                    direction: PathArc.Counterclockwise
-                }
-                PathLine { x: root.animW - root.animR; y: root.animH - edgePath.inset }
-                PathArc {
-                    x: root.animW - edgePath.inset
-                    y: root.animH - root.animR
-                    radiusX: root.animR - edgePath.inset
-                    radiusY: root.animR - edgePath.inset
-                    direction: PathArc.Counterclockwise
-                }
-            }
-        }
     }
 
-    // The rim (R13, §2a) paints above the content and takes no input: the ring and, on glass, the
-    // outline, stroked along the whole silhouette with its ears, so the island reads as coming out of
-    // the top edge. The line state drops both (R16).
+    // The rim (R13, DESIGN §3b) paints above the content and takes no input: the ring, stroked along the
+    // whole silhouette with its ears, so the island reads as coming out of the top edge. The line
+    // state drops it (R16).
     Silhouette {
         anchors.fill: parent
         visible: !root.lineMode
         paint: "transparent"
         stroke: Theme.ring
-        strokeW: Theme.sizes.ringWidth
-        bodyLeft: bodyItem.x
-        bodyWidth: root.animW
-        bodyHeight: root.animH
-        earSize: root.animEar
-        cornerRadius: root.animR
-    }
-
-    Silhouette {
-        anchors.fill: parent
-        visible: !root.lineMode && Theme.sheen > 0
-        opacity: Theme.sheen
-        paint: "transparent"
-        stroke: Theme.sheenOutline
         strokeW: Theme.sizes.ringWidth
         bodyLeft: bodyItem.x
         bodyWidth: root.animW

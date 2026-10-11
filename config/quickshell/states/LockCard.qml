@@ -88,7 +88,7 @@ Item {
         color: Theme.lockShadowColor
     }
 
-    // Island material of the current level and theme (R3): fill, ring, gloss.
+    // Island material of the current level and theme (R3): fill, ring.
     Rectangle {
         id: bg
 
@@ -100,19 +100,6 @@ Item {
         color: Theme.islandBg
         border.color: Theme.ring
         border.width: Theme.sizes.ringWidth
-
-        Rectangle {
-            anchors.fill: parent
-            visible: Theme.sheen > 0
-            opacity: Theme.sheen
-            topLeftRadius: root.topRadius
-            topRightRadius: root.topRadius
-            bottomLeftRadius: root.bottomRadius
-            bottomRightRadius: root.bottomRadius
-            color: Qt.alpha(Theme.sheenOutline, 0)
-            border.color: Theme.sheenOutline
-            border.width: Theme.sizes.ringWidth
-        }
     }
 
     // The content keeps the card's locked size; while the card morphs it is clipped to it.

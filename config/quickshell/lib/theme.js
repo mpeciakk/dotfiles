@@ -70,7 +70,7 @@ var defaults = {
     wallpaperDark: 0.5,             // ... below which it picks dark (hysteresis between)
     // Dark island over wallpaper brighter than `threshold`: alpha + `boost`. Light island over wallpaper darker than
     // `lightThreshold`: alpha + `lightBoost`. sampleSize: px the wallpaper is rescaled to for sampling.
-    legibility: { threshold: 0.7, boost: 0.2, lightThreshold: 0.25, lightBoost: 0.36, sampleSize: 64 },
+    legibility: { threshold: 0.7, boost: 0.2, lightThreshold: 0.25, lightBoost: 0.18, sampleSize: 64 },
     glass: true,
     glassLevel: "ciekłe",           // "subtelne" | "mocne" | "ciekłe"
     reducedMotion: false,
@@ -113,7 +113,6 @@ var defaults = {
         lockMorphMs: 640,
         wallpaperMs: 700,
         themeFadeMs: 600,
-        sheenFadeMs: 300,
         enterOpacityMs: 220,
         enterOpacityDelayMs: 160,
         enterScaleMs: 320,
@@ -185,17 +184,17 @@ var defaults = {
             lockGlass: rgba(16, 14, 26, 0.55)
         },
         light: {
-            ring: rgba(255, 255, 255, 0.55),
+            ring: rgba(255, 255, 255, 0.3),
             fg: "#1E1B2A",
-            fgMuted: "#5C5770",
-            fgDim: "#77728A",
-            accent: "#5E48B8",
+            fgMuted: "#48435C",
+            fgDim: "#5C5770",
+            accent: "#4E3A9E",
             accentAlternatives: ["#8A5A1E", "#2F7A68", "#A23D5C"],
             onAccent: "#FFFFFF",
             inverseBg: "#1E1B2A",
             inverseFg: "#EFECF3",
             danger: "#B4405E",
-            dotInactive: "#A9A4B8",
+            dotInactive: "#6E6984",
             line: rgba(30, 27, 42, 0.55),
             divider: "#D6D2DF",
             scrimDim: rgba(40, 30, 70, 0.22),
@@ -207,32 +206,26 @@ var defaults = {
     // Alpha of the colours derived from `accent`.
     accentAlpha: { soft: 0.18, halo: 0.2, focus: 0.9 },
 
-    // Per glass level and theme. `card` falls back to `sel`; `sheen` is the glass rim opacity.
+    // Per glass level and theme. `card` falls back to `sel`.
     glassLevels: {
         "subtelne": {
-            dark: { bg: rgba(16, 14, 26, 0.62), tile: "#17161F", sel: "#1E1D28", chip: "#2C2A39", card: "#1F1E2A", sheen: 0 },
-            light: { bg: rgba(230, 226, 236, 0.8), tile: "#EFECF3", sel: "#F3F1F6", chip: "#DDD9E5", card: "#F3F1F6", sheen: 0 }
+            dark: { bg: rgba(16, 14, 26, 0.62), tile: "#17161F", sel: "#1E1D28", chip: "#2C2A39", card: "#1F1E2A" },
+            light: { bg: rgba(230, 226, 236, 0.8), tile: "#EFECF3", sel: "#F3F1F6", chip: "#DDD9E5", card: "#F3F1F6" }
         },
         "mocne": {
-            dark: { bg: rgba(16, 14, 26, 0.4), tile: rgba(255, 255, 255, 0.06), sel: rgba(255, 255, 255, 0.1), chip: rgba(255, 255, 255, 0.12), sheen: 0.5 },
-            light: { bg: rgba(232, 228, 238, 0.58), tile: rgba(255, 255, 255, 0.42), sel: rgba(255, 255, 255, 0.52), chip: rgba(30, 27, 42, 0.08), sheen: 0.5 }
+            dark: { bg: rgba(16, 14, 26, 0.4), tile: rgba(255, 255, 255, 0.06), sel: rgba(255, 255, 255, 0.1), chip: rgba(255, 255, 255, 0.12) },
+            light: { bg: rgba(232, 228, 238, 0.58), tile: rgba(255, 255, 255, 0.42), sel: rgba(255, 255, 255, 0.52), chip: rgba(30, 27, 42, 0.08) }
         },
         "ciekłe": {
-            dark: { bg: rgba(22, 18, 36, 0.28), tile: rgba(255, 255, 255, 0.07), sel: rgba(255, 255, 255, 0.12), chip: rgba(255, 255, 255, 0.14), sheen: 1 },
-            light: { bg: rgba(234, 230, 240, 0.44), tile: rgba(255, 255, 255, 0.4), sel: rgba(255, 255, 255, 0.5), chip: rgba(30, 27, 42, 0.08), sheen: 1 }
+            dark: { bg: rgba(22, 18, 36, 0.28), tile: rgba(255, 255, 255, 0.07), sel: rgba(255, 255, 255, 0.12), chip: rgba(255, 255, 255, 0.14) },
+            light: { bg: rgba(234, 230, 240, 0.44), tile: rgba(255, 255, 255, 0.4), sel: rgba(255, 255, 255, 0.5), chip: rgba(30, 27, 42, 0.08) }
         }
     },
 
-    // `glass: false` fallback: opaque-ish island, no gloss.
+    // `glass: false` fallback: opaque-ish island, no blur.
     solid: {
         dark: { bg: rgba(16, 14, 26, 0.78), tile: "#17161F", sel: "#1E1D28", chip: "#2C2A39", card: "#1F1E2A" },
         light: { bg: rgba(230, 226, 236, 0.78), tile: "#EFECF3", sel: "#F3F1F6", chip: "#DDD9E5", card: "#F3F1F6" }
-    },
-
-    // Glass rim (R13, §2a): bottom-edge highlight and outline, scaled by the level's `sheen`.
-    sheen: {
-        dark: { edge: rgba(255, 255, 255, 0.22), outline: rgba(255, 255, 255, 0.1) },
-        light: { edge: rgba(255, 255, 255, 0.75), outline: rgba(255, 255, 255, 0.35) }
     },
 
     shadow: {
@@ -374,7 +367,6 @@ function resolve(tokens, mode, level, glass) {
     var mat = glass
         ? (tokens.glassLevels[level] || tokens.glassLevels["ciekłe"])[m]
         : tokens.solid[m];
-    var sheen = tokens.sheen[m];
     var shadow = tokens.shadow[m];
     var lockShadow = tokens.lockShadow[m];
     var pick = function (v, fallback) { return v !== undefined ? v : fallback; };
@@ -420,9 +412,6 @@ function resolve(tokens, mode, level, glass) {
         lockField: hex(pick(p.lockField, mat.tile)),
         lockFieldRing: hex(p.lockFieldRing),
         lockGlass: hex(pick(p.lockGlass, mat.bg)),
-        sheenEdge: hex(sheen.edge),
-        sheenOutline: hex(sheen.outline),
-        sheen: glass ? mat.sheen : 0,
         shadowY: shadow.y,
         shadowBlur: shadow.blur,
         shadowPad: shadow.blur + shadow.y,

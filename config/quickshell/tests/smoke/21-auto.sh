@@ -21,11 +21,11 @@ call theme setMode dark
 wait_ms 900
 expect theme islandBg "#7a161224"
 
-# Light theme over a dark wallpaper: the island's alpha rises by 0.36 (0x70 -> 0xcc), or the light glass turns grey.
+# Light theme over a dark wallpaper: the island's alpha rises by 0.18 (0x70 -> 0x9e), or the light glass turns grey.
 printf '{"wallpaper":"/tmp/wyspa-black.png","lock":{"timeout":0},"island":{"mode":"light"}}' > "$CFG"
 call theme setMode ""
 wait_ms 1500
-expect theme islandBg "#cceae6f0"
+expect theme islandBg "#9eeae6f0"
 
 # No wallpaper sample (no readable wallpaper) is no evidence of a dark one: no boost.
 printf '{"wallpaper":"/tmp/wyspa-does-not-exist.png","lock":{"timeout":0},"island":{"mode":"light"}}' > "$CFG"

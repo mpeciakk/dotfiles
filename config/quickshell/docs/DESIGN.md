@@ -23,7 +23,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 
 | # | Decyzja |
 |---|---|
-| W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura globalna w niri (`blur { passes 3; offset 5 }`), `layer-rule` dla przestrzeni nazw `wyspa` z `xray false` i `saturation 2.0` (bez `blur true`). Poziomy szkła zmieniają w locie tylko tło, kafle i połysk. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
+| W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura globalna w niri (`blur { passes 3; offset 5 }`), `layer-rule` dla przestrzeni nazw `wyspa` z `xray false` i `saturation 2.0` (bez `blur true`). Poziomy szkła zmieniają w locie tylko tło i kafle. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
 | W2 | Cień `0 18 60` rysuje QML (`MultiEffect` pod kształtem) — cień z `layer-rule` niri jest prostokątem powierzchni. |
 | W3 | Powierzchnia wyspy pełnoekranowa (`ExclusionMode.Ignore`, maska = kształt; w stanach modalnych pełna — scrim i „klik poza”). Exclusive zone 36/0 trzyma osobny pusty `Strut` przy górnej krawędzi. Blok `struts` w `config/niri/layout.kdl` usunięty (kompensował stary `Border`). |
 | W4 | Pełny ekran: `ToplevelManager` (`fullscreen` + `screens`), zawężony do aktywnego obszaru niri danego monitora. |
@@ -61,20 +61,20 @@ Jeśli nie, fallback: to samo tło z alfą ~0.78 bez blura.
 
 ### 3a. Jasny motyw — „przygaszony dzień” (w planie)
 
-Ten sam układ, kształty i ruch; podmieniane wyłącznie tokeny. Szkło w kolorze mgły (nie biel), tekst grafitowy, akcent przyciemniony do kontrastu ≥ 4.5:1.
+Ten sam układ, kształty i ruch; podmieniane wyłącznie tokeny. Szkło w kolorze mgły (nie biel), tekst grafitowy, akcent przyciemniony do kontrastu ≥ 4.5:1 (na kaflach i szkle „subtelne”; na gołym szkle „ciekłe” nad ciemną tapetą mniej, zob. 3b).
 
 | Token | Ciemny | Jasny |
 |---|---|---|
 | `island.bg` | `#100E1A` @ 62% | `#E6E2EC` @ 80% (blur 24, saturate 1.3) |
-| `island.ring` | obrys `rgba(255,255,255,0.07)` | obrys `rgba(255,255,255,0.55)` |
+| `island.ring` | obrys `rgba(255,255,255,0.07)` | obrys `rgba(255,255,255,0.3)` |
 | `island.shadow` | `0 18 60 rgba(10,6,20,0.5)` | `0 18 50 rgba(40,30,70,0.2)` |
 | `surface` (kafle) | `#17161F` | `#EFECF3` |
 | `card` / zaznaczenie | `#1F1E2A` | `#F3F1F6` |
 | `chip` / kbd | `#2C2A39` | `#DDD9E5` |
 | `fg` | `#ECEAF2` | `#1E1B2A` |
-| `fg.muted` | `#A29DB3` | `#5C5770` |
+| `fg.muted` | `#A29DB3` | `#48435C` (`fg.dim` `#5C5770`) |
 | `track` | `#2C2A39` | `#CFCADA` (wypełnienie suwaka = `fg`) |
-| `accent` | `#B9A7F5` | `#5E48B8` |
+| `accent` | `#B9A7F5` | `#4E3A9E` |
 | `onAccent` | `#121118` | `#FFFFFF` |
 | `danger` | `#F2A7B8` | `#B4405E` |
 | Blokada: tapeta | blur 22, brightness 0.78 | blur 18, brightness 0.92 |
@@ -83,14 +83,14 @@ Przełączanie: tryb ręczny / wg pory dnia (wschód–zachód) / wg jasności t
 
 ### 3b. Poziomy szkła (`Theme.glassLevel`, domyślnie „ciekłe” — do potwierdzenia)
 
-| Poziom | Tło wyspy (ciemny / jasny) | Blur | Kafle wewnątrz | Połysk |
-|---|---|---|---|---|
-| subtelne | `#100E1A`@62% / `#E6E2EC`@80% | 24, sat 1.5 | pełne (`#17161F` / `#EFECF3`) | brak |
-| mocne | `#100E1A`@40% / `#E8E4EE`@58% | 36, sat 1.8 | białe @6% / @42% | 50% |
-| ciekłe | `#161224`@28% / `#EAE6F0`@44% | 44, sat 2.0, jasność 1.05 | białe @7% / @40% | 100% |
+| Poziom | Tło wyspy (ciemny / jasny) | Blur | Kafle wewnątrz |
+|---|---|---|---|
+| subtelne | `#100E1A`@62% / `#E6E2EC`@80% | 24, sat 1.5 | pełne (`#17161F` / `#EFECF3`) |
+| mocne | `#100E1A`@40% / `#E8E4EE`@58% | 36, sat 1.8 | białe @6% / @42% |
+| ciekłe | `#161224`@28% / `#EAE6F0`@44% | 44, sat 2.0, jasność 1.05 | białe @7% / @40% |
 
-Połysk = krawędź szkła nad treścią: obrys 1 px biel 10% (jasny 35%) po całej sylwetce z uszami i dolna krawędź 1 px biel 22% (jasny 75%). Bez gradientu i wewnętrznej poświaty (usunięte 2026-10-11: rozjaśnienie od krawędzi do środka było nieładne, a w jasnym motywie bieliło tekst).
-Kafle przy mocnym/ciekłym szkle są półprzezroczyste — nie zabijają efektu. Czytelność pilnuje automatyczne podbicie alfy tła wg luminancji (liniowej, Rec. 709) tapety pod wyspą: ciemna wyspa nad tapetą jaśniejszą niż 0,7 dostaje +0,2, jasna nad tapetą ciemniejszą niż 0,25 dostaje +0,36 (ciekłe 44% → 80%, jak w 3a).
+Bez połysku (usunięty 2026-10-11): gradient i wewnętrzna poświata rozjaśniały wyspę od krawędzi do środka i bieliły tekst w jasnym motywie, a dodatkowe obrysy dawały twardą jasną ramkę. Jedyną krawędzią szkła jest `island.ring` nad treścią, po całej sylwetce z uszami.
+Kafle przy mocnym/ciekłym szkle są półprzezroczyste — nie zabijają efektu. Czytelność pilnuje automatyczne podbicie alfy tła wg luminancji (liniowej, Rec. 709) tapety pod wyspą: ciemna wyspa nad tapetą jaśniejszą niż 0,7 dostaje +0,2, jasna nad tapetą ciemniejszą niż 0,25 dostaje +0,18 (ciekłe 44% → 62%: szkło dalej prześwituje, a ciemniejsze `fg.muted` i `accent` mają na gołym szkle ok. 4:1 nad obecną tapetą, ok. 3:1 nad czarną; na kaflach ≥ 4,5:1).
 
 ## 4. Geometria stanów
 
@@ -162,7 +162,7 @@ Theme.qml            singleton: tokeny z lib/theme.js + config hosta (FileView, 
                      tryb i poziom szkła, IPC `theme`
 IslandState.qml      singleton: maszyna stanów, timery, OSD, tryb linii, IPC `island`
 Island.qml           PanelWindow per ekran (pełnoekranowa, maska = kształt, w stanach modalnych pełna), region blura
-IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i krawędź szkła
+IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i obrys (ring)
 IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
 Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
 Wallpaper.qml        tapeta per ekran

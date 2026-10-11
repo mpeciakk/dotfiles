@@ -66,7 +66,6 @@ test("defaults: motion matches DESIGN §5", () => {
     assert.deepStrictEqual(m.easeCurve, [0.25, 0.1, 0.25, 1, 1, 1]);
     assert.equal(m.lockMorphMs, 640);
     assert.equal(m.themeFadeMs, 600);
-    assert.equal(m.sheenFadeMs, 300);
     assert.equal(m.osdTimeoutMs, 1600);
     assert.equal(m.toastTimeoutMs, 3600);
     assert.equal(m.holdMs, 900);
@@ -95,7 +94,6 @@ test("resolve(): dark ciekłe", () => {
     assert.equal(c.hover, c.sel);
     assert.equal(c.track, c.chip);
     assert.equal(c.sliderFill, c.fg);
-    assert.equal(c.sheen, 1);
     assert.equal(c.fg, T.hex("#ECEAF2"));
     assert.equal(c.fgMuted, T.hex("#A29DB3"));
     assert.equal(c.accent, T.hex("#B9A7F5"));
@@ -107,8 +105,6 @@ test("resolve(): dark ciekłe", () => {
     assert.equal(c.shadowY, 18);
     assert.equal(c.shadowBlur, 60);
     assert.equal(c.shadowPad, 78);
-    assert.equal(c.sheenEdge, T.rgba(255, 255, 255, 0.22));
-    assert.equal(c.sheenOutline, T.rgba(255, 255, 255, 0.1));
     assert.deepStrictEqual(c.lockWallpaper, { blur: 22, saturate: 1.2, brightness: 0.78, scale: 1.08 });
 });
 
@@ -120,12 +116,14 @@ test("resolve(): light subtelne and light mocne", () => {
     assert.equal(s.card, T.hex("#F3F1F6"));
     assert.equal(s.chip, T.hex("#DDD9E5"));
     assert.equal(s.track, T.hex("#CFCADA"));
-    assert.equal(s.sheen, 0);
     assert.equal(s.fg, T.hex("#1E1B2A"));
-    assert.equal(s.accent, T.hex("#5E48B8"));
+    assert.equal(s.accent, T.hex("#4E3A9E"));
+    assert.equal(s.fgMuted, T.hex("#48435C"));
+    assert.equal(s.fgDim, T.hex("#5C5770"));
+    assert.equal(s.dotInactive, T.hex("#6E6984"));
     assert.equal(s.onAccent, T.hex("#FFFFFF"));
     assert.equal(s.danger, T.hex("#B4405E"));
-    assert.equal(s.ring, T.rgba(255, 255, 255, 0.55));
+    assert.equal(s.ring, T.rgba(255, 255, 255, 0.3));
     assert.equal(s.shadowColor, T.rgba(40, 30, 70, 0.2));
     assert.equal(s.shadowBlur, 50);
     assert.equal(s.shadowPad, 68);
@@ -134,7 +132,6 @@ test("resolve(): light subtelne and light mocne", () => {
     assert.equal(m.islandBg, T.rgba(232, 228, 238, 0.58));
     assert.equal(m.tile, T.rgba(255, 255, 255, 0.42));
     assert.equal(m.chip, T.rgba(30, 27, 42, 0.08));
-    assert.equal(m.sheen, 0.5);
 });
 
 test("resolve(): solid fallback and unknown level", () => {
@@ -142,7 +139,6 @@ test("resolve(): solid fallback and unknown level", () => {
     assert.equal(c.islandBg, T.rgba(16, 14, 26, 0.78));
     assert.equal(c.tile, T.hex("#17161F"));
     assert.equal(c.sel, T.hex("#1E1D28"));
-    assert.equal(c.sheen, 0);
     const u = plain(T.resolve(T.defaults, "dark", "nope", true));
     assert.equal(u.islandBg, T.rgba(22, 18, 36, 0.28));
 });
@@ -179,7 +175,7 @@ test("resolve(): appColors are the accent followed by its three alternatives (R3
     const dark = T.resolve(T.defaults, "dark", "ciekłe", true).appColors;
     assert.deepStrictEqual(plain(dark), ["#ffb9a7f5", "#fff1d6ae", "#ff8fd3c1", "#fff2a7b8"]);
     const light = T.resolve(T.defaults, "light", "ciekłe", true).appColors;
-    assert.deepStrictEqual(plain(light), ["#ff5e48b8", "#ff8a5a1e", "#ff2f7a68", "#ffa23d5c"]);
+    assert.deepStrictEqual(plain(light), ["#ff4e3a9e", "#ff8a5a1e", "#ff2f7a68", "#ffa23d5c"]);
 });
 
 test("resolve(): appColors follow an accent override", () => {
@@ -292,4 +288,16 @@ test("guard: no QML property is named on<Capital> (Quickshell 0.3.2 drops its bi
         assert.doesNotMatch(s, /\bproperty\s+\w+(<[^>]*>)?\s+on[A-Z]/, f);
         assert.doesNotMatch(s, /\bTheme\.on[A-Z]/, f);
     }
+});
+
+test("the glass has no gloss: no sheen tokens, the rim is the ring alone", () => {
+    assert.equal(T.defaults.sheen, undefined);
+    assert.equal(T.defaults.motion.sheenFadeMs, undefined);
+    for (const level of Object.keys(T.defaults.glassLevels))
+        for (const mode of ["dark", "light"]) {
+            assert.equal(T.defaults.glassLevels[level][mode].sheen, undefined);
+            const c = plain(T.resolve(T.defaults, mode, level, true));
+            assert.deepStrictEqual(Object.keys(c).filter(k => k.startsWith("sheen")), []);
+        }
+    assert.equal(T.defaults.legibility.lightBoost, 0.18);
 });
