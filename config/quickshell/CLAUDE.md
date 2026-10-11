@@ -145,13 +145,17 @@ lives in the global `blur` block of `config/niri/config.kdl`.
    side effect (power commands, lock, `sh -c`, `wl-copy`, player / volume / brightness controls, app launch,
    `focusWindow`) into a log line.
 9. The lock: both ways play on `LockOverlay.qml` inside each island window (DESIGN W12, `IslandState.lockPhase`): a request plays the way in over the windows and
-   locks after `lockInMs` (~0.8 s); a correct password unlocks at once and the overlay plays the way back. Recovery is `qs ipc -p <dir> call island unlock` (from a TTY first
+   locks after `lockInMs` (~0.8 s); a correct password unlocks at once and the overlay plays the way back. A request
+   closes the island first, and during the way in the windows take the full input mask and the focused output the
+   keyboard (keys typed then are dropped). Before every sleep (logind `PrepareForSleep`, DESIGN W14) the shell holds a
+   sleep delay inhibitor and locks with the way in at zero durations (`Theme.lockInstant`); `systemd-inhibit --list`
+   shows `wyspa` while unlocked. Recovery is `qs ipc -p <dir> call island unlock` (from a TTY first
    `export XDG_RUNTIME_DIR=/run/user/1000`). `loginctl unlock-session` does NOT work. `pam_faillock` defaults: deny=3,
    unlock after 600 s. UNVERIFIED (not tried live): if the shell dies while locked, the compositor keeps the blank lock
    and a restarted shell starts unlocked; the likely recovery is `systemctl --user restart quickshell`, then
    `qs ipc call island lock` and authenticate (or `island unlock`).
 10. A fullscreen window on an output puts its island in line mode. `services/Fullscreen.qml` is disabled under
     `WYSPA_TEST` (`outputs` is `[]`), so smokes are independent of real fullscreen windows; they reach line mode only
-    through IPC `hide`. `maskMode`: `full` in a modal state, `line` while the line is wanted (input is the 400x28 hover
+    through IPC `hide`. `maskMode`: `full` in a modal state and during the lock's way in, `line` while the line is wanted (input is the 400x28 hover
     zone, plus the body while it grows), else `shape`.
 11. Test-only readable props (`restLoaded`, `contentState`, `maskMode`, …) are there for smokes; do not build features on them.

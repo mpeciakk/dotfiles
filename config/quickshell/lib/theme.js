@@ -145,8 +145,10 @@ var defaults = {
         shakeMs: 380
     },
 
-    // The session lock: idle-lock timeout in seconds when the host config has no lock.timeout (0 there disables it).
-    lock: { timeoutDefault: 300 },
+    // The session lock: idle-lock timeout in seconds when the host config has no lock.timeout (0 there disables it);
+    // before a sleep (DESIGN W14) the longest wait for every window's frame of the overlay's end look (logind's
+    // InhibitDelayMaxSec is 5000 ms), and the delay before a sleep watcher process that exited is started again.
+    lock: { timeoutDefault: 300, sleepFrameCapMs: 1500, sleepRestartMs: 1000 },
 
     // What the power menu runs (reference 3.8); overridable under "island.power.commands". The lock has no
     // command: it asks the session lock. Only components/PowerActions.qml perform() ever reads these.

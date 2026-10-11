@@ -56,6 +56,11 @@ Singleton {
     property bool lockHides: false
     // The lock overlay's phase (Lock.qml; reportLockPhase() is the only writer): "in", "locked", "back" or "".
     property string lockPhase: ""
+    // A sleep lock waits for a frame of the overlay's end look from every island window (Lock.qml; the overlay
+    // answers with reportLockFrame), and `lockRemounted` makes each window put a fresh overlay in place of a playing one.
+    property bool lockFrameWait: false
+    signal lockRemounted
+    signal lockFramePresented(string output)
     signal lockAsked
     signal unlockAsked
 
@@ -132,6 +137,18 @@ Singleton {
 
     function reportLockPhase(phase: string): void {
         root.lockPhase = phase;
+    }
+
+    function reportLockFrameWait(on: bool): void {
+        root.lockFrameWait = on;
+    }
+
+    function reportLockFrame(output: string): void {
+        root.lockFramePresented(output);
+    }
+
+    function remountLock(): void {
+        root.lockRemounted();
     }
 
     function reportLine(output: string, on: bool): void {

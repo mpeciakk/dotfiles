@@ -13,12 +13,15 @@ Singleton {
     property string levelOverride: ""
     property string autoMode: ""
     property bool legibilityBoost: false
+    // Set by Lock.qml for a lock that cannot wait for the way in (a pending sleep, DESIGN W14): everything animated
+    // takes the reduced-motion path until the session is locked.
+    property bool lockInstant: false
 
     readonly property var tokens: T.merge(T.defaults, root.host.island ?? null)
     readonly property string mode: root.modeOverride || root.autoMode || root.tokens.mode
     readonly property string glassLevel: root.levelOverride || root.tokens.glassLevel
     readonly property bool glass: root.tokens.glass
-    readonly property bool reducedMotion: root.tokens.reducedMotion
+    readonly property bool reducedMotion: root.tokens.reducedMotion || root.lockInstant
     readonly property var c: T.resolve(root.tokens, root.mode, root.glassLevel, root.glass)
     readonly property var geom: root.tokens.geom
     readonly property var motion: root.tokens.motion

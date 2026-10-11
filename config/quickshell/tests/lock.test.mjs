@@ -139,6 +139,7 @@ test("guard: every lock request (power gate, IPC, idle) goes to engageLock()", (
     assert.match(lock.code, /function\s+onLockRequested\s*\(\s*\)\s*(:\s*void\s*)?\{\s*root\.engageLock\(/);
     assert.match(lock.code, /function\s+onLockAsked\s*\(\s*\)\s*(:\s*void\s*)?\{\s*root\.engageLock\(/);
     assert.match(lock.code, /onIsIdleChanged\s*:\s*\{?\s*if\s*\(\s*isIdle\s*\)\s*root\.engageLock\(/);
+    assert.match(lock.code, /function\s+onSleepSignal\s*\([^)]*\)[^{]*\{[\s\S]*?root\.engageLock\(\s*"sleep"\s*\)/);
 });
 
 test("guard: the IdleMonitor takes enabled and timeout from L.idle with the file's testMode and respects inhibitors", () => {
@@ -293,6 +294,65 @@ test("lockStep: the way in first, wait while it plays, then lock; reduced motion
     assert.equal(L.lockStep(1, true), "wait");
 });
 
+test("lockStep: a sleep request is never waited out: it snaps to the end look, or waits for the snap already running", () => {
+    // 0 none and 1 playing: snap (the way in at zero durations, then the lock after the frames); reduced motion does not skip the frames.
+    for (const reduced of [false, true]) {
+        assert.equal(L.lockStep(0, reduced, true, false), "snap", `prelude 0, reduced ${reduced}`);
+        assert.equal(L.lockStep(1, reduced, true, false), "snap", `playing a normal way in, reduced ${reduced}`);
+        assert.equal(L.lockStep(2, reduced, true, false), "lock", `the way in ended, reduced ${reduced}`);
+        assert.equal(L.lockStep(1, reduced, true, true), "wait", `a snap is waiting for its frames, reduced ${reduced}`);
+    }
+});
+
+test("lockStep: a plain request is unchanged by the sleep arguments", () => {
+    for (const instant of [false, true]) {
+        assert.equal(L.lockStep(0, false, false, instant), "prelude");
+        assert.equal(L.lockStep(1, false, false, instant), "wait");
+        assert.equal(L.lockStep(2, false, false, instant), "lock");
+        assert.equal(L.lockStep(0, true, false, instant), "lock");
+    }
+});
+
+test("sleepSignal: reads PrepareForSleep from a `gdbus monitor --system` line (format taken from the live bus)", () => {
+    const sig = "/org/freedesktop/login1: org.freedesktop.login1.Manager.PrepareForSleep";
+    assert.equal(L.sleepSignal(`${sig} (true,)`), "start");
+    assert.equal(L.sleepSignal(`${sig} (false,)`), "resume");
+    // anything else, including the monitor's own banner and other logind signals, is not a sleep event
+    for (const other of ["", "Monitoring signals on object /org/freedesktop/login1 owned by org.freedesktop.login1",
+        "The name org.freedesktop.login1 is owned by :1.4",
+        "/org/freedesktop/login1/session/_33: org.freedesktop.login1.Session.Lock ()",
+        "/org/freedesktop/login1: org.freedesktop.login1.Manager.PrepareForShutdown (true,)",
+        `${sig} (maybe,)`, `${sig} ()`, undefined, null, 5])
+        assert.equal(L.sleepSignal(other), "other", JSON.stringify(other));
+});
+
+test("inhibitorWanted: held while unlocked or while the lock is not secure yet, released only when sleep is pending on a secure lock", () => {
+    assert.equal(L.inhibitorWanted(false, false, false), true, "idle, unlocked");
+    assert.equal(L.inhibitorWanted(false, true, false), true, "sleep pending, the lock is not secure yet: keep delaying");
+    assert.equal(L.inhibitorWanted(false, false, true), true, "locked, no sleep: held again (the wake retakes it)");
+    assert.equal(L.inhibitorWanted(false, true, true), false, "sleep pending and secure: release, logind may suspend");
+});
+
+test("inhibitorWanted and sleepWatched: only an explicit false test mode runs the processes", () => {
+    for (const odd of [true, undefined, null, "", 0, 1, "false"]) {
+        assert.equal(L.inhibitorWanted(odd, false, false), false, `inhibitor, test mode ${JSON.stringify(odd)}`);
+        assert.equal(L.sleepWatched(odd), false, `monitor, test mode ${JSON.stringify(odd)}`);
+    }
+    assert.equal(L.sleepWatched(false), true);
+});
+
+test("framesPresented: the lock waits for every output's window, and for none that is not there", () => {
+    assert.equal(L.framesPresented(["DP-1", "HDMI-A-1"], { "DP-1": true }), false);
+    assert.equal(L.framesPresented(["DP-1", "HDMI-A-1"], { "DP-1": true, "HDMI-A-1": true }), true);
+    assert.equal(L.framesPresented(["DP-1"], { "DP-1": true, "gone": true }), true, "a frame from an output that left does not matter");
+    assert.equal(L.framesPresented([], {}), true, "no output, nothing to wait for");
+});
+
+test("sleep: a request on an already locked session only stays locked (no second lock)", () => {
+    assert.equal(L.engage(false, true).engage, false);
+    assert.equal(L.inhibitorWanted(false, true, true), false, "and the inhibitor is released at once");
+});
+
 test("lockInMs: the way in lasts until its last part is in (the extras, with the defaults)", () => {
     const m = T.defaults.motion, s = T.defaults.layout.lock;
     const ms = L.lockInMs(m, s);
@@ -304,7 +364,7 @@ test("lockInMs: the way in lasts until its last part is in (the extras, with the
 test("guard: engageLock() starts the way in only after its test-mode decision, and the prelude timer comes back to it", () => {
     const b = body("engageLock");
     const bail = b.search(/if\s*\(\s*!\s*d\.engage\s*\)\s*return\b/);
-    const step = b.search(/L\.lockStep\(\s*root\.prelude\s*,\s*Theme\.reducedMotion\s*\)/);
+    const step = b.search(/L\.lockStep\(\s*root\.prelude\s*,\s*Theme\.reducedMotion\s*,\s*source\s*===\s*"sleep"\s*,\s*Theme\.lockInstant\s*\)/);
     const start = b.search(/root\.prelude\s*=\s*1/);
     assert.ok(bail >= 0 && step > bail && start > step);
     assert.match(lock.code, /id:\s*preludeTimer[\s\S]{0,200}interval:\s*L\.lockInMs\(Theme\.motion,\s*Theme\.layout\.lock\)[\s\S]{0,120}root\.prelude\s*=\s*2;\s*root\.engageLock\(root\.preludeFor\)/);
@@ -314,4 +374,97 @@ test("guard: engageLock() starts the way in only after its test-mode decision, a
 
 test("guard: a lock the compositor ends itself releases through secure, not locked (locked still reads true in that signal)", () => {
     assert.match(lock.code, /onSecureStateChanged:\s*\{\s*if\s*\(\s*!sessionLock\.secure\s*&&\s*root\.lockOn\s*\)\s*root\.released\(\)/);
+});
+
+// ---- Lock before sleep (DESIGN W14) ----
+
+function block(re, what) {
+    const m = lock.code.match(re);
+    assert.ok(m, `no ${what}`);
+    return m[1];
+}
+
+test("guard: the sleep monitor and the delay inhibitor start only through the test-mode helpers, in Lock.qml, and nowhere else", () => {
+    assert.match(lock.code, /readonly\s+property\s+bool\s+watchSleep\s*:\s*L\.sleepWatched\(\s*root\.testMode\s*\)/);
+    assert.match(lock.code, /readonly\s+property\s+bool\s+holdInhibitor\s*:\s*L\.inhibitorWanted\(\s*root\.testMode\s*,\s*root\.sleepPending\s*,\s*root\.lockSecure\s*\)/);
+    // each process is started from one `running = true`, behind its own gate
+    assert.match(block(/function\s+syncInhibitor\s*\([^)]*\)[^{]*\{([\s\S]*?)\n    \}/, "syncInhibitor()"), /root\.holdInhibitor[\s\S]*inhibitor\.running\s*=\s*true/);
+    assert.match(block(/function\s+syncMonitor\s*\([^)]*\)[^{]*\{([\s\S]*?)\n    \}/, "syncMonitor()"), /root\.watchSleep[\s\S]*monitor\.running\s*=\s*true/);
+    assert.equal((lock.code.match(/\.running\s*=\s*true/g) ?? []).length, 2, "no other process is started");
+    for (const s of sources.filter(s => s.rel !== LOCK))
+        assert.doesNotMatch(s.code, /systemd-inhibit|PrepareForSleep/, `${s.rel} touches the sleep inhibitor`);
+});
+
+test("guard: the inhibitor is a logind sleep delay inhibitor, the monitor watches PrepareForSleep on the system bus", () => {
+    assert.match(lock.code, /"systemd-inhibit"\s*,\s*"--what=sleep"\s*,\s*"--mode=delay"\s*,\s*"--who=wyspa"/);
+    assert.match(lock.code, /"gdbus"\s*,\s*"monitor"\s*,\s*"--system"\s*,\s*"--dest"\s*,\s*"org\.freedesktop\.login1"\s*,\s*"--object-path"\s*,\s*"\/org\/freedesktop\/login1"/);
+});
+
+test("guard: the monitor records sleepPending through L.sleepSignal; a sleep start asks engageLock('sleep') and sets nothing else", () => {
+    const b = block(/function\s+onSleepSignal\s*\([^)]*\)[^{]*\{([\s\S]*?)\n    \}/, "onSleepSignal()");
+    assert.match(b, /L\.sleepSignal\(\s*line\s*\)/);
+    assert.match(b, /root\.sleepPending\s*=\s*true/);
+    assert.match(b, /root\.sleepPending\s*=\s*false/);
+    assert.match(b, /root\.engageLock\(\s*"sleep"\s*\)/);
+    assert.doesNotMatch(b, /\blocked\s*=/, "a sleep request never sets locked itself");
+});
+
+test("guard: a restart never happens by itself while the inhibitor is released (a release during a pending sleep is never undone)", () => {
+    assert.match(lock.code, /id:\s*inhibitor[\s\S]*?onExited:\s*inhibitRestart\.restart\(\)/);
+    assert.match(lock.code, /id:\s*inhibitRestart[\s\S]*?onTriggered:\s*root\.syncInhibitor\(\)/);
+    assert.match(lock.code, /id:\s*monitor[\s\S]*?onExited:\s*monitorRestart\.restart\(\)/);
+    assert.match(lock.code, /id:\s*monitorRestart[\s\S]*?onTriggered:\s*root\.syncMonitor\(\)/);
+    assert.match(lock.code, /onHoldInhibitorChanged:\s*root\.syncInhibitor\(\)/);
+});
+
+test("guard: a lock request closes the island after the test-mode decision, so no modal state receives the password", () => {
+    const b = body("engageLock");
+    const bail = b.search(/if\s*\(\s*!\s*d\.engage\s*\)\s*return\b/);
+    const close = b.search(/IslandState\.close\(\s*\)/);
+    const step = b.search(/L\.lockStep\(/);
+    assert.ok(bail >= 0 && close > bail && close < step, "IslandState.close() between the decision and the lock step");
+});
+
+test("guard: a sleep request snaps the way in (Theme.lockInstant first, remount), waits for every window's frame, and locks through engageLock()", () => {
+    const b = body("engageLock");
+    const snap = b.match(/if\s*\(\s*step\s*===\s*"snap"\s*\)\s*\{([\s\S]*?)\n        \}/);
+    assert.ok(snap, "no snap branch");
+    const s = snap[1];
+    const instant = s.search(/Theme\.lockInstant\s*=\s*true/);
+    assert.ok(instant >= 0 && instant < s.search(/root\.prelude\s*=\s*1/), "instant before the phase, so the overlay mounts at zero durations");
+    assert.match(s, /IslandState\.reportLockFrameWait\(\s*true\s*\)/);
+    assert.match(s, /IslandState\.remountLock\(\)/);
+    assert.match(s, /preludeTimer\.stop\(\)/);
+    assert.match(s, /frameCapTimer\.restart\(\)/);
+    assert.match(s, /return\s*;/);
+    // the frames (or the cap) come back to engageLock() with the way in ended, never to a second place that locks
+    assert.match(lock.code, /function\s+onLockFramePresented\s*\([^)]*\)[^{]*\{[\s\S]*?L\.framesPresented\([\s\S]*?root\.prelude\s*=\s*2;\s*root\.engageLock\(root\.preludeFor\)/);
+    assert.match(lock.code, /id:\s*frameCapTimer[\s\S]{0,200}interval:\s*Theme\.tokens\.lock\.sleepFrameCapMs[\s\S]{0,160}root\.prelude\s*=\s*2;\s*root\.engageLock\(root\.preludeFor\)/);
+    // once locked, the instant mode and the frame wait end (the way back plays as in W12)
+    const end = b.slice(b.search(/sessionLock\.locked\s*=\s*true/));
+    assert.match(end, /Theme\.lockInstant\s*=\s*false/);
+    assert.match(end, /IslandState\.reportLockFrameWait\(\s*false\s*\)/);
+    assert.match(end, /frameCapTimer\.stop\(\)/);
+    assert.match(body("unlockNow"), /Theme\.lockInstant\s*=\s*false/);
+});
+
+test("guard: Theme.lockInstant is the reduced-motion path: it only adds to the token", () => {
+    const theme = strip(readFileSync(join(root, "Theme.qml"), "utf8"));
+    assert.match(theme, /property\s+bool\s+lockInstant\s*:\s*false/);
+    assert.match(theme, /readonly\s+property\s+bool\s+reducedMotion\s*:\s*root\.tokens\.reducedMotion\s*\|\|\s*root\.lockInstant\b/);
+});
+
+test("guard: the overlay reports its window's frames per output only while the lock waits, and the island window can remount it", () => {
+    const overlay = strip(readFileSync(join(root, "LockOverlay.qml"), "utf8"));
+    assert.match(overlay, /Connections\s*\{[^}]*target\s*:\s*over\.Window\.window[^}]*enabled\s*:\s*IslandState\.lockFrameWait[\s\S]*?function\s+onFrameSwapped\s*\(\s*\)\s*(:\s*void\s*)?\{\s*IslandState\.reportLockFrame\(\s*over\.screen\.name\s*\)/);
+    const island = readFileSync(join(root, "Island.qml"), "utf8");
+    assert.match(island, /Loader\s*\{\s*id:\s*lockLoader[^}]*active:\s*IslandState\.lockPhase\s*!==\s*""[\s\S]*?function\s+onLockRemounted\s*\(\s*\)\s*(:\s*void\s*)?\{\s*lockLoader\.active\s*=\s*false;\s*lockLoader\.active\s*=\s*Qt\.binding\(\s*\(\)\s*=>\s*IslandState\.lockPhase\s*!==\s*""\s*\)/);
+});
+
+test("guard: the way in takes the keyboard on the focused output and the whole input on every window, never in test mode, and no item holds focus", () => {
+    const island = strip(readFileSync(join(root, "Island.qml"), "utf8"));
+    assert.match(island, /readonly\s+property\s+bool\s+wayIn\s*:\s*IslandState\.lockPhase\s*===\s*"in"/);
+    assert.match(island, /WlrLayershell\.keyboardFocus\s*:\s*Quickshell\.env\(\s*"WYSPA_TEST"\s*\)\s*!==\s*"1"\s*&&\s*\(\s*root\.modalHere\s*\|\|\s*root\.wayIn\s*&&\s*Niri\.focusedOutput\s*===\s*root\.screen\.name\s*\)\s*\?\s*WlrKeyboardFocus\.Exclusive\s*:\s*WlrKeyboardFocus\.None/);
+    assert.match(island, /readonly\s+property\s+string\s+maskMode\s*:\s*root\.modalHere\s*\|\|\s*root\.wayIn\s*\?\s*"full"/);
+    assert.match(island, /focus\s*:\s*root\.modalHere\s*&&\s*!root\.wayIn\b/);
 });

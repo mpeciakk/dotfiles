@@ -31,7 +31,9 @@ PanelWindow {
     readonly property bool line: root.lineWanted && !root.hovered
     readonly property string effState: root.line ? "line" : root.baseState
     readonly property bool modalHere: IslandState.modal && IslandState.output === root.screen.name
-    readonly property string maskMode: root.modalHere ? "full" : root.lineWanted ? "line" : "shape"
+    // The lock's way in (DESIGN W12): no key and no click reaches a window until the lock is on.
+    readonly property bool wayIn: IslandState.lockPhase === "in"
+    readonly property string maskMode: root.modalHere || root.wayIn ? "full" : root.lineWanted ? "line" : "shape"
     readonly property var geo: IslandState.geometryFor(root.effState)
 
     function reportMask(): void {
@@ -64,7 +66,8 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "wyspa"
-    WlrLayershell.keyboardFocus: root.modalHere && Quickshell.env("WYSPA_TEST") !== "1" ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    // The way in takes the keyboard on the focused output with no item holding focus: typed keys are dropped.
+    WlrLayershell.keyboardFocus: Quickshell.env("WYSPA_TEST") !== "1" && (root.modalHere || root.wayIn && Niri.focusedOutput === root.screen.name) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     // While the line is wanted, the input is the hover zone plus the body (which is inside the zone as the
     // line, and keeps the pointer from slipping out of the mask while it grows). Nothing else: the rest of
@@ -139,7 +142,7 @@ PanelWindow {
     FocusScope {
         id: stage
         anchors.fill: parent
-        focus: root.modalHere
+        focus: root.modalHere && !root.wayIn
         Keys.onEscapePressed: IslandState.close()
 
         Item {
@@ -231,12 +234,25 @@ PanelWindow {
         }
     }
 
-    // The lock's way in and way back (Lock.qml, DESIGN W12), above the island; never in the input mask.
+    // The lock's way in and way back (Lock.qml, DESIGN W12), above the island; it takes no input itself (the full mask of the way in only catches clicks).
     Loader {
+        id: lockLoader
+
         anchors.fill: parent
         active: IslandState.lockPhase !== ""
         sourceComponent: LockOverlay {
             screen: root.screen
+        }
+    }
+
+    // A sleep lock (Lock.qml) replaces a playing overlay with a fresh one, which at zero durations is at its end look
+    // from its first frame. Both writes are plain setters: no frame between the unmount and the mount.
+    Connections {
+        target: IslandState
+
+        function onLockRemounted(): void {
+            lockLoader.active = false;
+            lockLoader.active = Qt.binding(() => IslandState.lockPhase !== "");
         }
     }
 }

@@ -23,15 +23,51 @@ function keepsLocked(testMode, locked, unlocking) {
     return testMode === false && locked === true && unlocking === true;
 }
 
-// The next step of an allowed lock request (DESIGN W12): "prelude" = play the way in on the overlay first, "wait" =
-// it is playing (the lock follows when it ends), "lock" = lock now (it ended, or reduced motion: no way in).
+// The next step of an allowed lock request (DESIGN W12, W14): "prelude" = play the way in on the overlay first, "wait" =
+// it is playing (the lock follows when it ends), "lock" = lock now (it ended, or reduced motion: no way in), "snap" =
+// a sleep request: the way in at zero durations on a fresh overlay, and the lock after every window has presented a
+// frame of its end look (never waited out: logind gives the shell 5 s). A snap already running (instant) is waited for.
 // prelude: 0 none, 1 playing, 2 ended.
-function lockStep(prelude, reducedMotion) {
+function lockStep(prelude, reducedMotion, sleep, instant) {
+    if (sleep === true) {
+        if (prelude === 2)
+            return "lock";
+        return prelude === 1 && instant === true ? "wait" : "snap";
+    }
     if (prelude === 1)
         return "wait";
     if (prelude === 0 && !reducedMotion)
         return "prelude";
     return "lock";
+}
+
+// A line of `gdbus monitor --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1`:
+// "<path>: org.freedesktop.login1.Manager.PrepareForSleep (true,)" -> "start", "(false,)" -> "resume", else "other".
+function sleepSignal(line) {
+    if (typeof line !== "string")
+        return "other";
+    var m = /\borg\.freedesktop\.login1\.Manager\.PrepareForSleep \((true|false),\)\s*$/.exec(line);
+    return m ? (m[1] === "true" ? "start" : "resume") : "other";
+}
+
+// Whether the shell watches logind for a sleep and holds the delay inhibitor at all: only an explicit false test mode.
+function sleepWatched(testMode) {
+    return testMode === false;
+}
+
+// Whether the sleep delay inhibitor is held now (DESIGN W14): always, except while a sleep is pending and the session
+// lock is secure (logind may suspend then). Released stays released until the wake: the restart of an exited
+// inhibitor asks this again.
+function inhibitorWanted(testMode, sleepPending, lockSecure) {
+    return testMode === false && !(sleepPending === true && lockSecure === true);
+}
+
+// Whether every output in `outputs` (names) has presented a frame of the overlay's end look (`presented`: name -> true).
+function framesPresented(outputs, presented) {
+    for (var i = 0; i < outputs.length; i++)
+        if (presented[outputs[i]] !== true)
+            return false;
+    return true;
 }
 
 // How long the way in plays: until the last of the morph, the wallpaper, the card's content and the extras is in.

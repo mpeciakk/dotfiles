@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Shapes
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
 import "components" as Components
@@ -21,8 +22,15 @@ import "lib/power.js" as P
 // lock goes at once, and the overlay, kept under the lock with that look as its last frame, plays the way back.
 //
 // engageLock() is the ONE place that locks: the power menu's Zablokuj (IslandState.lockRequested), the IPC
-// `island lock` (IslandState.lockAsked) and the idle monitor all end there, and it decides through L.engage():
-// in test mode (WYSPA_TEST=1) it only logs. tests/lock.test.mjs pins this.
+// `island lock` (IslandState.lockAsked), the idle monitor and a sleep (below) all end there, and it decides through
+// L.engage(): in test mode (WYSPA_TEST=1) it only logs. tests/lock.test.mjs pins this. A request first closes the
+// island, so no modal state (the launcher's field, the power menu's keys) receives the password typed next.
+//
+// Before every sleep (DESIGN W14: lid, Uśpij, `systemctl suspend`): logind's PrepareForSleep, watched by `monitor`,
+// asks for the lock, and the sleep delay inhibitor (`inhibitor`) keeps logind waiting (5 s at most) until the lock is
+// secure, then lets go until the wake. The way in plays at zero durations (Theme.lockInstant) and the lock goes on
+// once every island window has presented a frame of its end look, so the frame niri shows at the unlock after the
+// wake is the lock's look.
 //
 // Recovery: `qs ipc -p <config dir> call island unlock` drops the lock at once, without PAM (unlockNow()).
 // If the shell dies while locked, the compositor keeps the screen locked and blank.
@@ -51,6 +59,15 @@ Scope {
     // true. Set on every lock (engageLock) and unlock (released()); imperative reads of sessionLock.locked are fine.
     property bool lockOn: false
     onLockOnChanged: IslandState.reportLocked(root.lockOn)
+    // logind is about to sleep (PrepareForSleep true until false), and whether the session lock is secure.
+    property bool sleepPending: false
+    readonly property bool lockSecure: root.lockOn && sessionLock.secure
+    // Test mode starts neither the monitor nor the inhibitor (lib/lock.js: only an explicit false test mode does).
+    readonly property bool watchSleep: L.sleepWatched(root.testMode)
+    readonly property bool holdInhibitor: L.inhibitorWanted(root.testMode, root.sleepPending, root.lockSecure)
+    onHoldInhibitorChanged: root.syncInhibitor()
+    // The outputs whose window has presented a frame of the overlay's end look since a sleep lock began.
+    property var framed: ({})
     // From the way in (the island fades out as the overlay's card grows out of it), through the lock, until
     // earDelayMs after the unlock.
     readonly property bool hidesIsland: root.prelude !== 0 || root.lockOn || !root.islandBack
@@ -78,7 +95,24 @@ Scope {
             return;
         // First the way in on the overlay (L.lockStep): this returns, and preludeTimer comes back here to lock. A
         // request during it waits for the same lock. During the hand-off the overlay turns round from where it is.
-        const step = L.lockStep(root.prelude, Theme.reducedMotion);
+        IslandState.close();
+        const step = L.lockStep(root.prelude, Theme.reducedMotion, source === "sleep", Theme.lockInstant);
+        if (step === "snap") {
+            // A sleep: logind waits 5 s at most. The way in plays at zero durations, on a fresh overlay when one is
+            // mounted already, and the lock follows when every window has presented a frame of it (or at the cap).
+            preludeTimer.stop();
+            Theme.lockInstant = true;
+            root.framed = ({});
+            IslandState.reportLockFrameWait(true);
+            const mounted = root.prelude !== 0 || root.handoff;
+            root.prelude = 1;
+            root.stopHandoff();
+            root.preludeFor = source;
+            if (mounted)
+                IslandState.remountLock();
+            frameCapTimer.restart();
+            return;
+        }
         if (step === "prelude") {
             // The way in first, then the hand-off stops: the phase goes straight from "back" to "in" (no "" between,
             // which would drop the overlay for a frame).
@@ -94,6 +128,10 @@ Scope {
         root.unlocking = false;
         sessionLock.locked = true;
         root.lockOn = sessionLock.locked;
+        // A sleep lock is done waiting (the way back plays at its normal speed).
+        frameCapTimer.stop();
+        IslandState.reportLockFrameWait(false);
+        Theme.lockInstant = false;
         // Only now: the phase goes straight from "in" to "locked" (a "" between dropped the overlay and showed the
         // windows for a moment before the lock).
         preludeTimer.stop();
@@ -147,9 +185,45 @@ Scope {
         releaseTimer.stop();
         preludeTimer.stop();
         root.prelude = 0;
+        frameCapTimer.stop();
+        IslandState.reportLockFrameWait(false);
+        Theme.lockInstant = false;
         root.stopHandoff();
         sessionLock.locked = false;
         root.released();
+    }
+
+    // A line of the logind monitor: a sleep start records it and asks for the lock; the wake clears it.
+    function onSleepSignal(line: string): void {
+        const kind = L.sleepSignal(line);
+        if (kind === "start") {
+            root.sleepPending = true;
+            root.engageLock("sleep");
+        } else if (kind === "resume") {
+            root.sleepPending = false;
+        }
+    }
+
+    // Starts or stops the delay inhibitor to match holdInhibitor. A restart after an exit comes here too, so a release
+    // during a pending sleep is never undone.
+    function syncInhibitor(): void {
+        if (root.holdInhibitor && !inhibitor.running)
+            inhibitor.running = true;
+        else if (!root.holdInhibitor && inhibitor.running)
+            inhibitor.running = false;
+    }
+
+    // (Re)starts the monitor. A restart has seen no events: a stale `sleepPending` must not outlive it.
+    function syncMonitor(): void {
+        if (root.watchSleep && !monitor.running) {
+            root.sleepPending = false;
+            monitor.running = true;
+        }
+    }
+
+    Component.onCompleted: {
+        root.syncMonitor();
+        root.syncInhibitor();
     }
 
     // The session is unlocked (by us, or by the compositor): what the lock held goes.
@@ -186,6 +260,52 @@ Scope {
         }
     }
 
+    // The sleep lock's way in is waiting for its frames: after the cap the lock goes on anyway (logind's 5 s is the
+    // limit; a refused or slow frame must not eat it).
+    Timer {
+        id: frameCapTimer
+
+        interval: Theme.tokens.lock.sleepFrameCapMs
+        onTriggered: {
+            root.prelude = 2;
+            root.engageLock(root.preludeFor);
+        }
+    }
+
+    Timer {
+        id: inhibitRestart
+
+        interval: Theme.tokens.lock.sleepRestartMs
+        onTriggered: root.syncInhibitor()
+    }
+
+    Timer {
+        id: monitorRestart
+
+        interval: Theme.tokens.lock.sleepRestartMs
+        onTriggered: root.syncMonitor()
+    }
+
+    // The sleep delay inhibitor: logind waits (5 s at most) for it to go before it suspends. `sleep infinity` is only
+    // what it holds on to; the lock lives as long as the process does.
+    Process {
+        id: inhibitor
+
+        command: ["systemd-inhibit", "--what=sleep", "--mode=delay", "--who=wyspa", "--why=lock the session before sleep", "sleep", "infinity"]
+        onExited: inhibitRestart.restart()
+    }
+
+    // PrepareForSleep on the system bus (the line format is lib/lock.js sleepSignal's).
+    Process {
+        id: monitor
+
+        command: ["gdbus", "monitor", "--system", "--dest", "org.freedesktop.login1", "--object-path", "/org/freedesktop/login1"]
+        stdout: SplitParser {
+            onRead: line => root.onSleepSignal(line)
+        }
+        onExited: monitorRestart.restart()
+    }
+
     Timer {
         id: handoffEnd
 
@@ -214,6 +334,18 @@ Scope {
 
         function onUnlockAsked(): void {
             root.unlockNow();
+        }
+
+        // A window of the island has presented a frame while a sleep lock waits for them: lock when all have.
+        function onLockFramePresented(output: string): void {
+            if (root.prelude !== 1 || !Theme.lockInstant)
+                return;
+            root.framed[output] = true;
+            if (!L.framesPresented(Quickshell.screens.map(s => s.name), root.framed))
+                return;
+            frameCapTimer.stop();
+            root.prelude = 2;
+            root.engageLock(root.preludeFor);
         }
     }
 

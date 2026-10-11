@@ -365,6 +365,9 @@ const ALLOWED = {
     "services/Niri.qml": ["execDetached", "Process"],
     // the menus' Process (the launcher's perform() starts everything else through Apps)
     "states/Launcher.qml": ["Process"],
+    // the sleep watch (DESIGN W14): `gdbus monitor` reads logind's PrepareForSleep, `systemd-inhibit` holds the sleep
+    // delay inhibitor; neither runs a power command (the power menu's Uśpij still goes through the gate)
+    "Lock.qml": ["Process"],
     // uwsm app: launch an app, copy, run a typed command, run a menu command (called from the launcher's perform())
     "services/Apps.qml": ["execDetached"]
 };

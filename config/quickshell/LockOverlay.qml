@@ -14,7 +14,7 @@ import "lib/power.js" as P
 // `up` is the locked look: the card in the middle (its content in), the extras, the wallpaper blurred over the
 // windows. Up from its first frame on (it enters from the island: the card docked at the rest island's place,
 // nothing else), down on the way back. Its last frame before the lock covered it is the locked look, which is what
-// the compositor shows again at the unlock. No input: the island window's mask never covers it.
+// the compositor shows again at the unlock. No input of its own; during the way in the window's full mask and keyboard grab swallow clicks and keys (Island.qml).
 Item {
     id: over
 
@@ -55,6 +55,16 @@ Item {
     property real extrasFade: 0
 
     Component.onCompleted: over.entered = true
+
+    // A sleep lock (Lock.qml) goes on after this window has presented a frame of the end look.
+    Connections {
+        target: over.Window.window
+        enabled: IslandState.lockFrameWait
+
+        function onFrameSwapped(): void {
+            IslandState.reportLockFrame(over.screen.name);
+        }
+    }
 
     states: State {
         name: "up"
