@@ -172,7 +172,7 @@ IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i
 IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
 Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
 Wallpaper.qml        tapeta per ekran
-Lock.qml             WlSessionLock + PAM; LockOverlay.qml (w oknie wyspy) gra wejście i powrót blokady;
+Lock.qml             WlSessionLock + PAM, blokada przed uśpieniem (inhibitor logind, W14); LockOverlay.qml (w oknie wyspy) gra wejście i powrót blokady;
                      LockPreview.qml pokazuje kartę bez blokowania (zrzuty)
 states/              Rest, Osd, Toast, Center, Launcher, Control, Media, Power, PowerDone, LockCard
 components/          Icon, MiniPlayer, PowerActions (jedyna bramka poleceń zasilania i blokady)
