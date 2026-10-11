@@ -484,9 +484,11 @@ test("guard: the overlay reports its window's frames per output only while the l
     assert.match(overlay, /Connections\s*\{[^}]*target\s*:\s*over\.Window\.window[^}]*enabled\s*:\s*IslandState\.lockFrameWait/);
     // frameSwapped is delivered queued from the render thread: a frame synced before the overlay was mounted can
     // still arrive. afterAnimating (GUI thread, before the sync) arms; only a swap after arming counts.
-    assert.match(overlay, /property\s+bool\s+framePending\s*:\s*false/);
-    assert.match(overlay, /function\s+onAfterAnimating\s*\(\s*\)\s*(:\s*void\s*)?\{\s*over\.framePending\s*=\s*true;?\s*\}/);
-    assert.match(overlay, /function\s+onFrameSwapped\s*\(\s*\)\s*(:\s*void\s*)?\{\s*if\s*\(\s*over\.framePending\s*\)\s*IslandState\.reportLockFrame\(\s*over\.screen\.name\s*\)/);
+    // The GUI thread can animate (and arm) while the render thread still draws the frame synced before the mount, so
+    // the first swap after arming may be stale; the second one was synced after it (one frame in flight at most).
+    assert.match(overlay, /property\s+int\s+swapsArmed\s*:\s*-1/);
+    assert.match(overlay, /function\s+onAfterAnimating\s*\(\s*\)\s*(:\s*void\s*)?\{\s*if\s*\(\s*over\.swapsArmed\s*<\s*0\s*\)\s*over\.swapsArmed\s*=\s*0;?\s*\}/);
+    assert.match(overlay, /function\s+onFrameSwapped\s*\(\s*\)\s*(:\s*void\s*)?\{\s*if\s*\(\s*over\.swapsArmed\s*<\s*0\s*\)\s*return;?\s*over\.swapsArmed\s*\+=\s*1;?\s*if\s*\(\s*over\.swapsArmed\s*<\s*2\s*\)\s*over\.Window\.window\.update\(\s*\);?\s*else\s+IslandState\.reportLockFrame\(\s*over\.screen\.name\s*\)/);
     const island = readFileSync(join(root, "Island.qml"), "utf8");
     assert.match(island, /Loader\s*\{\s*id:\s*lockLoader[^}]*active:\s*IslandState\.lockPhase\s*!==\s*""[\s\S]*?function\s+onLockRemounted\s*\(\s*\)\s*(:\s*void\s*)?\{\s*lockLoader\.active\s*=\s*false;\s*lockLoader\.active\s*=\s*Qt\.binding\(\s*\(\)\s*=>\s*IslandState\.lockPhase\s*!==\s*""\s*\)/);
 });
