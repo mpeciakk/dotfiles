@@ -115,7 +115,6 @@ States: `rest`, `media`, `osd`, `toast`, `control`, `power`, `center`, `powerDon
 | `dnd(on: bool)` | do-not-disturb |
 | `clear()` | clear the history |
 | `count`, `unread`, `series` (int), `dndOn` (bool) | history size, unread badge, toast series, DND state |
-| `top` (string) | summary of the newest card (tests) |
 | `top` (string) | summary of the newest card in the history (tests) |
 
 Several of these properties exist only for tests (`restLoaded`, `contentState`, `maskMode`, `lineOn`, `target*`, `launcher*`).

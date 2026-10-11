@@ -139,5 +139,6 @@ LockOverlay's comment relies on the pixmap cache sharing the decode with `Wallpa
 url and `sourceSize`), keep the three in step.
 
 ## Rulings
+- Branch review: the faillock status line elides in the middle (Text.ElideMiddle), not at the right — ElideRight cut the "(N minutes left to unlock)" half, the part the user needs — cost if wrong: the middle of a long PAM message is hidden.
 - Task 1: IslandState.request() refuses every state during lockPhase "in" (closing still passes) — the implementer found a modal state (Mod+Space) opened during the way in would still take keys; D2 says no modal state gets the password — cost if wrong: a toast/OSD arriving in those ~0.8 s is not shown (history and unread still count it).
 - All tasks: no smoke runs during tasks (user request 2026-10-11: the test instances draw on the real screens); node tests only, each report lists the smokes to re-run; one batch at the end with the user's ok.
