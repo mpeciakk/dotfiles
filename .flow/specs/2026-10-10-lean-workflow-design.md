@@ -165,6 +165,39 @@ cheaper per call); the explorer for implementers (a dispatch costs tens of
 seconds against a 0.3 s grep, and branch-new code is not in the graph); the
 built-in `Explore` agent (ran on Sonnet here).
 
+## L11 — Picks from upstream (2026-10-11)
+
+The fork point was obra/superpowers v6.1.x (July); upstream is at v7.0.0.
+Research also covered mattpocock/skills v1.3, the source of `grill-gate` and
+`handoff`.
+
+**Taken:** bug fixes in near-verbatim skills (`find-polluter.sh` matched no
+files; the debugging example printed a secret; `git worktree remove --force`
+destroyed uncommitted files; `review-package` built a reversed diff for a BASE
+off HEAD's history, now exit 3). Upstream's `writing-good-tests.md` replaces
+`testing-anti-patterns.md` (mirror assertions, change detectors, mutation
+check). The branch reviewer judges spec silence by what a reasonable user
+expects, lists what it declined to judge, and never splits the review into
+subagents (it did at least 7 times in September). TDD's green means the
+project's whole test command. The feedback-loop list from Matt's
+`diagnosing-bugs` becomes systematic-debugging step 2. Grill questions are
+worded so "tak" accepts the recommendation.
+
+**Decided by the user:**
+- An eight-row TDD rationalization table comes back. The September cut
+  assumed that prose bought no compliance; upstream measured test-first
+  under pressure dropping from 8/10 to 5/10 without it. Inline work under
+  user pressure is now the default.
+- Plan conflicts: the controller rules on reversible, in-scope ones itself,
+  logs each under `## Rulings` at the end of the plan and shows them at finish.
+  Scope, spec decisions and anything irreversible stay with the user. Upstream
+  ("rulings, not stalls") had a session blocked for nine hours.
+
+**Rejected:** upstream's per-task review, fix-loop circuit breaker, nested
+controller and rebuilt brainstorming (L3, L5, L6); Matt's `implement-spec`
+with parallel worktrees (L5, L7), two parallel reviewers (L6), and questions
+in rounds (conflicts with the one-question rule for a small working memory).
+
 ## Cutover (after the wyspa-shell run is closed)
 
 - Tag `workflow-v1`, merge, then `dotter deploy`: dotter links files one by

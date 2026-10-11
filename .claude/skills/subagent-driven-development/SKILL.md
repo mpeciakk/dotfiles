@@ -47,8 +47,16 @@ before the next dispatch; an implementer stops on changes it did not make.
    - **NEEDS_CONTEXT** — supply it, re-dispatch.
    - **BLOCKED** — change something first: more context, a smaller slice,
      Opus, or the user if the plan itself is wrong.
-   - **Plan conflict** — when the implementer shows the plan is wrong, that is
-     the user's call. Show the plan line and the evidence.
+   - **Plan conflict** — the implementer shows the plan is wrong.
+     - Reversible and inside the plan's scope (a name, an approach, an edge
+       case the plan got wrong): rule on it yourself. Append
+       `- Task N: <ruling> — <why> — <cost if wrong>` to a `## Rulings`
+       section at the end of the plan, commit it, carry on, and tell later
+       implementers what it changes for them. The user sees every ruling at
+       finish.
+     - It changes the scope or a spec decision, or is irreversible (data,
+       external side effects, security): the user's call. Show the plan line
+       and the evidence.
 
 Do not check in between tasks. Stop only for BLOCKED you cannot resolve,
 ambiguity the plan does not settle, or the end of the plan.

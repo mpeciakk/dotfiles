@@ -65,15 +65,37 @@ You MUST complete each phase before proceeding to the next.
    - Read stack traces completely
    - Note line numbers, file paths, error codes
 
-2. **Reproduce Consistently**
-   - Can you trigger it reliably?
-   - What are the exact steps?
-   - Does it happen every time?
-   - If not reproducible → gather more data, don't guess
+2. **Build a Feedback Loop**
+
+   A pass/fail command that goes red on *this* bug is most of the work: with
+   one, bisection and hypotheses become mechanical; without one, reading code
+   rarely saves you. Ways to build it, roughly in this order:
+   - a failing test at whatever seam reaches the bug;
+   - a curl/HTTP script against a running dev server;
+   - a CLI run on a fixture input, diffed against a known-good output;
+   - a headless browser script asserting on DOM, console or network;
+   - a captured real request, payload or event log replayed through the code
+     path;
+   - a throwaway harness: one service, mocked dependencies, one call;
+   - a property/fuzz loop for "sometimes wrong" output;
+   - a bisection harness for "worked at X, broken at Y" (`git bisect run`);
+   - a differential run: same input through old and new version, diff;
+   - last resort, a script that walks a human through the manual steps.
+
+   Then tighten it: faster (skip unrelated setup), sharper (assert the
+   user's exact symptom, not "didn't crash"), deterministic (pin time, seed,
+   filesystem, network). Flaky bug: the goal is a higher reproduction rate,
+   not a clean repro — loop the trigger, add stress, narrow the timing window
+   until it fails often enough to debug. Once it is red, shrink the scenario
+   one element at a time until every remaining element is needed.
+
+   Phase 1 is not done until you can name one command you have already run
+   that goes red on this bug. Cannot build one → say so, list what you tried,
+   and ask for access, a captured artifact or permission to instrument.
 
 3. **Check Recent Changes**
    - What changed that could cause this?
-   - Git diff, recent commits — use cbm `detect_changes` to map the diff to affected symbols and risk
+   - Git diff, recent commits
    - New dependencies, config changes
    - Environmental differences
 
@@ -98,11 +120,11 @@ You MUST complete each phase before proceeding to the next.
    ```bash
    # Layer 1: Workflow
    echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+   echo "IDENTITY: $([ -n "${IDENTITY:-}" ] && echo SET || echo UNSET)"
 
-   # Layer 2: Build script
+   # Layer 2: Build script (presence only — never print a secret's value)
    echo "=== Env vars in build script: ==="
-   env | grep IDENTITY || echo "IDENTITY not in environment"
+   printenv IDENTITY >/dev/null 2>&1 && echo "IDENTITY set" || echo "IDENTITY not in environment"
 
    # Layer 3: Signing script
    echo "=== Keychain state: ==="
@@ -114,6 +136,10 @@ You MUST complete each phase before proceeding to the next.
    ```
 
    **This reveals:** Which layer fails (secrets → workflow ✓, workflow → build ✗)
+
+   Tag every temporary log with one prefix (`[DEBUG-a4f2]`) so removing them is
+   one grep. Performance problems: measure a baseline and bisect instead of
+   adding logs.
 
 5. **Trace Data Flow**
 

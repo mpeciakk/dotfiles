@@ -207,8 +207,11 @@ and ask. And watch the second cost — the three skills here written hardest in
 this style (`test-driven-development`, `verification-before-completion`,
 `using-superpowers`) ran 371, 139 and 54 lines, most of it rebutting objections a
 fresh subagent has never raised. Two were cut by 80%; one was deleted for
-contradicting the pipeline's own triage rule. The prose bought no compliance and
-was paid for on every dispatch that preloaded it.
+contradicting the pipeline's own triage rule. Most of that prose bought no
+compliance and was paid for on every dispatch that preloaded it. The exception
+is a short table answering the excuses a session under user pressure actually
+makes: upstream measured test-first under "just write it, tests after" drop
+from 8/10 to 5/10 when it was deleted, so TDD keeps an eight-row version.
 
 ## Quick Reference
 

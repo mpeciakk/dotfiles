@@ -26,6 +26,12 @@ fi
 
 git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
 git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&2; exit 2; }
+# HEAD on another line of history (wrong branch, wrong BASE) would make the
+# diff undo BASE's own commits and read as a change.
+git merge-base --is-ancestor "$base" "$head" || {
+  echo "BASE $base is not an ancestor of $head — wrong branch or wrong BASE." >&2
+  exit 3
+}
 
 if [ "$worktree" -eq 1 ]; then
   label=worktree

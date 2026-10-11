@@ -688,6 +688,9 @@ rm -f "$RP/sub/rel.diff"
 git -C "$RP" add -A && git -C "$RP" commit -q --no-gpg-sign -m change
 pkg=$(cd "$RP" && "$SCR/review-package" "$RB" HEAD 2>/dev/null)
 grep -q '^+changed' "$pkg" && report ok "commit range package after committing" || report no "commit range package" "$pkg"
+SIDE=$(git -C "$RP" commit-tree -p "$RB" -m side "$(git -C "$RP" rev-parse "$RB^{tree}")")
+(cd "$RP" && "$SCR/review-package" "$SIDE" HEAD >/dev/null 2>&1); rc=$?
+[ "$rc" -eq 3 ] && report ok "BASE off HEAD's history exits 3" || report no "ancestry guard" "rc=$rc"
 
 # --------------------------------------------- sdd-workspace scratch ignore
 (cd "$RP" && "$SCR/sdd-workspace" >/dev/null && "$SCR/sdd-workspace" >/dev/null)

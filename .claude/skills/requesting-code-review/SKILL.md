@@ -52,6 +52,11 @@ Evaluate findings with receiving-code-review before acting on them.
   `branch-reviewer` whose requirements are the findings list, not the plan.
 - **Minor you keep:** fix them yourself or in the same dispatch; no re-review.
 - **Minor you drop:** say which and why in one line.
-- **A finding that contradicts the plan:** the user's call.
+- **Declined to judge:** rule on each line — in scope (treat it as a finding)
+  or not (one line why).
+- **A finding that contradicts the plan:** as a plan conflict in
+  subagent-driven-development — a reversible in-scope ruling is yours,
+  logged under `## Rulings`; scope, a spec decision or anything irreversible
+  is the user's call.
 
 Small fixes you may make yourself — no implementer is in flight at this point.

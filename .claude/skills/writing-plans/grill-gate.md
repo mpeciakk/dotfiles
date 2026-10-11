@@ -41,7 +41,8 @@ gates other decisions comes before them).
 - **One question at a time.** Wait for the answer before the next. Multiple
   questions at once is bewildering.
 - **Every question carries your recommended default** and one line of reasoning,
-  so the user can just confirm.
+  so the user can just confirm. Word it so "tak" accepts the recommendation —
+  "Bierzemy X (bo Y)?", not "X czy Z?".
 - **Facts you look up; decisions you ask.** If something is discoverable from the
   filesystem, tools, or docs, find it yourself — never ask the user for a fact
   you can retrieve. Only genuine *decisions* go to the user.

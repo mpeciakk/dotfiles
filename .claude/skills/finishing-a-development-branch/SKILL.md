@@ -40,6 +40,9 @@ branch split from main — correct?"
 
 ## Step 4 — present the options, without commentary
 
+If the plan has a `## Rulings` section, list its lines first — decisions you
+made during the run that the user has not seen yet.
+
 ```
 Implementation complete. What would you like to do?
 
@@ -140,13 +143,18 @@ after which every git call fails with "Unable to read current working
 directory" — the recovery is another `cd`, but you will be debugging it blind.
 
 ```bash
-git worktree remove --force "$WORKTREE_PATH"
+git worktree remove "$WORKTREE_PATH"
 git worktree prune
 git branch -d <feature-branch>        # -D for a confirmed discard
 ```
 
-`--force` is needed because test runs leave untracked artifacts, and by this
-point they are scratch: the merge is verified or the discard is confirmed.
+Ignored files (build output, caches, `.flow/sdd`) do not block removal. A
+refusal means modified or untracked files that exist nowhere else — an
+uncommitted note, work left after a BLOCKED task. Never add `--force` on your
+own: list them with `git -C "$WORKTREE_PATH" status --porcelain -uall` and
+ask whether to commit them to the branch, move them into the main checkout,
+or delete them. After a discard the user confirmed by typing `discard`,
+`--force` is fine — that confirmation already covered them.
 
 **Anywhere else:** the host environment owns it. Leave it alone.
 

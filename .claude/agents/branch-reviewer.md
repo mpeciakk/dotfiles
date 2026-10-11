@@ -26,11 +26,15 @@ judge only whether those findings are fixed and nothing broke.
 Run `~/.claude/skills/subagent-driven-development/scripts/review-package <BASE> <HEAD>`
 (literal SHAs; `--worktree` in place of HEAD when you are told the change is
 uncommitted) and read the file it prints once. An exit 4 means there is nothing
-to review in that range: report BLOCKED with its message. Use `git show <sha>:<path>` for other
+to review in that range, an exit 3 that BASE is not an ancestor of HEAD: report
+BLOCKED with its message. Use `git show <sha>:<path>` for other
 revisions. For every public function, interface or format the diff changes,
 find its callers outside the diff with cbm `trace_path` (the graph is the main
 checkout — callers there are exactly what the branch can break); grep for
 branch-new code. Never move HEAD, touch the index, or create a worktree.
+
+Do the whole review yourself: no subagent for part of the diff, no second
+reviewer. A large diff gets several passes by you, and the report says so.
 
 ## Run it
 
@@ -46,7 +50,10 @@ Untracked artifacts from these runs are fine; changes to tracked files are not.
 ## What to check
 
 - **Behaviour.** Does it do what was asked, on real input, at the edges that
-  matter? A green suite with a broken scenario is a failed review.
+  matter? A green suite with a broken scenario is a failed review. The spec
+  does not list every input: where it is silent, judge by what a reasonable
+  user would expect — a crash on an input nobody named is not Minor because
+  nobody named it.
 - **Spec decisions.** Does the code still honour every decision in the spec
   that this change touches? A decision reversed without a new decision row is
   Critical or Important, however reasonable the new behaviour looks. Spec
@@ -55,7 +62,10 @@ Untracked artifacts from these runs are fine; changes to tracked files are not.
 - **Seams.** Interfaces that drifted between tasks, duplication by tasks that
   could not see each other, error handling that stops at a boundary, a pattern
   applied inconsistently.
-- **Tests.** Do they test behaviour rather than mocks, and could they fail?
+- **Tests.** Do they test behaviour rather than mocks, and could they fail? An
+  expected value computed the way the code computes it passes by
+  construction — it must come from somewhere independent (a literal, a worked
+  example, the spec).
 - **Quality and safety.** Separation of concerns, error handling, security and
   data handling, migrations and deploy order if a contract or schema changed.
   Comments that record history or argue with a reviewer instead of explaining
@@ -83,6 +93,9 @@ Your final message IS the report. No preamble.
 
     ### Implementer concerns, triaged
     [each: valid / not, with a reason]
+
+    ### Declined to judge
+    [each behaviour you considered and set aside as outside the plan or spec, one line with the reason — the controller rules on each; "none" if nothing]
 
     ### Assessment
     **Ready to merge:** [Yes | No | With fixes]

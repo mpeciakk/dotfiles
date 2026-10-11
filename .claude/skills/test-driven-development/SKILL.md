@@ -115,6 +115,11 @@ The test passes, the other tests still pass, and the output is pristine — no
 stray errors or warnings. Test still failing → fix the code, never the test.
 Something else broke → fix it now.
 
+Green means the project's test command (bare `pytest`, `npm test`, whatever
+the repo uses), not the one file you touched — a narrow scope bounds the
+change, not the verification. Name every failure that run shows, including
+one you did not cause; a red test left unmentioned is a false "green".
+
 ### REFACTOR — only on green
 
 Remove duplication, improve names, extract helpers. No new behavior, tests stay
@@ -142,11 +147,25 @@ green. Then the next failing test.
 Reproduce with a failing test first. The test proves the fix and prevents the
 regression. Never fix a bug without one.
 
-## Mocks and test utilities
+## Writing the tests
 
-Before adding either, read [testing-anti-patterns.md](testing-anti-patterns.md)
-— testing mock behavior instead of real behavior, test-only methods on
-production classes, mocking dependencies you have not understood.
+Before writing or changing tests, adding a mock or a test helper, read
+[writing-good-tests.md](writing-good-tests.md): every test names the break it
+catches, expected values are derived without the code under test, mocks stay
+at the slow or external level.
+
+## Rationalizations
+
+| Excuse | Reality |
+|--------|---------|
+| "Too simple to test" | Simple code breaks. The test takes 30 seconds. |
+| "I'll test after" | A test written after passes at once and proves nothing — you never saw it catch the bug. |
+| "Already tested it manually" | No record, no re-run, cases forgotten under pressure. |
+| "Deleting hours of work is wasteful" | Sunk cost. Keeping code you cannot trust is the waste. |
+| "Keep it as reference" | You will adapt it — that is testing after. Delete means delete. |
+| "Need to explore first" | Fine: explore, throw it away, start with a test. |
+| "Hard to test" | Hard to test is hard to use. Listen to the test. |
+| "This case is different" | That is the rationalization. Write the test. |
 
 ## Final rule
 
