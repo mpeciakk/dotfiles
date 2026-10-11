@@ -56,7 +56,7 @@ Evaluate findings with receiving-code-review before acting on them.
   or not (one line why).
 - **A finding that contradicts the plan:** as a plan conflict in
   subagent-driven-development — a reversible in-scope ruling is yours,
-  logged under `## Rulings`; scope, a spec decision or anything irreversible
+  logged under `## Rulings` in the plan's branch copy; scope, a spec decision or anything irreversible
   is the user's call.
 
 Small fixes you may make yourself — no implementer is in flight at this point.

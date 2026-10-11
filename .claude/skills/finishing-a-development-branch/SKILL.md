@@ -40,7 +40,9 @@ branch split from main — correct?"
 
 ## Step 4 — present the options, without commentary
 
-If the plan has a `## Rulings` section, list its lines first — decisions you
+If the plan's copy on the branch (`<worktree>/.flow/plans/<plan basename>`,
+read before Step 5 leaves the worktree) has a `## Rulings` section, list its
+lines first — decisions you
 made during the run that the user has not seen yet.
 
 ```

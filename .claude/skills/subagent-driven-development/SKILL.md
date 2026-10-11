@@ -51,7 +51,9 @@ before the next dispatch; an implementer stops on changes it did not make.
      - Reversible and inside the plan's scope (a name, an approach, an edge
        case the plan got wrong): rule on it yourself. Append
        `- Task N: <ruling> — <why> — <cost if wrong>` to a `## Rulings`
-       section at the end of the plan, commit it, carry on, and tell later
+       section at the end of the plan's copy in the worktree
+       (`<worktree>/.flow/plans/<plan basename>`, not the main-checkout path
+       `flow-state get plan` returns), commit it on the branch, carry on, and tell later
        implementers what it changes for them. The user sees every ruling at
        finish.
      - It changes the scope or a spec decision, or is irreversible (data,
