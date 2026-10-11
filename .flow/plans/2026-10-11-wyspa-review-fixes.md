@@ -137,3 +137,7 @@ lock wallpaper: lock candidates are checked live at finish). Smokes green.
 before relying on it, and whether Qt 6.12 multiplies `sourceSize` by the window's DPR (read the decoded size back);
 LockOverlay's comment relies on the pixmap cache sharing the decode with `Wallpaper.qml` (same
 url and `sourceSize`), keep the three in step.
+
+## Rulings
+- Task 1: IslandState.request() refuses every state during lockPhase "in" (closing still passes) — the implementer found a modal state (Mod+Space) opened during the way in would still take keys; D2 says no modal state gets the password — cost if wrong: a toast/OSD arriving in those ~0.8 s is not shown (history and unread still count it).
+- All tasks: no smoke runs during tasks (user request 2026-10-11: the test instances draw on the real screens); node tests only, each report lists the smokes to re-run; one batch at the end with the user's ok.

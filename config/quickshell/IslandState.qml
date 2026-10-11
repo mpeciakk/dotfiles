@@ -85,6 +85,9 @@ Singleton {
             root.close();
             return true;
         }
+        // The lock's way in (Lock.qml closed the island): a modal state opened now would take the typed password.
+        if (root.lockPhase === "in")
+            return false;
         if (!Object.keys(L.PRIORITY).includes(s) || !L.accepts(root.current, s))
             return false;
         root.output = Niri.focusedOutput;

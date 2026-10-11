@@ -425,6 +425,17 @@ test("guard: a lock request closes the island after the test-mode decision, so n
     assert.ok(bail >= 0 && close > bail && close < step, "IslandState.close() between the decision and the lock step");
 });
 
+test("guard: no state opens during the lock's way in (only closing passes), so nothing modal takes the password", () => {
+    const state = sources.find(s => s.rel === "IslandState.qml");
+    const span = functionSpan(state.code, "request");
+    assert.ok(span, "no request() in IslandState.qml");
+    const b = state.code.slice(span.start, span.end);
+    const rest = b.search(/if\s*\(\s*s\s*===\s*"rest"\s*\)/);
+    const refuse = b.search(/if\s*\(\s*root\.lockPhase\s*===\s*"in"\s*\)\s*return\s+false\b/);
+    const assign = b.search(/root\.current\s*=/);
+    assert.ok(rest >= 0 && refuse > rest && refuse < assign, "request() refuses during the way in, after the rest branch");
+});
+
 test("guard: a sleep request snaps the way in (Theme.lockInstant first, remount), waits for every window's frame, and locks through engageLock()", () => {
     const b = body("engageLock");
     const snap = b.match(/if\s*\(\s*step\s*===\s*"snap"\s*\)\s*\{([\s\S]*?)\n        \}/);
