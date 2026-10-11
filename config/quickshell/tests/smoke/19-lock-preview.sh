@@ -18,4 +18,3 @@ sleep 2
 PREVIEW_BAD="$(qs log -p "$PREVIEW" 2>&1 | grep -E '\b(WARN|ERROR|FATAL|CRIT)' | grep -v -E -f <(grep -v -E '^\s*(#|$)' "$DIR/tests/smoke/allowed-warnings.txt") || true)"
 if [ -n "$PREVIEW_BAD" ]; then echo "FAIL: preview logged:"; echo "$PREVIEW_BAD"; FAILED=1; else echo "ok: preview loaded cleanly"; fi
 shot lock-preview
-qs kill -p "$PREVIEW" >/dev/null 2>&1

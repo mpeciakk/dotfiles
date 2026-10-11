@@ -28,8 +28,11 @@ Item {
 
     readonly property var spec: Theme.layout.lock
     readonly property var steps: root.spec.shakeSteps
-    // Typing hides the error (reference 4.5: typing clears err); the next submit resets `failed`.
-    readonly property bool showError: root.failed && field.text.length === 0
+    // Typing hides the error (reference 4.5: typing clears err) and emptying the field does not bring it back;
+    // the next submit resets `failed`.
+    property bool typedSinceFailure: false
+    readonly property bool showError: L.errorShown(root.failed, root.typedSinceFailure)
+    onFailedChanged: if (root.failed) root.typedSinceFailure = false
 
     implicitWidth: Theme.geom.lock.w
     implicitHeight: Theme.geom.lock.h
@@ -276,6 +279,7 @@ Item {
                                     font.pixelSize: root.spec.inputFont
                                     font.letterSpacing: root.spec.inputLetterEm * root.spec.inputFont
                                     onAccepted: root.submit()
+                                    onTextChanged: if (field.text.length > 0) root.typedSinceFailure = true
 
                                     Text {
                                         anchors.fill: parent

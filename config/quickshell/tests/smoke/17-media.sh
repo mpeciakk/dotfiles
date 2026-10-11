@@ -4,4 +4,3 @@ call island open media
 wait_ms 700
 expect island current media
 shot media
-call island close

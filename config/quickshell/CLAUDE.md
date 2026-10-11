@@ -132,8 +132,9 @@ for `namespace="^wyspa$"` in `config/niri/window_rules.kdl` has `xray false` and
    from `shell.qml`. `ToplevelManager` fills lazily.
 6. Notification `image://qsimage` URLs die with the `Notification` object (not tracked): stored snapshots drop only those (`storedSource()`) and keep file-path and `image://icon` images, else `appIcon`.
    The toast reads the image synchronously inside the handler, never `asynchronous`.
-7. niri posts its own notification for every screenshot and the test instance is the daemon: take the shot last, wait
-   ≥ `toastTimeoutMs` + 1.5 s, or assert relative values. `tests/shot.sh` removes the stale image and waits for the new one.
+7. niri posts its own notification for every screenshot and the test instance is the daemon: take the shot last (the
+   `shot` line is the last line of a smoke and nothing is asserted after the first one; `tests/smoke.test.mjs` pins it),
+   or assert relative values. `tests/shot.sh` removes the stale image and waits for the new one.
 8. Smokes: `QS_DISABLE_CRASH_HANDLER=1 tests/smoke.sh …`. `WYSPA_TEST=1` sets keyboard focus to None and turns every
    side effect (power commands, lock, `sh -c`, `wl-copy`, player / volume / brightness controls, app launch,
    `focusWindow`) into a log line.

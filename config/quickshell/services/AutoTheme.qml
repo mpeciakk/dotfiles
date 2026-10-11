@@ -23,8 +23,12 @@ Singleton {
 
     // The island is centred at the top edge; the first screen stands for all of them.
     readonly property var screen: Quickshell.screens[0]
-    readonly property var crop: probe.status === Image.Ready && root.screen
-        ? A.islandCrop(probe.sourceSize.width, probe.sourceSize.height, root.screen.width, root.screen.height, Theme.geom.rest.w, Theme.geom.rest.h)
+    // The wallpaper's native size, read once by the probe, and the wallpaper it belongs to.
+    property size nativeSize: Qt.size(0, 0)
+    property string sizedFor: ""
+    readonly property bool sized: root.sizedFor === root.wallpaperSource
+    readonly property var crop: root.sized && root.screen
+        ? A.islandCrop(root.nativeSize.width, root.nativeSize.height, root.screen.width, root.screen.height, Theme.geom.rest.w, Theme.geom.rest.h)
         : null
     readonly property real regionLuminance: region.colors.length > 0 ? root.luminanceOf(region.colors[0]) : 0
     readonly property bool boost: Theme.mode === "dark" && root.regionLuminance > Theme.tokens.legibility.threshold
@@ -48,6 +52,7 @@ Singleton {
     SystemClock {
         id: clock
 
+        enabled: Theme.tokens.modeSource === "sun"
         precision: SystemClock.Minutes
     }
 
@@ -63,13 +68,21 @@ Singleton {
         }
     }
 
-    // Only to learn the wallpaper's native size, which the crop under the island is measured in.
+    // Only to learn the wallpaper's native size, which the crop under the island is measured in. The size is
+    // stored on Ready and the source cleared, so the decoded bitmap is released at once.
     Image {
         id: probe
 
-        source: root.wallpaperSource
+        source: root.sized ? "" : root.wallpaperSource
         asynchronous: true
         visible: false
+
+        onStatusChanged: {
+            if (probe.status === Image.Ready) {
+                root.nativeSize = probe.sourceSize;
+                root.sizedFor = root.wallpaperSource;
+            }
+        }
     }
 
     ColorQuantizer {

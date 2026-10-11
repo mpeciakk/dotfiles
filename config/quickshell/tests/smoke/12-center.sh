@@ -1,7 +1,7 @@
 # The notification centre: opening marks everything read, the island height follows the content,
 # dismissing and clearing empty it. DND stays on so no toast interferes.
 # niri announces each screenshot as a notification of its own (this instance is the daemon): the
-# shot is taken after every count-sensitive assertion, and what follows only asserts relative values.
+# shot is the last line.
 call notifs clear
 call notifs dnd true
 call island close
@@ -43,17 +43,12 @@ expect island targetH 620
 call notifs clear
 call island close
 wait_ms 600
-# Rebuild the list for the picture and look at it open.
+expect notifs dndOn true
+expect notifs count 0
+# Last: rebuild the list for the picture and look at it open.
 call notifs inject appA A1 x
 call notifs inject appA A2 x
 call notifs inject appB B1 x
 call island open center
 wait_ms 900
 shot center
-wait_ms 700
-call notifs dnd true
-expect notifs dndOn true
-call notifs clear
-expect notifs count 0
-call island close
-call notifs dnd false

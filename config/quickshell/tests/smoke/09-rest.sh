@@ -1,11 +1,13 @@
 wait_ms 600
-# Two unread notifications (DND keeps the island at rest): the badge must read "2".
+# Two more unread notifications than at the start (DND keeps the island at rest; a stray real notification may
+# already be counted, hence relative): the badge must read base + 2.
+unread="$(qs ipc -p "$DIR" prop get notifs unread 2>&1)"
+if [[ "$unread" =~ ^[0-9]+$ ]]; then echo "ok: notifs.unread baseline = $unread"; else echo "FAIL: notifs.unread baseline expected a number got '$unread'"; FAILED=1; unread=0; fi
 call notifs dnd true
 call notifs inject a x y
 call notifs inject a x y
-expect notifs unread 2
+expect notifs unread "$((unread + 2))"
 wait_ms 600
-shot rest
 expect island contentState rest
 # contentState is "rest" even for an empty host; this proves the Rest layer itself loaded and went active.
 expect island restLoaded true
@@ -21,3 +23,4 @@ wait_ms 900
 expect island contentState ""
 wait_ms 1100
 expect island contentState rest
+shot rest

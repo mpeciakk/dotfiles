@@ -4,7 +4,9 @@
 call island open power
 wait_ms 700
 expect island current power
-shot power
 call island close
 wait_ms 500
 expect island current rest
+call island open power
+wait_ms 700
+shot power

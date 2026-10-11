@@ -39,7 +39,15 @@ Scope {
     signal attemptFailed
 
     function engageLock(source: string): void {
-        const d = L.engage(root.testMode, sessionLock.locked);
+        // A request during the reverse morph (the password was accepted, the card is leaving): the session is
+        // still locked, so there is nothing to lock again; cancel the leaving instead of dropping the request.
+        if (L.keepsLocked(root.testMode, sessionLock.locked, root.unlocking)) {
+            console.info("lock: request during the unlock morph, staying locked (" + source + ")");
+            releaseTimer.stop();
+            root.unlocking = false;
+            return;
+        }
+        const d =L.engage(root.testMode, sessionLock.locked);
         console.info(d.message + " (" + source + ")");
         if (!d.engage)
             return;

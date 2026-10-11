@@ -6,7 +6,10 @@ wait_ms 200
 expect island current osd
 wait_ms 500
 expect island contentState osd
-shot osd
-wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-
+# The OSD times out on its own.
 wait_ms 1700
 expect island current rest
+# Last: lowering the volume back raises the OSD again, and niri's screenshot notification would show as a toast.
+wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-
+wait_ms 300
+shot osd

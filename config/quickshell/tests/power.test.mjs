@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { load, plain } from "./qmljs.mjs";
+import { load, plain, strip, qmlFiles, jsFiles, functionSpan } from "./qmljs.mjs";
 
 const P = load("lib/power.js");
 const T = load("lib/theme.js");
@@ -338,22 +338,6 @@ test("reduce: never mutates the state it is given", () => {
 
 const GATE = "components/PowerActions.qml";
 
-// Comments are dropped (a `//` inside a string such as "http://" stays: it follows no whitespace).
-const strip = src => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*$/gm, "$1");
-
-function qmlFiles(dir = root) {
-    const out = [];
-    for (const e of readdirSync(dir, { withFileTypes: true })) {
-        if (e.isDirectory()) {
-            if (dir === root && (e.name === "docs" || e.name === "tests")) continue;
-            out.push(...qmlFiles(join(dir, e.name)));
-        } else if (e.name.endsWith(".qml")) {
-            out.push(join(dir, e.name));
-        }
-    }
-    return out;
-}
-
 const sources = qmlFiles().map(f => ({ rel: relative(root, f), code: strip(readFileSync(f, "utf8")) }));
 const gate = sources.find(s => s.rel === GATE);
 
@@ -363,7 +347,9 @@ const DANGEROUS = [
     ["Process", /\bProcess\s*\{/g],
     ["systemctl", /\bsystemctl\b/g],
     ["loginctl", /\bloginctl\b/g],
-    ["quit", /\bquit\b/g],
+    ["quit", /\bquit\b/gi],
+    ["Socket", /\bSocket\b/g],
+    ["openUrlExternally", /\bopenUrlExternally\b/g],
     ["power words", /\b(poweroff|reboot|suspend|hibernate|halt)\b/g],
     ["power commands", /\btokens\s*(\.|\[\s*["'`])\s*power\b|\bpower\s*\.\s*commands\b|\bcommands\s*\.\s*(suspend|logout|reboot|poweroff)\b/g],
     ["lockRequested()", /(?<!signal )\blockRequested\s*\(/g]
@@ -380,19 +366,6 @@ const ALLOWED = {
     // the launcher's own perform(): copy, run a typed command, run a menu command; the menus' Process
     "states/Launcher.qml": ["execDetached", "Process"]
 };
-
-// The span of the first `function <name>(…) { … }`.
-function functionSpan(code, name) {
-    const start = code.search(new RegExp(`function\\s+${name}\\s*\\(`));
-    if (start < 0) return null;
-    const open = code.indexOf("{", start);
-    let depth = 0;
-    for (let i = open; i < code.length; i++) {
-        if (code[i] === "{") depth++;
-        else if (code[i] === "}" && --depth === 0) return { start, end: i + 1 };
-    }
-    return null;
-}
 
 test("guard: the gate exists with a perform() function", () => {
     assert.ok(existsSync(join(root, GATE)));
@@ -418,6 +391,44 @@ test("guard: the allowlist only excuses starting a process, and every entry is s
         for (const t of tokens) {
             assert.ok(["execDetached", "Process"].includes(t), `${rel}: ${t} must never be allowlisted`);
             assert.match(s.code, new RegExp(DANGEROUS.find(d => d[0] === t)[1].source), `${rel} no longer uses ${t}: drop it from the allowlist`);
+        }
+    }
+});
+
+test("guard: the DANGEROUS list catches each spelling it claims to (quit in any case, Socket, openUrlExternally)", () => {
+    const caught = code => DANGEROUS.filter(([, re]) => new RegExp(re.source, re.flags).test(code)).map(d => d[0]);
+    for (const [code, name] of [["Qt.quit()", "quit"], ["Qt.QUIT()", "quit"], ["Quit()", "quit"], ["Socket { }", "Socket"],
+        ["Qt.openUrlExternally(u)", "openUrlExternally"], ["execDetached(x)", "execDetached"], ["Process { }", "Process"]])
+        assert.ok(caught(code).includes(name), `${name} not caught in: ${code}`);
+});
+
+// lib/*.js is plain JS that QML calls: it must not start a process, open a socket or a URL either. Only the files that
+// hold the power commands as DATA (lib/theme.js defaults, lib/power.js item table) may spell power words; the
+// QML-only process / lock entries are never excused here.
+const LIB_ALLOWED = {
+    "lib/theme.js": ["systemctl", "quit", "power words"],
+    "lib/power.js": ["power words"]
+};
+const libSources = jsFiles().map(f => ({ rel: relative(root, f), code: strip(readFileSync(f, "utf8")) }));
+
+const scanLib = (srcs, allowed) => srcs.flatMap(s => DANGEROUS.flatMap(([name, re]) =>
+    (allowed[s.rel] ?? []).includes(name) ? [] : [...s.code.matchAll(re)].map(m => `${s.rel}: ${name} (${m[0]})`)));
+
+test("guard: lib/*.js starts no process, opens no socket or URL and never reaches the lock or the power commands", () => {
+    assert.ok(libSources.length > 10, "lib/*.js not found");
+    assert.deepEqual(scanLib(libSources, LIB_ALLOWED), []);
+});
+
+test("guard: the lib scan finds a planted offender, and the lib allowlist is only power words, each still true", () => {
+    assert.ok(scanLib(libSources, {}).some(o => o.startsWith("lib/theme.js")), "without the allowlist the data files are flagged: the scan is real");
+    assert.deepEqual(scanLib([{ rel: "lib/x.js", code: "function f() { Qt.openUrlExternally(u); }" }], {}), ["lib/x.js: openUrlExternally (openUrlExternally)"]);
+    for (const [rel, names] of Object.entries(LIB_ALLOWED)) {
+        const s = libSources.find(x => x.rel === rel);
+        assert.ok(s, `${rel} is allowlisted but gone`);
+        for (const n of names) {
+            assert.ok(["systemctl", "quit", "power words"].includes(n), `${rel}: ${n} must never be allowlisted in lib`);
+            const re = DANGEROUS.find(d => d[0] === n)[1];
+            assert.match(s.code, new RegExp(re.source, re.flags.replace("g", "")), `${rel} no longer spells ${n}: drop it from the allowlist`);
         }
     }
 });

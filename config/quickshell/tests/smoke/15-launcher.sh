@@ -11,7 +11,6 @@ wait_ms 200
 expect island launcherMode calc
 expect island launcherResult 14
 expect island launcherCount 1
-shot launcher-calc
 call island launcherSetQuery "=2+"
 wait_ms 200
 expect island launcherCount 0
@@ -42,3 +41,9 @@ expect island launcherResult 14
 call island close
 wait_ms 600
 expect island launcherResult ""
+# Last: the calculator for the picture.
+call island open launcher
+wait_ms 600
+call island launcherSetQuery "=2+3*4"
+wait_ms 200
+shot launcher-calc

@@ -6,10 +6,13 @@ wait_ms 700
 expect island current control
 expect island targetW 520
 expect island targetH 440
-shot control-dark
 call theme setMode light
 wait_ms 800
 expect theme mode light
-shot control-light
 call theme setMode dark
-call island close
+wait_ms 800
+expect theme mode dark
+shot control-dark
+call theme setMode light
+wait_ms 800
+shot control-light

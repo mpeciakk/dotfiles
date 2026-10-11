@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { load, plain } from "./qmljs.mjs";
+import { load, plain, strip, qmlFiles, functionSpan } from "./qmljs.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const L = existsSync(join(root, "lib/lock.js")) ? load("lib/lock.js") : {};
@@ -39,6 +39,31 @@ test("idle: 0, negative or non-number timeouts disable it, and the monitor timeo
         assert.deepStrictEqual(plain(L.idle(t, 300, false)), { enabled: false, timeout: 300 }, `timeout ${String(t)}`);
 });
 
+test("idle: a non-positive default with no valid host timeout disables it (0 must not lock right after startup)", () => {
+    for (const d of [0, -1, NaN, undefined])
+        for (const host of [undefined, null])
+            assert.equal(L.idle(host, d, false).enabled, false, `default ${String(d)}, host ${String(host)}`);
+    // the monitor timeout stays positive, as for any disabled idle lock
+    assert.equal(L.idle(undefined, 0, false).timeout, 1);
+});
+
+test("idle: a valid host timeout still enables it whatever the default is", () => {
+    assert.deepStrictEqual(plain(L.idle(120, 0, false)), { enabled: true, timeout: 120 });
+});
+
+test("errorShown: the error shows after a refusal until the first typed character, and never comes back when the field empties", () => {
+    assert.equal(L.errorShown(true, false), true);
+    assert.equal(L.errorShown(true, true), false);
+    assert.equal(L.errorShown(false, false), false);
+    assert.equal(L.errorShown(false, true), false);
+});
+
+test("keepsLocked: a lock request during the reverse morph keeps the session locked; nothing else does", () => {
+    assert.equal(L.keepsLocked(false, true, true), true);
+    for (const [testMode, locked, unlocking] of [[false, true, false], [false, false, true], [false, false, false], [true, true, true], [undefined, true, true], [null, true, true]])
+        assert.equal(L.keepsLocked(testMode, locked, unlocking), false, JSON.stringify([testMode, locked, unlocking]));
+});
+
 test("idle: test mode, or an unknown test mode, always disables it", () => {
     for (const mode of [true, undefined, null, 1])
         assert.deepStrictEqual(plain(L.idle(120, 300, mode)), { enabled: false, timeout: 120 });
@@ -67,35 +92,8 @@ test("defaults: lock.timeoutDefault is 300 s", () => {
 // test mode. No QML registers an IPC target "lock" (tests/shot.sh asks the user's old shell for that one).
 
 const LOCK = "Lock.qml";
-const strip = src => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*$/gm, "$1");
-
-function qmlFiles(dir = root) {
-    const out = [];
-    for (const e of readdirSync(dir, { withFileTypes: true })) {
-        if (e.isDirectory()) {
-            if (dir === root && (e.name === "docs" || e.name === "tests")) continue;
-            out.push(...qmlFiles(join(dir, e.name)));
-        } else if (e.name.endsWith(".qml")) {
-            out.push(join(dir, e.name));
-        }
-    }
-    return out;
-}
-
 const sources = qmlFiles().map(f => ({ rel: relative(root, f), code: strip(readFileSync(f, "utf8")) }));
 const lock = sources.find(s => s.rel === LOCK);
-
-function functionSpan(code, name) {
-    const start = code.search(new RegExp(`function\\s+${name}\\s*\\(`));
-    if (start < 0) return null;
-    const open = code.indexOf("{", start);
-    let depth = 0;
-    for (let i = open; i < code.length; i++) {
-        if (code[i] === "{") depth++;
-        else if (code[i] === "}" && --depth === 0) return { start, end: i + 1 };
-    }
-    return null;
-}
 
 function body(name) {
     const span = functionSpan(lock.code, name);
@@ -182,6 +180,27 @@ test("guard: the unlock hatch drops the lock at once, without PAM", () => {
     const b = body("unlockNow");
     assert.match(b, /\bsessionLock\.locked\s*=\s*false\b/);
     assert.match(lock.code, /function\s+onUnlockAsked\s*\(\s*\)\s*(:\s*void\s*)?\{\s*root\.unlockNow\(/);
+});
+
+test("guard: engageLock() cancels a running reverse morph through L.keepsLocked, before it decides and without touching locked", () => {
+    const b = body("engageLock");
+    const keep = b.search(/L\.keepsLocked\(\s*root\.testMode\s*,\s*sessionLock\.locked\s*,\s*root\.unlocking\s*\)/);
+    const decide = b.search(/L\.engage\(/);
+    assert.ok(keep >= 0 && keep < decide, "engageLock() must ask L.keepsLocked(root.testMode, sessionLock.locked, root.unlocking) first");
+    const branch = b.slice(keep, decide);
+    assert.match(branch, /releaseTimer\.stop\(\)/);
+    assert.match(branch, /root\.unlocking\s*=\s*false/);
+    assert.match(branch, /return\s*;/);
+    assert.doesNotMatch(branch, /\blocked\s*=/);
+});
+
+test("guard: the lock card's error follows L.errorShown and the first typed character clears it", () => {
+    const card = readFileSync(join(root, "states/LockCard.qml"), "utf8");
+    const code = strip(card);
+    assert.match(code, /readonly\s+property\s+bool\s+showError\s*:\s*L\.errorShown\(\s*root\.failed\s*,\s*root\.typedSinceFailure\s*\)/);
+    assert.doesNotMatch(code, /showError\s*:[^\n]*field\.text/, "showError must not depend on the field being empty");
+    assert.match(code, /onFailedChanged\s*:\s*if\s*\(\s*root\.failed\s*\)\s*root\.typedSinceFailure\s*=\s*false/);
+    assert.match(code, /onTextChanged\s*:\s*if\s*\(\s*field\.text\.length\s*>\s*0\s*\)\s*root\.typedSinceFailure\s*=\s*true/);
 });
 
 test("guard: tests/shot.sh refuses while the old or the new shell is locked", () => {

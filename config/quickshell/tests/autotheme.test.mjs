@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { load, plain } from "./qmljs.mjs";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { load, plain, strip } from "./qmljs.mjs";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const A = load("lib/autotheme.js", { Date });
 
@@ -113,4 +118,28 @@ test("islandCrop(): the island's footprint in the image, the wallpaper being cov
 test("islandCrop(): an unusable size gives null", () => {
     assert.equal(A.islandCrop(0, 100, 1000, 1000, 200, 36), null);
     assert.equal(A.islandCrop(100, 100, 0, 1000, 200, 36), null);
+});
+
+// ---- Source guards: services/AutoTheme.qml keeps nothing alive that it does not need ----
+
+const auto = strip(readFileSync(join(root, "services/AutoTheme.qml"), "utf8"));
+
+test("AutoTheme: the minute clock runs only for the sun source", () => {
+    const m = auto.match(/SystemClock\s*\{[\s\S]*?\n\s{4}\}/);
+    assert.ok(m, "no SystemClock block");
+    assert.match(m[0], /enabled\s*:\s*Theme\.tokens\.modeSource\s*===\s*["']sun["']/);
+});
+
+test("AutoTheme: the probe image is cleared once the native size is stored (no 33 MB bitmap for the shell's lifetime)", () => {
+    const m = auto.match(/Image\s*\{[\s\S]*?\n\s{4}\}/);
+    assert.ok(m, "no probe Image block");
+    // the source is only the wallpaper while the size is unknown
+    assert.match(m[0], /source\s*:\s*root\.sized\s*\?\s*["']{2}\s*:\s*root\.wallpaperSource/);
+    assert.match(m[0], /status\s*===\s*Image\.Ready/);
+    assert.match(m[0], /root\.nativeSize\s*=/);
+    // the crop reads the stored size, never the probe's
+    const crop = auto.match(/readonly\s+property\s+var\s+crop\s*:[^\n]*\n[^\n]*\n[^\n]*/);
+    assert.ok(crop, "no crop property");
+    assert.doesNotMatch(crop[0], /probe\./);
+    assert.match(crop[0], /root\.nativeSize\.width/);
 });
