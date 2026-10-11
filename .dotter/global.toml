@@ -54,6 +54,10 @@ depends = []
 [host-pc.files]
 "hosts/pc/niri-output.kdl" = "~/.config/niri/output.kdl"
 "hosts/pc/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
+# The wallpaper pair (light/dark mode, config.json `wallpaper`) at this machine's resolution. Symbolic is
+# what dotter picks for a non-UTF-8 file anyway; explicit, so it does not warn.
+"hosts/pc/wallpaper-dark.png" = { target = "~/.config/dotfiles/wallpaper-dark.png", type = "symbolic" }
+"hosts/pc/wallpaper-light.png" = { target = "~/.config/dotfiles/wallpaper-light.png", type = "symbolic" }
 # Per-host: each machine's mirror config names the *other* machine.
 "hosts/pc/herdr-mirror-hosts.toml" = "~/.config/herdr-mirror/hosts.toml"
 # hosts/pc/etc/ (system config for /etc) is deliberately NOT mapped: a root-owned
@@ -63,9 +67,11 @@ depends = []
 [host-mac.files]
 "hosts/mac/niri-output.kdl" = "~/.config/niri/output.kdl"
 "hosts/mac/uwsm-gpu-env" = "~/.config/uwsm/env.d/gpu"
+"hosts/mac/wallpaper-dark.png" = { target = "~/.config/dotfiles/wallpaper-dark.png", type = "symbolic" }
+"hosts/mac/wallpaper-light.png" = { target = "~/.config/dotfiles/wallpaper-light.png", type = "symbolic" }
 
 # To add another machine: duplicate a host block above as [host-<name>.files]
-# and create hosts/<name>/ with the two files.
+# and create hosts/<name>/ with its files.
 
 [default.variables]
 

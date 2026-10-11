@@ -3,13 +3,16 @@ import Quickshell
 import Quickshell.Wayland
 
 // Desktop wallpaper, one per screen (Variants in shell.qml). A click-through
-// background layer-shell window showing Theme.wallpaper. Replaces swaybg — stop
-// the external wallpaper daemon so they don't stack.
+// background layer-shell window showing Theme.wallpaper (it follows the mode when
+// the config gives a dark/light pair). Replaces swaybg — stop the external
+// wallpaper daemon so they don't stack.
 PanelWindow {
     id: root
 
     property var modelData
     screen: modelData
+
+    readonly property string url: Theme.wallpaper ? "file://" + Theme.wallpaper : ""
 
     anchors {
         top: true
@@ -23,9 +26,31 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     color: "black"
 
+    // A new wallpaper fades in over the old one once decoded; the old one is released after the fade (a 4K bitmap
+    // is ~33 MiB, DESIGN W17). The old url is still held by `front` when `back` takes it: a pixmap-cache hit.
+    Component.onCompleted: front.source = root.url
+    onUrlChanged: {
+        fade.stop();
+        back.source = front.source;
+        front.opacity = 0;
+        front.source = root.url;
+    }
+
     Image {
+        id: back
+
         anchors.fill: parent
-        source: Theme.wallpaper ? "file://" + Theme.wallpaper : ""
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        cache: true
+        sourceSize.width: root.screen ? root.screen.width * root.devicePixelRatio : 0
+        sourceSize.height: root.screen ? root.screen.height * root.devicePixelRatio : 0
+    }
+
+    Image {
+        id: front
+
+        anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         cache: true
@@ -35,5 +60,22 @@ PanelWindow {
         // Keep Lock.qml's and LockOverlay.qml's sourceSize the same: the pixmap cache shares the decode.
         sourceSize.width: root.screen ? root.screen.width * root.devicePixelRatio : 0
         sourceSize.height: root.screen ? root.screen.height * root.devicePixelRatio : 0
+
+        onStatusChanged: {
+            if (front.status === Image.Ready && front.opacity < 1)
+                fade.restart();
+            else if (front.status === Image.Error || front.status === Image.Null)
+                back.source = "";
+        }
+
+        NumberAnimation on opacity {
+            id: fade
+
+            running: false
+            to: 1
+            duration: Theme.reducedMotion ? 0 : Theme.motion.themeFadeMs
+            easing.type: Easing.InOutQuad
+            onFinished: back.source = ""
+        }
     }
 }

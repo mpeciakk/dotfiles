@@ -1,5 +1,8 @@
 {
-  "wallpaper": "~/.config/dotfiles/wp2.jpg",
+  "wallpaper": {
+    "dark": "~/.config/dotfiles/wallpaper-dark.png",
+    "light": "~/.config/dotfiles/wallpaper-light.png"
+  },
   "vpn": {
     "backend": "tailscale",
     "privileged": "doas",

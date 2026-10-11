@@ -40,6 +40,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 | W15 | Powiadomienia według protokołu (2026-10-11): podmiana (`replaces_id`) cicho aktualizuje kartę i przenosi ją na górę, bez nowego toastu i bez zmiany licznika. Karta znika, gdy aplikacja zamknie powiadomienie. Powiadomienie `transient` (np. zrzut ekranu z niri) pokazuje tylko toast, nie trafia do centrum ani do licznika. |
 | W16 | Odrzucone hasło: linia statusu karty pokazuje komunikaty PAM z tej próby (np. pam_faillock: konto zablokowane, zostało N minut), a bez nich stały tekst. Licznik faillocka zostaje wspólny z `system-auth` (2026-10-11). |
 | W17 | Pamięć GPU (2026-10-11): tapeta dekoduje się w rzeczywistej skali okna (1,5 na DP-2), nie w zaokrąglonej skali ekranu (2), a ukryta warstwa stanu nie trzyma warstwy rozmycia. Trzy obrazy tapety (`Wallpaper.qml`, `LockOverlay.qml`, powierzchnia blokady w `Lock.qml`) mają ten sam `sourceSize`, więc cache dekoduje ją raz; pilnuje tego `tests/wallpaper.test.mjs`. Zmierzone na `pc`: −40…50 MiB GPU, −25 MiB RAM. |
+| W18 | Tapeta wg trybu (2026-10-11): `wallpaper` w `config.json` to jedna ścieżka albo para `{ "dark": …, "light": … }` (`lib/theme.js` `wallpaperFor`; brak połowy = druga połowa). Zmiana trybu przenika tapety przez `themeFadeMs` (600 ms, razem z kolorami); nowa wchodzi po zdekodowaniu, stara zwalnia się po przenikaniu (W17). Para „Świt” (jasna) / „Zmierzch” (ciemna) leży w `hosts/<host>/wallpaper-{light,dark}.png` w rozdzielczości maszyny (`pc` 3840×2160, `laptop` 2560×1664) i dotter linkuje ją pod tę samą nazwę w `~/.config/dotfiles/`, więc `config.json` zostaje wspólny. Z parą `modeSource: "wallpaper"` zostaje w trybie, w którym wystartował (każda połowa go potwierdza): dla pary tryb idzie ręcznie albo wg słońca. Blokada i jej nakładka biorą tapetę bieżącego trybu bez przenikania. |
 
 Otwarte: tray (może wróci na końcu).
 
@@ -172,7 +173,7 @@ Island.qml           PanelWindow per ekran (pełnoekranowa, maska = kształt, w 
 IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i obrys (ring)
 IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
 Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
-Wallpaper.qml        tapeta per ekran
+Wallpaper.qml        tapeta per ekran, wg trybu, z przenikaniem (W18)
 Lock.qml             WlSessionLock + PAM, blokada przed uśpieniem (inhibitor logind, W14); LockOverlay.qml (w oknie wyspy) gra wejście i powrót blokady;
                      LockPreview.qml pokazuje kartę bez blokowania (zrzuty)
 states/              Rest, Osd, Toast, Center, Launcher, Control, Media, Power, PowerDone, LockCard

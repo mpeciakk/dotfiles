@@ -303,3 +303,16 @@ test("the glass has no gloss: no sheen tokens, the rim is the ring alone", () =>
         }
     assert.equal(T.defaults.legibility.lightBoost, 0.18);
 });
+
+test("wallpaperFor() takes one path for both modes, or a {dark, light} pair by mode", () => {
+    assert.equal(T.wallpaperFor("~/a.jpg", "dark"), "~/a.jpg");
+    assert.equal(T.wallpaperFor("~/a.jpg", "light"), "~/a.jpg");
+    const pair = { dark: "~/d.png", light: "~/l.png" };
+    assert.equal(T.wallpaperFor(pair, "dark"), "~/d.png");
+    assert.equal(T.wallpaperFor(pair, "light"), "~/l.png");
+    // A pair missing the mode's half shows the other half.
+    assert.equal(T.wallpaperFor({ dark: "~/d.png" }, "light"), "~/d.png");
+    assert.equal(T.wallpaperFor({ light: "~/l.png" }, "dark"), "~/l.png");
+    assert.equal(T.wallpaperFor(undefined, "dark"), "");
+    assert.equal(T.wallpaperFor({}, "dark"), "");
+});

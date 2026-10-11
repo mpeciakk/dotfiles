@@ -32,7 +32,7 @@ Singleton {
     readonly property var appColors: root.c.appColors
     readonly property var lockWallpaper: root.c.lockWallpaper
     readonly property string wallpaper: {
-        const p = root.host.wallpaper ?? "~/.config/dotfiles/wp2.jpg";
+        const p = T.wallpaperFor(root.host.wallpaper ?? "~/.config/dotfiles/wp2.jpg", root.mode);
         return p.startsWith("~") ? Quickshell.env("HOME") + p.slice(1) : p;
     }
 

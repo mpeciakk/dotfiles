@@ -429,3 +429,13 @@ function resolve(tokens, mode, level, glass) {
         lockWallpaper: clone(tokens.lockWallpaper[m])
     };
 }
+
+// The host config's `wallpaper`: one path for both modes, or { dark, light } shown by mode (the other half when
+// the mode's is missing). With a pair, modeSource "wallpaper" stays in the mode it starts in: each half confirms it.
+function wallpaperFor(wallpaper, mode) {
+    if (typeof wallpaper === "string")
+        return wallpaper;
+    if (!wallpaper)
+        return "";
+    return wallpaper[mode] || wallpaper[mode === "light" ? "dark" : "light"] || "";
+}

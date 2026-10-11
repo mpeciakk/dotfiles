@@ -15,7 +15,8 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 - `qs -p . -d` — this checkout as its own detached instance (from this directory); `qs -p .` stays in the foreground.
 - `qs log -p .` — its log. `qs list --all` — what runs. `qs kill -p <dir>` — stop that instance; never a bare `qs kill`
   (it would kill the live shell).
-- Config: `~/.config/dotfiles/config.json` (key `island` overrides tokens, hot-reloaded); `WYSPA_CONFIG` points elsewhere.
+- Config: `~/.config/dotfiles/config.json` (key `island` overrides tokens, hot-reloaded; `wallpaper` is one path or a
+  `{dark, light}` pair that follows the mode, DESIGN W18); `WYSPA_CONFIG` points elsewhere.
 
 ## Tests
 

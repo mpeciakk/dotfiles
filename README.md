@@ -80,14 +80,16 @@ change; falls back to built-in defaults if missing):
 
 ```json
 {
-  "wallpaper": "~/.config/dotfiles/wp2.jpg",
+  "wallpaper": { "dark": "~/.config/dotfiles/wallpaper-dark.png",
+                 "light": "~/.config/dotfiles/wallpaper-light.png" },
   "vpn": { "backend": "tailscale", "privileged": "doas",
            "vpnCtl": "/usr/local/bin/vpn-ctl", "openvpn": ["animativ"] },
   "lock": { "name": "", "avatar": "", "timeout": 300 }
 }
 ```
 
-- `Config.qml` reads `wallpaper` and `lock.*`.
+- The shell reads `wallpaper` (one path, or a `dark`/`light` pair shown by the theme mode) and `lock.*`.
+  The pair's files come from `hosts/<host>/wallpaper-{dark,light}.png`, at each machine's resolution.
 - `config/quickshell/menus/vpn.sh` reads `vpn.openvpn[]`, `vpn.privileged`, `vpn.vpnCtl`.
 
 This file is the same on every host; edit it to change wallpaper/VPN endpoints.

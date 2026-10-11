@@ -36,6 +36,13 @@ test("the desktop and the lock overlay request the same wallpaper sourceSize", (
     for (const s of rest) assert.equal(s, first);
 });
 
+test("both Images of the desktop wallpaper's cross-fade request the same sourceSize", () => {
+    // The old wallpaper moves to the back Image while the front still holds it: a cache hit only at the same size.
+    const sizes = [...src("Wallpaper.qml").matchAll(/sourceSize\.width:[^\n]*\n\s*sourceSize\.height:[^\n]*/g)].map(m => m[0].replace(/\s+/g, " "));
+    assert.equal(sizes.length, 2);
+    assert.equal(sizes[0], sizes[1]);
+});
+
 test("the lock surface's wallpaper uses the island window's real ratio of its output, so it is the same cache hit", () => {
     // WlSessionLockSurface has no devicePixelRatio of its own (surface.devicePixelRatio is undefined: a NaN size), and
     // the screen's is rounded up (2 at 1.5): a 5120x2880 synchronous decode on every lock. The island window of the
