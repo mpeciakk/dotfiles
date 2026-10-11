@@ -15,6 +15,11 @@ function isModal(state) {
     return state in MODAL;
 }
 
+// A modal state whose output is gone (unplugged): no surface is left to show it or to close it.
+function stranded(state, output, outputNames) {
+    return isModal(state) && outputNames.indexOf(output) < 0;
+}
+
 function radiusFor(h, cap) {
     return Math.min(h / 2, cap);
 }

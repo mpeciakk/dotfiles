@@ -54,6 +54,17 @@ test("guard: the launcher's description line is plain text (app_id, comments and
     assert.match(sub, /textFormat:\s*Text\.PlainText/);
 });
 
+test("guard: an external notification's summary and body are plain text in the toast and the centre (rich text fetches <img src=https://...>)", () => {
+    for (const [file, fields] of [["states/Toast.qml", ["root.snap.summary", "root.snap.body"]], ["states/Center.qml", ["card.modelData.summary", "card.modelData.body"]]]) {
+        const code = src(file);
+        for (const f of fields) {
+            const m = code.match(new RegExp(`Text \\{[^{}]*text:[^\\n]*${f.replace(/\./g, "\\.")}[^{}]*\\}`));
+            assert.ok(m, `${file}: no Text bound to ${f}`);
+            assert.match(m[0], /textFormat:\s*Text\.PlainText/, `${file}: ${f} must be PlainText`);
+        }
+    }
+});
+
 test("guard: a menu row without a command runs nothing", () => {
     const l = src("states/Launcher.qml");
     const branch = l.match(/row\.kind === "item"\) \{[\s\S]*?\n        \}\n    \}/)[0];
@@ -100,4 +111,15 @@ test("guard: the toast's icon is decoded at its box size, synchronously", () => 
     assert.match(img, /sourceSize\.width:\s*root\.spec\.iconImage/);
     assert.match(img, /sourceSize\.height:\s*root\.spec\.iconImage/);
     assert.doesNotMatch(img, /asynchronous/);
+});
+
+test("guard: IslandState closes a modal state when the screens change and its output is gone", () => {
+    const s = src("IslandState.qml");
+    assert.match(s, /Connections\s*\{\s*target:\s*Quickshell\s+function\s+onScreensChanged\s*\(\s*\)\s*(:\s*void\s*)?\{\s*if\s*\(\s*L\.stranded\(\s*root\.current\s*,\s*root\.output\s*,\s*Quickshell\.screens\.map\(\s*s\s*=>\s*s\.name\s*\)\s*\)\s*\)\s*root\.close\(\s*\)\s*;?\s*\}\s*\}/);
+});
+
+test("guard: the probe Image of AutoTheme does not cache (the bitmap is released with the source)", () => {
+    const a = src("services/AutoTheme.qml");
+    const img = a.match(/Image \{[\s\S]*?id: probe[\s\S]*?\n    \}/)[0];
+    assert.match(img, /cache:\s*false/);
 });

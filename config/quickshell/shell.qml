@@ -3,7 +3,8 @@ import Quickshell
 import "services"
 
 ShellRoot {
-    settings.watchFiles: true
+    // No hot reload: a reload while locked releases the session lock without PAM; restart the service after deploy.
+    settings.watchFiles: false
 
     // Referenced once so the singletons load at startup: IslandState (and its IPC handler),
     // Niri, whose event stream must have delivered the focused workspace before the first request,

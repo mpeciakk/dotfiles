@@ -220,6 +220,16 @@ Singleton {
         }
     }
 
+    // A modal state would outlive an unplugged output: current stays modal with no surface to close it.
+    Connections {
+        target: Quickshell
+
+        function onScreensChanged(): void {
+            if (L.stranded(root.current, root.output, Quickshell.screens.map(s => s.name)))
+                root.close();
+        }
+    }
+
     IpcHandler {
         target: "island"
 

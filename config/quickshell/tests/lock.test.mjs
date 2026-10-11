@@ -89,7 +89,7 @@ test("defaults: lock.timeoutDefault is 300 s", () => {
 // ---- Source guard: Lock.qml engageLock() is the ONE place that locks the session ----
 // Nothing else may set WlSessionLock.locked to anything but false, bind it, or own a WlSessionLock; engageLock()
 // decides through L.engage() with the file's own testMode and returns before it locks. PAM starts only outside
-// test mode. No QML registers an IPC target "lock" (tests/shot.sh asks the user's old shell for that one).
+// test mode. No QML registers an IPC target "lock" (the old shell had one; tests/shot.sh no longer asks it).
 
 const LOCK = "Lock.qml";
 const sources = qmlFiles().map(f => ({ rel: relative(root, f), code: strip(readFileSync(f, "utf8")) }));
@@ -194,6 +194,26 @@ test("guard: engageLock() cancels a running reverse morph through L.keepsLocked,
     assert.doesNotMatch(branch, /\blocked\s*=/);
 });
 
+test("guard: engageLock() returns from the keepsLocked branch itself (polarity: the branch is taken when it keeps the lock)", () => {
+    const b = body("engageLock");
+    const m = b.match(/if\s*\(\s*L\.keepsLocked\(\s*root\.testMode\s*,\s*sessionLock\.locked\s*,\s*root\.unlocking\s*\)\s*\)\s*\{/);
+    assert.ok(m, "engageLock() must branch on L.keepsLocked(...) un-negated");
+    const open = m.index + m[0].length;
+    const close = b.indexOf("\n        }", open);
+    assert.ok(close > open, "branch body not found");
+    assert.match(b.slice(open, close), /\breturn\s*;/, "the keepsLocked branch must return");
+});
+
+// A hot reload while locked releases the lock without PAM: upstream WlSessionLock::onReload hands the old manager to
+// the new instance, which starts with locked == false and calls unlock() on it. dotter symlinks every file of the
+// config dir, so any write in the repo would reload the live shell. Hence no file watching; restart after deploy.
+test("guard: shell.qml does not hot-reload (a reload while locked unlocks without PAM), and says why", () => {
+    const raw = readFileSync(join(root, "shell.qml"), "utf8");
+    assert.match(strip(raw), /settings\.watchFiles\s*:\s*false\b/);
+    assert.equal([...strip(raw).matchAll(/watchFiles\s*:/g)].length, 1, "watchFiles is set exactly once");
+    assert.match(raw, /\/\/[^\n]*reload[^\n]*lock[^\n]*restart/i, "a one-line comment must give the reason");
+});
+
 test("guard: the lock card's error follows L.errorShown and the first typed character clears it", () => {
     const card = readFileSync(join(root, "states/LockCard.qml"), "utf8");
     const code = strip(card);
@@ -203,8 +223,9 @@ test("guard: the lock card's error follows L.errorShown and the first typed char
     assert.match(code, /onTextChanged\s*:\s*if\s*\(\s*field\.text\.length\s*>\s*0\s*\)\s*root\.typedSinceFailure\s*=\s*true/);
 });
 
-test("guard: tests/shot.sh refuses while the old or the new shell is locked", () => {
+test("guard: tests/shot.sh refuses while the live shell or the checkout's instance is locked", () => {
     const shot = readFileSync(join(root, "tests/shot.sh"), "utf8");
-    assert.match(shot, /qs ipc call lock isLocked/);
+    assert.match(shot, /qs ipc prop get island locked/);
     assert.match(shot, /qs ipc -p "\$DIR" prop get island locked/);
+    assert.doesNotMatch(shot, /qs ipc call lock\b/, "the old shell's lock target is gone after deploy");
 });

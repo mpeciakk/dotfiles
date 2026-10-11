@@ -348,7 +348,7 @@ const DANGEROUS = [
     ["systemctl", /\bsystemctl\b/g],
     ["loginctl", /\bloginctl\b/g],
     ["quit", /\bquit\b/gi],
-    ["Socket", /\bSocket\b/g],
+    ["Socket", /\bSocket(Server)?\b/g],
     ["openUrlExternally", /\bopenUrlExternally\b/g],
     ["power words", /\b(poweroff|reboot|suspend|hibernate|halt)\b/g],
     ["power commands", /\btokens\s*(\.|\[\s*["'`])\s*power\b|\bpower\s*\.\s*commands\b|\bcommands\s*\.\s*(suspend|logout|reboot|poweroff)\b/g],
@@ -361,7 +361,7 @@ const DANGEROUS = [
 const ALLOWED = {
     // brightnessctl: set and read the backlight
     "services/Brightness.qml": ["execDetached", "Process"],
-    // niri msg: focus a window / workspace, and the event stream
+    // niri msg: focus a window, and the event stream
     "services/Niri.qml": ["execDetached", "Process"],
     // the launcher's own perform(): copy, run a typed command, run a menu command; the menus' Process
     "states/Launcher.qml": ["execDetached", "Process"]
@@ -397,7 +397,7 @@ test("guard: the allowlist only excuses starting a process, and every entry is s
 
 test("guard: the DANGEROUS list catches each spelling it claims to (quit in any case, Socket, openUrlExternally)", () => {
     const caught = code => DANGEROUS.filter(([, re]) => new RegExp(re.source, re.flags).test(code)).map(d => d[0]);
-    for (const [code, name] of [["Qt.quit()", "quit"], ["Qt.QUIT()", "quit"], ["Quit()", "quit"], ["Socket { }", "Socket"],
+    for (const [code, name] of [["Qt.quit()", "quit"], ["Qt.QUIT()", "quit"], ["Quit()", "quit"], ["Socket { }", "Socket"], ["SocketServer { }", "Socket"],
         ["Qt.openUrlExternally(u)", "openUrlExternally"], ["execDetached(x)", "execDetached"], ["Process { }", "Process"]])
         assert.ok(caught(code).includes(name), `${name} not caught in: ${code}`);
 });

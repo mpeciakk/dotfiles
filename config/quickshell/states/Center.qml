@@ -397,6 +397,7 @@ Item {
                                                     Text {
                                                         Layout.fillWidth: true
                                                         text: card.modelData.summary
+                                                        textFormat: Text.PlainText
                                                         elide: Text.ElideRight
                                                         maximumLineCount: 1
                                                         color: Theme.fg
@@ -408,6 +409,7 @@ Item {
                                                     Text {
                                                         Layout.fillWidth: true
                                                         text: card.modelData.body
+                                                        textFormat: Text.PlainText
                                                         elide: Text.ElideRight
                                                         maximumLineCount: 1
                                                         color: Theme.fgMuted

@@ -47,7 +47,7 @@ Scope {
             root.unlocking = false;
             return;
         }
-        const d =L.engage(root.testMode, sessionLock.locked);
+        const d = L.engage(root.testMode, sessionLock.locked);
         console.info(d.message + " (" + source + ")");
         if (!d.engage)
             return;

@@ -6,7 +6,9 @@ media, power menu, session lock. Design source of truth: `docs/DESIGN.md` (Polis
 
 Dotter deploys `config/quickshell` into `~/.config/quickshell` file by file (symlinks per file, directories are real).
 A new file in the repo is not visible to the running shell until `dotter deploy`. After deploying:
-`systemctl --user restart quickshell`.
+`systemctl --user restart quickshell`. There is no live reload of the QML (`shell.qml` sets `settings.watchFiles: false`):
+a reload while the session is locked would release the lock without PAM (the new instance starts unlocked and unlocks
+the old one), and dotter symlinks make every write in the repo a reload. Only `config.json` is watched (a `FileView`).
 
 ## Running
 
@@ -140,7 +142,9 @@ for `namespace="^wyspa$"` in `config/niri/window_rules.kdl` has `xray false` and
    `focusWindow`) into a log line.
 9. The lock: recovery is `qs ipc -p <dir> call island unlock` (from a TTY first
    `export XDG_RUNTIME_DIR=/run/user/1000`). `loginctl unlock-session` does NOT work. `pam_faillock` defaults: deny=3,
-   unlock after 600 s.
+   unlock after 600 s. UNVERIFIED (not tried live): if the shell dies while locked, the compositor keeps the blank lock
+   and a restarted shell starts unlocked; the likely recovery is `systemctl --user restart quickshell`, then
+   `qs ipc call island lock` and authenticate (or `island unlock`).
 10. A fullscreen window on an output puts its island in line mode. `services/Fullscreen.qml` is disabled under
     `WYSPA_TEST` (`outputs` is `[]`), so smokes are independent of real fullscreen windows; they reach line mode only
     through IPC `hide`. `maskMode`: `full` in a modal state, `line` while the line is wanted (input is the 400x28 hover

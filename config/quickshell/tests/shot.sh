@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Usage: tests/shot.sh <name> — crop around the island on the focused monitor.
 # niri also copies the screenshot to the clipboard. Refuses while the user's
-# session is locked (the old shell's lock target, or this shell's island.locked,
+# session is locked (the live shell's island.locked, or this checkout's instance,
 # answers "true").
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
-if [ "$(qs ipc call lock isLocked 2>/dev/null || true)" == "true" ]; then echo "shot: session locked — ask the user to unlock"; exit 1; fi
+if [ "$(qs ipc prop get island locked 2>/dev/null || true)" == "true" ]; then echo "shot: the live shell's session lock is on — ask the user to unlock"; exit 1; fi
 if [ "$(qs ipc -p "$DIR" prop get island locked 2>/dev/null || true)" == "true" ]; then echo "shot: this shell's session lock is on — ask the user to unlock"; exit 1; fi
 mkdir -p /tmp/wyspa-shots
 RAW="/tmp/wyspa-shots/$1-full.png"

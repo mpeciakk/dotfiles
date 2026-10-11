@@ -64,6 +64,13 @@ test("isModal()", () => {
     for (const s of ["rest", "osd", "media", "toast", "powerDone", "line"]) assert.equal(I.isModal(s), false, s);
 });
 
+test("stranded(): a modal state whose output is gone has no surface to close it; nothing else is stranded", () => {
+    assert.equal(I.stranded("launcher", "DP-1", ["HDMI-A-1"]), true);
+    assert.equal(I.stranded("power", "DP-1", []), true);
+    assert.equal(I.stranded("launcher", "DP-1", ["DP-1", "HDMI-A-1"]), false);
+    for (const s of ["rest", "osd", "media", "toast", "powerDone"]) assert.equal(I.stranded(s, "DP-1", []), false, s);
+});
+
 test("osdIcon: brightness is a sun; volume by level, mute and zero is volume-x", () => {
     assert.equal(I.osdIcon("brightness", 0.5, false, 0.5), "sun");
     assert.equal(I.osdIcon("volume", 0.4, true, 0.5), "volume-x");

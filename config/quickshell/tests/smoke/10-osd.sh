@@ -12,4 +12,5 @@ expect island current rest
 # Last: lowering the volume back raises the OSD again, and niri's screenshot notification would show as a toast.
 wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-
 wait_ms 300
+wait_ms 700
 shot osd

@@ -34,12 +34,6 @@ Singleton {
         return w ? w.output : "";
     }
 
-    // Focus a workspace on its output (focus the monitor first so the per-output
-    // index resolves correctly on multi-monitor setups).
-    function focusWorkspace(output: string, idx: int): void {
-        Quickshell.execDetached(["sh", "-c", `niri msg action focus-monitor '${output}' && niri msg action focus-workspace ${idx}`]);
-    }
-
     function focusWindow(id: int): void {
         Quickshell.execDetached(["niri", "msg", "action", "focus-window", "--id", String(id)]);
     }

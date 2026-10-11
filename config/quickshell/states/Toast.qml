@@ -116,6 +116,7 @@ Item {
             Text {
                 Layout.fillWidth: true
                 text: root.snap.summary
+                textFormat: Text.PlainText
                 elide: Text.ElideRight
                 maximumLineCount: 1
                 color: Theme.fg
@@ -127,6 +128,7 @@ Item {
             Text {
                 Layout.fillWidth: true
                 text: [root.snap.appName, root.snap.body].filter(s => s !== "").join(" · ")
+                textFormat: Text.PlainText
                 elide: Text.ElideRight
                 maximumLineCount: 1
                 color: Theme.fgMuted

@@ -75,6 +75,7 @@ Singleton {
 
         source: root.sized ? "" : root.wallpaperSource
         asynchronous: true
+        cache: false
         visible: false
 
         onStatusChanged: {
