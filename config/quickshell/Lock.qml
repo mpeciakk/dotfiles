@@ -99,13 +99,18 @@ Scope {
             return;
         // First the way in on the overlay (L.lockStep): this returns, and preludeTimer comes back here to lock. A
         // request during it waits for the same lock. During the hand-off the overlay turns round from where it is.
+        // A sleep: the instant mode goes on before the island closes, so the close morph of an open state (the power
+        // menu's Uśpij) is at zero durations too and leaves no stale frame in flight.
+        const sleep = source === "sleep";
+        const wasInstant = Theme.lockInstant;
+        if (sleep)
+            Theme.lockInstant = true;
         IslandState.close();
-        const step = L.lockStep(root.prelude, Theme.reducedMotion, source === "sleep", Theme.lockInstant);
+        const step = L.lockStep(root.prelude, Theme.reducedMotion, sleep, wasInstant);
         if (step === "snap") {
             // A sleep: logind waits 5 s at most. The way in plays at zero durations, on a fresh overlay when one is
             // mounted already, and the lock follows when every window has presented a frame of it (or at the cap).
             preludeTimer.stop();
-            Theme.lockInstant = true;
             root.framed = ({});
             IslandState.reportLockFrameWait(true);
             const mounted = root.prelude !== 0 || root.handoff;
@@ -211,9 +216,11 @@ Scope {
     }
 
     // Starts or stops the delay inhibitor to match holdInhibitor. A restart after an exit comes here too, so a release
-    // during a pending sleep is never undone.
+    // during a pending sleep is never undone. `running = true` is asked for whenever it is wanted, even while a
+    // released process is still exiting (Quickshell keeps the request and starts again when it is gone): the retake
+    // after a wake never waits for inhibitRestart.
     function syncInhibitor(): void {
-        if (root.holdInhibitor && !inhibitor.running)
+        if (root.holdInhibitor)
             inhibitor.running = true;
         else if (!root.holdInhibitor && inhibitor.running)
             inhibitor.running = false;

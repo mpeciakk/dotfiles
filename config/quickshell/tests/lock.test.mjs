@@ -364,7 +364,7 @@ test("lockInMs: the way in lasts until its last part is in (the extras, with the
 test("guard: engageLock() starts the way in only after its test-mode decision, and the prelude timer comes back to it", () => {
     const b = body("engageLock");
     const bail = b.search(/if\s*\(\s*!\s*d\.engage\s*\)\s*return\b/);
-    const step = b.search(/L\.lockStep\(\s*root\.prelude\s*,\s*Theme\.reducedMotion\s*,\s*source\s*===\s*"sleep"\s*,\s*Theme\.lockInstant\s*\)/);
+    const step = b.search(/L\.lockStep\(\s*root\.prelude\s*,\s*Theme\.reducedMotion\s*,\s*sleep\s*,\s*wasInstant\s*\)/);
     const start = b.search(/root\.prelude\s*=\s*1/);
     assert.ok(bail >= 0 && step > bail && start > step);
     assert.match(lock.code, /id:\s*preludeTimer[\s\S]{0,200}interval:\s*L\.lockInMs\(Theme\.motion,\s*Theme\.layout\.lock\)[\s\S]{0,120}root\.prelude\s*=\s*2;\s*root\.engageLock\(root\.preludeFor\)/);
@@ -389,6 +389,9 @@ test("guard: the sleep monitor and the delay inhibitor start only through the te
     assert.match(lock.code, /readonly\s+property\s+bool\s+holdInhibitor\s*:\s*L\.inhibitorWanted\(\s*root\.testMode\s*,\s*root\.sleepPending\s*,\s*root\.lockSecure\s*\)/);
     // each process is started from one `running = true`, behind its own gate
     assert.match(block(/function\s+syncInhibitor\s*\([^)]*\)[^{]*\{([\s\S]*?)\n    \}/, "syncInhibitor()"), /root\.holdInhibitor[\s\S]*inhibitor\.running\s*=\s*true/);
+    // a retake never waits for the previous process to be seen exited: `running` is asked for whenever it is wanted
+    // (Quickshell keeps the request and starts again when the exiting process is gone)
+    assert.doesNotMatch(block(/function\s+syncInhibitor\s*\([^)]*\)[^{]*\{([\s\S]*?)\n    \}/, "syncInhibitor()"), /holdInhibitor\s*&&\s*!\s*inhibitor\.running/);
     assert.match(block(/function\s+syncMonitor\s*\([^)]*\)[^{]*\{([\s\S]*?)\n    \}/, "syncMonitor()"), /root\.watchSleep[\s\S]*monitor\.running\s*=\s*true/);
     assert.equal((lock.code.match(/\.running\s*=\s*true/g) ?? []).length, 2, "no other process is started");
     for (const s of sources.filter(s => s.rel !== LOCK))
@@ -441,8 +444,19 @@ test("guard: a sleep request snaps the way in (Theme.lockInstant first, remount)
     const snap = b.match(/if\s*\(\s*step\s*===\s*"snap"\s*\)\s*\{([\s\S]*?)\n        \}/);
     assert.ok(snap, "no snap branch");
     const s = snap[1];
-    const instant = s.search(/Theme\.lockInstant\s*=\s*true/);
-    assert.ok(instant >= 0 && instant < s.search(/root\.prelude\s*=\s*1/), "instant before the phase, so the overlay mounts at zero durations");
+    assert.doesNotMatch(s, /Theme\.lockInstant\s*=\s*true/, "set before the island closes (see below), not in the branch");
+    const instant = b.search(/Theme\.lockInstant\s*=\s*true/);
+    assert.ok(instant >= 0 && instant < b.search(/root\.prelude\s*=\s*1/), "instant before the phase, so the overlay mounts at zero durations");
+    // a sleep from an open state (the power menu's Uśpij): the close morph must play at zero durations too, or the
+    // frames it leaves in flight are stale; so the instant mode is on BEFORE IslandState.close()
+    const close = b.search(/IslandState\.close\(\s*\)/);
+    assert.ok(instant >= 0 && instant < close, "Theme.lockInstant = true before IslandState.close() for a sleep");
+    assert.match(b, /if\s*\(\s*sleep\s*\)\s*Theme\.lockInstant\s*=\s*true/, "only a sleep request");
+    // L.lockStep still sees whether a snap was running before this request set the flag (a second sleep waits, a
+    // normal way in playing is replaced)
+    const was = b.search(/const\s+wasInstant\s*=\s*Theme\.lockInstant/);
+    assert.ok(was >= 0 && was < instant, "the flag is read before it is set");
+    assert.match(b, /L\.lockStep\([^)]*,\s*wasInstant\s*\)/);
     assert.match(s, /IslandState\.reportLockFrameWait\(\s*true\s*\)/);
     assert.match(s, /IslandState\.remountLock\(\)/);
     assert.match(s, /preludeTimer\.stop\(\)/);
@@ -465,9 +479,14 @@ test("guard: Theme.lockInstant is the reduced-motion path: it only adds to the t
     assert.match(theme, /readonly\s+property\s+bool\s+reducedMotion\s*:\s*root\.tokens\.reducedMotion\s*\|\|\s*root\.lockInstant\b/);
 });
 
-test("guard: the overlay reports its window's frames per output only while the lock waits, and the island window can remount it", () => {
+test("guard: the overlay reports its window's frames per output only while the lock waits, only for a frame synced after it was mounted, and the island window can remount it", () => {
     const overlay = strip(readFileSync(join(root, "LockOverlay.qml"), "utf8"));
-    assert.match(overlay, /Connections\s*\{[^}]*target\s*:\s*over\.Window\.window[^}]*enabled\s*:\s*IslandState\.lockFrameWait[\s\S]*?function\s+onFrameSwapped\s*\(\s*\)\s*(:\s*void\s*)?\{\s*IslandState\.reportLockFrame\(\s*over\.screen\.name\s*\)/);
+    assert.match(overlay, /Connections\s*\{[^}]*target\s*:\s*over\.Window\.window[^}]*enabled\s*:\s*IslandState\.lockFrameWait/);
+    // frameSwapped is delivered queued from the render thread: a frame synced before the overlay was mounted can
+    // still arrive. afterAnimating (GUI thread, before the sync) arms; only a swap after arming counts.
+    assert.match(overlay, /property\s+bool\s+framePending\s*:\s*false/);
+    assert.match(overlay, /function\s+onAfterAnimating\s*\(\s*\)\s*(:\s*void\s*)?\{\s*over\.framePending\s*=\s*true;?\s*\}/);
+    assert.match(overlay, /function\s+onFrameSwapped\s*\(\s*\)\s*(:\s*void\s*)?\{\s*if\s*\(\s*over\.framePending\s*\)\s*IslandState\.reportLockFrame\(\s*over\.screen\.name\s*\)/);
     const island = readFileSync(join(root, "Island.qml"), "utf8");
     assert.match(island, /Loader\s*\{\s*id:\s*lockLoader[^}]*active:\s*IslandState\.lockPhase\s*!==\s*""[\s\S]*?function\s+onLockRemounted\s*\(\s*\)\s*(:\s*void\s*)?\{\s*lockLoader\.active\s*=\s*false;\s*lockLoader\.active\s*=\s*Qt\.binding\(\s*\(\)\s*=>\s*IslandState\.lockPhase\s*!==\s*""\s*\)/);
 });
@@ -526,4 +545,11 @@ test("guard: the attempt's PAM messages are collected from pamMessage through L.
     assert.match(card, /property\s+string\s+failedText\s*:\s*L\.refusalText\(\s*\[\s*\]\s*\)/);
     assert.match(card, /text\s*:\s*root\.showError\s*\?\s*root\.failedText\s*:/);
     assert.doesNotMatch(card, /"Niepoprawne hasło/, "the fixed text lives in lib/lock.js only");
+});
+
+test("guard: the lock card's status line elides in the middle, so pam_faillock's \"(N minutes left to unlock)\" stays visible", () => {
+    const card = strip(readFileSync(join(root, "states/LockCard.qml"), "utf8"));
+    const m = card.match(/Text\s*\{(?:(?!\bText\s*\{)[\s\S])*?text\s*:\s*root\.showError\s*\?\s*root\.failedText[\s\S]*?\n\s*\}/);
+    assert.ok(m, "no status Text");
+    assert.match(m[0], /elide\s*:\s*Text\.ElideMiddle/);
 });

@@ -370,7 +370,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: root.spec.fieldW
                     horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
+                    elide: Text.ElideMiddle
                     topPadding: root.spec.statusGap
                     height: root.spec.statusGap + root.spec.statusH
                     text: root.showError ? root.failedText : root.busy ? "Sprawdzanie…" : ""

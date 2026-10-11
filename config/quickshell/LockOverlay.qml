@@ -56,13 +56,21 @@ Item {
 
     Component.onCompleted: over.entered = true
 
-    // A sleep lock (Lock.qml) goes on after this window has presented a frame of the end look.
+    // A sleep lock (Lock.qml) goes on after this window has presented a frame of the end look. frameSwapped comes
+    // queued from the render thread, so one synced before this overlay was mounted can still arrive: afterAnimating
+    // (GUI thread, before the sync) arms, and only a swap after it counts.
+    property bool framePending: false
     Connections {
         target: over.Window.window
         enabled: IslandState.lockFrameWait
 
+        function onAfterAnimating(): void {
+            over.framePending = true;
+        }
+
         function onFrameSwapped(): void {
-            IslandState.reportLockFrame(over.screen.name);
+            if (over.framePending)
+                IslandState.reportLockFrame(over.screen.name);
         }
     }
 
