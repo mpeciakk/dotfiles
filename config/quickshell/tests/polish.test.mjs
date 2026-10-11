@@ -123,3 +123,12 @@ test("guard: the probe Image of AutoTheme does not cache (the bitmap is released
     const img = a.match(/Image \{[\s\S]*?id: probe[\s\S]*?\n    \}/)[0];
     assert.match(img, /cache:\s*false/);
 });
+
+test("guard: content layers enter and exit through two Transitions, not Behaviors keyed on `lit`", () => {
+    // A Behavior could start before its `lit`-bound durations re-evaluated: rest -> media -> rest -> media ran
+    // with the other direction's timings and left the rest content over the media content.
+    const s = src("IslandContent.qml");
+    assert.doesNotMatch(s, /Behavior\s+on\s+(opacity|scale|blur)\b/);
+    assert.match(s, /to:\s*"lit"/);
+    assert.match(s, /from:\s*"lit"/);
+});

@@ -60,23 +60,18 @@ Item {
 
             readonly property bool lit: root.target === slot.modelData
             readonly property bool fancy: !Theme.reducedMotion
-            readonly property real blurAmount: slot.lit || !slot.fancy ? 0 : Theme.motion.contentBlur
-            readonly property real scaleAmount: slot.lit || !slot.fancy ? 1 : Theme.motion.contentScaleFrom
             readonly property var geo: IslandState.geometryFor(slot.modelData)
 
-            // §2.8: only the enter has a delay; exits use the fast-start exit curve.
+            // §2.8: only the enter has a delay; exits use the fast-start exit curve. The enter and the exit are
+            // two Transitions, not Behaviors: a Behavior's durations are bindings on `lit`, and when `lit` flips
+            // the animation could start before they re-evaluated, so rest -> media -> rest -> media ran with the
+            // other direction's timings (media in at once, rest out after the enter delay, both visible).
             function pause(delay: int): int {
-                return slot.lit && slot.fancy ? delay : 0;
+                return slot.fancy ? delay : 0;
             }
 
-            function span(enter: int, exit: int): int {
-                if (!slot.fancy)
-                    return Theme.motion.reducedFadeMs;
-                return slot.lit ? enter : exit;
-            }
-
-            function curve(): var {
-                return slot.lit ? Theme.motion.enterCurve : Theme.motion.exitCurve;
+            function span(ms: int): int {
+                return slot.fancy ? ms : Theme.motion.reducedFadeMs;
             }
 
             x: (root.width - slot.width) / 2
@@ -85,40 +80,39 @@ Item {
             height: slot.geo.h
             transformOrigin: Item.Center
             enabled: slot.lit
-            opacity: slot.lit ? 1 : 0
-            scale: slot.scaleAmount
+            opacity: 0
+            scale: slot.fancy ? Theme.motion.contentScaleFrom : 1
+            property real blur: slot.fancy ? Theme.motion.contentBlur : 0
 
-            Behavior on opacity {
-                SequentialAnimation {
-                    PauseAnimation { duration: slot.pause(Theme.motion.enterOpacityDelayMs) }
-                    NumberAnimation {
-                        duration: slot.span(Theme.motion.enterOpacityMs, Theme.motion.exitOpacityMs)
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: slot.curve()
-                    }
-                }
+            states: State {
+                name: "lit"
+                when: slot.lit
+                PropertyChanges { slot.opacity: 1; slot.scale: 1; slot.blur: 0 }
             }
-            Behavior on scale {
-                SequentialAnimation {
-                    PauseAnimation { duration: slot.pause(Theme.motion.enterScaleDelayMs) }
-                    NumberAnimation {
-                        duration: slot.span(Theme.motion.enterScaleMs, Theme.motion.exitScaleMs)
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: slot.curve()
+
+            transitions: [
+                Transition {
+                    to: "lit"
+                    SequentialAnimation {
+                        PauseAnimation { duration: slot.pause(Theme.motion.enterOpacityDelayMs) }
+                        NumberAnimation { property: "opacity"; duration: slot.span(Theme.motion.enterOpacityMs); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.enterCurve }
                     }
-                }
-            }
-            property real blur: slot.blurAmount
-            Behavior on blur {
-                SequentialAnimation {
-                    PauseAnimation { duration: slot.pause(Theme.motion.enterBlurDelayMs) }
-                    NumberAnimation {
-                        duration: slot.span(Theme.motion.enterBlurMs, Theme.motion.exitBlurMs)
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Theme.motion.easeCurve
+                    SequentialAnimation {
+                        PauseAnimation { duration: slot.pause(Theme.motion.enterScaleDelayMs) }
+                        NumberAnimation { property: "scale"; duration: slot.span(Theme.motion.enterScaleMs); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.enterCurve }
                     }
+                    SequentialAnimation {
+                        PauseAnimation { duration: slot.pause(Theme.motion.enterBlurDelayMs) }
+                        NumberAnimation { property: "blur"; duration: slot.span(Theme.motion.enterBlurMs); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.easeCurve }
+                    }
+                },
+                Transition {
+                    from: "lit"
+                    NumberAnimation { property: "opacity"; duration: slot.span(Theme.motion.exitOpacityMs); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.exitCurve }
+                    NumberAnimation { property: "scale"; duration: slot.span(Theme.motion.exitScaleMs); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.exitCurve }
+                    NumberAnimation { property: "blur"; duration: slot.span(Theme.motion.exitBlurMs); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.easeCurve }
                 }
-            }
+            ]
 
             Item {
                 anchors.fill: parent
