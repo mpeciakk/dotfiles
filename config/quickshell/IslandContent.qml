@@ -116,7 +116,8 @@ Item {
 
             Item {
                 anchors.fill: parent
-                layer.enabled: slot.blur > 0
+                // A hidden slot's blur is above 0 too, but it paints nothing: no offscreen layer for it (16-24 MiB of GPU memory).
+                layer.enabled: slot.blur > 0 && slot.opacity > 0
                 layer.effect: MultiEffect {
                     blurEnabled: true
                     blur: slot.blur / Theme.motion.contentBlur

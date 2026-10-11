@@ -462,7 +462,9 @@ Scope {
                         anchors.fill: parent
                         source: Theme.wallpaper ? "file://" + Theme.wallpaper : ""
                         fillMode: Image.PreserveAspectCrop
-                        // Synchronous, so the first frame has it (that frame must match the overlay's); a pixmap-cache hit.
+                        // Synchronous, so the first frame has it (that frame must match the overlay's). The screen's rounded-up ratio:
+                        // WlSessionLockSurface has no devicePixelRatio, so at a fractional scale this is NOT the cache hit the
+                        // overlay's and Wallpaper.qml's sourceSize (the window's real ratio) are: one more decode while locked.
                         asynchronous: false
                         sourceSize.width: surface.screen ? surface.screen.width * surface.screen.devicePixelRatio : 0
                         sourceSize.height: surface.screen ? surface.screen.height * surface.screen.devicePixelRatio : 0

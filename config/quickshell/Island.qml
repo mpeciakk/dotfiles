@@ -242,6 +242,7 @@ PanelWindow {
         active: IslandState.lockPhase !== ""
         sourceComponent: LockOverlay {
             screen: root.screen
+            devicePixelRatio: root.devicePixelRatio
         }
     }
 

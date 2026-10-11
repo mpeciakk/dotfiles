@@ -20,6 +20,8 @@ Item {
 
     // The screen whose island window this is.
     property var screen: null
+    // That window's pixel ratio (the real scale: the sourceSize of the wallpaper below must match Wallpaper.qml's).
+    property real devicePixelRatio: 1
 
     readonly property var wp: Theme.lockWallpaper
     readonly property var spec: Theme.layout.lock
@@ -128,8 +130,8 @@ Item {
             // Synchronous, so the first frame has it. Cheap: the same url and sourceSize as Wallpaper.qml's,
             // so it comes from the pixmap cache.
             asynchronous: false
-            sourceSize.width: over.screen ? over.screen.width * over.screen.devicePixelRatio : 0
-            sourceSize.height: over.screen ? over.screen.height * over.screen.devicePixelRatio : 0
+            sourceSize.width: over.screen ? over.screen.width * over.devicePixelRatio : 0
+            sourceSize.height: over.screen ? over.screen.height * over.devicePixelRatio : 0
             scale: 1 + (over.wp.scale - 1) * over.veil
             layer.enabled: true
             layer.effect: MultiEffect {
