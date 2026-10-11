@@ -151,7 +151,8 @@ lives in the global `blur` block of `config/niri/config.kdl`.
    sleep delay inhibitor and locks with the way in at zero durations (`Theme.lockInstant`); `systemd-inhibit --list`
    shows `wyspa` while unlocked. Recovery is `qs ipc -p <dir> call island unlock` (from a TTY first
    `export XDG_RUNTIME_DIR=/run/user/1000`). `loginctl unlock-session` does NOT work. `pam_faillock` defaults: deny=3,
-   unlock after 600 s. UNVERIFIED (not tried live): if the shell dies while locked, the compositor keeps the blank lock
+   unlock after 600 s; the attempt after the lockout shows PAM's own messages on the card ("account is locked …
+   minutes left", DESIGN W16), the fixed "Niepoprawne hasło" text only when PAM said nothing. UNVERIFIED (not tried live): if the shell dies while locked, the compositor keeps the blank lock
    and a restarted shell starts unlocked; the likely recovery is `systemctl --user restart quickshell`, then
    `qs ipc call island lock` and authenticate (or `island unlock`).
 10. A fullscreen window on an output puts its island in line mode. `services/Fullscreen.qml` is disabled under

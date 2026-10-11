@@ -479,3 +479,51 @@ test("guard: the way in takes the keyboard on the focused output and the whole i
     assert.match(island, /readonly\s+property\s+string\s+maskMode\s*:\s*root\.modalHere\s*\|\|\s*root\.wayIn\s*\?\s*"full"/);
     assert.match(island, /focus\s*:\s*root\.modalHere\s*&&\s*!root\.wayIn\b/);
 });
+
+// ---- Faillock message on the card (DESIGN W16) ----
+// Probe (2026-10-11, pc, throwaway qs script, pam_faillock deny=1 on a temp dir): the attempt after the lockout sends
+// "The account is locked due to 1 failed logins." and "(10 minutes left to unlock)" as two pamMessage, both
+// messageIsError=false, BEFORE the password prompt; at completed() `message` is already "" - so the shell collects.
+
+const FIXED = "Niepoprawne hasło — spróbuj ponownie";
+
+test("collectMessage: keeps the text of a non-prompt message, drops prompts and blank lines, never mutates", () => {
+    const first = Object.freeze([]);
+    const one = L.collectMessage(first, "The account is locked due to 1 failed logins.", false);
+    assert.deepStrictEqual(plain(one), ["The account is locked due to 1 failed logins."]);
+    const two = L.collectMessage(one, "(10 minutes left to unlock)", false);
+    assert.deepStrictEqual(plain(two), ["The account is locked due to 1 failed logins.", "(10 minutes left to unlock)"]);
+    assert.deepStrictEqual(plain(L.collectMessage(two, "Password: ", true)), plain(two), "the password prompt is not a message");
+    assert.deepStrictEqual(plain(L.collectMessage(two, "  ", false)), plain(two));
+    assert.deepStrictEqual(plain(L.collectMessage(two, "", false)), plain(two));
+    assert.equal(first.length, 0);
+});
+
+test("refusalText: PAM's messages joined by a space, the fixed text when PAM said nothing", () => {
+    assert.equal(L.refusalText(["The account is locked due to 1 failed logins.", "(10 minutes left to unlock)"]),
+        "The account is locked due to 1 failed logins. (10 minutes left to unlock)");
+    assert.equal(L.refusalText([]), FIXED);
+    assert.equal(L.refusalText([" ", ""]), FIXED);
+    assert.equal(L.refusalText(undefined), FIXED);
+});
+
+test("guard: one failed attempt refuses once: completed() refuses, error() only drops the typed text", () => {
+    const pam = lock.code.match(/PamContext\s*\{([\s\S]*?)\n    \}/)?.[1];
+    assert.ok(pam, "no PamContext");
+    assert.equal([...pam.matchAll(/root\.refuse\(\)/g)].length, 1, "PamContext refuses in one place (error is followed by completed(Error))");
+    assert.match(pam, /onCompleted\s*:\s*result\s*=>\s*\{[\s\S]*?root\.refuse\(\)/);
+    assert.match(pam, /onError\s*:\s*\{\s*root\.pending\s*=\s*""\s*;?\s*\}/);
+});
+
+test("guard: the attempt's PAM messages are collected from pamMessage through L.collectMessage, cleared per attempt, and shown through L.refusalText", () => {
+    const pam = lock.code.match(/PamContext\s*\{([\s\S]*?)\n    \}/)[1];
+    assert.match(pam, /onPamMessage\s*:\s*root\.attemptMessages\s*=\s*L\.collectMessage\(\s*root\.attemptMessages\s*,\s*pam\.message\s*,\s*pam\.responseRequired\s*\)/);
+    const auth = body("authenticate");
+    assert.match(auth, /root\.attemptMessages\s*=\s*\[\s*\][\s\S]*?pam\.start\(\)/, "cleared before pam.start()");
+    assert.match(body("refuse"), /root\.failedText\s*=\s*L\.refusalText\(\s*root\.attemptMessages\s*\)/);
+    assert.match(lock.code, /failedText\s*:\s*root\.failedText/, "the surface's card gets the text");
+    const card = strip(readFileSync(join(root, "states/LockCard.qml"), "utf8"));
+    assert.match(card, /property\s+string\s+failedText\s*:\s*L\.refusalText\(\s*\[\s*\]\s*\)/);
+    assert.match(card, /text\s*:\s*root\.showError\s*\?\s*root\.failedText\s*:/);
+    assert.doesNotMatch(card, /"Niepoprawne hasło/, "the fixed text lives in lib/lock.js only");
+});

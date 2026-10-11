@@ -109,6 +109,25 @@ function errorShown(failed, typedSinceFailure) {
     return failed && !typedSinceFailure;
 }
 
+// The status line after a refused attempt when PAM said nothing (DESIGN W16).
+var REFUSED_TEXT = "Niepoprawne hasło — spróbuj ponownie";
+
+// One PamContext message of the running attempt: kept when it is text for the user (not the password prompt, not
+// blank); returns a new list. PAM sends them before the prompt and `message` is "" again at completed().
+function collectMessage(messages, message, responseRequired) {
+    var list = messages ? messages.slice() : [];
+    if (responseRequired !== true && typeof message === "string" && message.trim() !== "")
+        list.push(message.trim());
+    return list;
+}
+
+// The status line of a refused attempt: PAM's own messages joined by a space (pam_faillock: the account is locked,
+// minutes left), or the fixed text when there were none.
+function refusalText(messages) {
+    var text = (messages || []).join(" ").trim();
+    return text === "" ? REFUSED_TEXT : text;
+}
+
 // "2 powiadomienia": the bottom row shows only the count (DESIGN §6).
 function notifCount(n) {
     var tens = n % 100;

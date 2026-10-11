@@ -17,6 +17,8 @@ Item {
 
     // The last attempt was refused: danger ring and status, until the user types again.
     property bool failed: false
+    // The status line of a refused attempt: PAM's own messages, or the fixed text (lib/lock.js refusalText()).
+    property string failedText: L.refusalText([])
     // An attempt is being checked: the field takes no edits and nothing is submitted.
     property bool busy: false
     // The card's corners: the lock screen morphs them from the rest island's to geom.lock.r.
@@ -366,9 +368,12 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
+                    width: root.spec.fieldW
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
                     topPadding: root.spec.statusGap
                     height: root.spec.statusGap + root.spec.statusH
-                    text: root.showError ? "Niepoprawne hasło — spróbuj ponownie" : root.busy ? "Sprawdzanie…" : ""
+                    text: root.showError ? root.failedText : root.busy ? "Sprawdzanie…" : ""
                     color: root.showError ? Theme.danger : Theme.fgMuted
                     font.family: Theme.fonts.ui
                     font.pixelSize: root.spec.statusFont

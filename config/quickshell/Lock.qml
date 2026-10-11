@@ -41,6 +41,10 @@ Scope {
     readonly property var idle: L.idle(Theme.host.lock?.timeout, Theme.tokens.lock.timeoutDefault, root.testMode)
     // The last attempt was refused (the card shows it until the user types).
     property bool failed: false
+    // What the card says about it: the attempt's PAM messages (pam_faillock's "account locked"), else the fixed text.
+    property string failedText: L.refusalText([])
+    // The attempt's PAM messages so far (the prompt excluded); PAM sends them before the prompt.
+    property var attemptMessages: []
     // The typed text, held only from submit until PAM asks for it.
     property string pending: ""
     // The password was accepted; the lock goes handoffMs later.
@@ -148,6 +152,7 @@ Scope {
             return;
         root.failed = false;
         root.pending = typed;
+        root.attemptMessages = [];
         if (!pam.start()) {
             root.pending = "";
             root.refuse();
@@ -156,6 +161,7 @@ Scope {
 
     function refuse(): void {
         console.info("lock: authentication failed");
+        root.failedText = L.refusalText(root.attemptMessages);
         root.failed = true;
         root.attemptFailed();
     }
@@ -370,6 +376,8 @@ Scope {
             pam.respond(root.pending);
             root.pending = "";
         }
+        onPamMessage: root.attemptMessages = L.collectMessage(root.attemptMessages, pam.message, pam.responseRequired)
+        // One refusal per attempt: error() is always followed by completed(PamResult.Error), which refuses.
         onCompleted: result => {
             root.pending = "";
             if (result === PamResult.Success)
@@ -379,7 +387,6 @@ Scope {
         }
         onError: {
             root.pending = "";
-            root.refuse();
         }
     }
 
@@ -485,6 +492,7 @@ Scope {
                         enterAnimated: false
                         revealed: surface.shown
                         failed: root.failed
+                        failedText: root.failedText
                         busy: pam.active || root.unlocking
                         onSubmitted: typed => root.authenticate(typed)
 
