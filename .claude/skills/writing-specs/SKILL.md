@@ -210,10 +210,15 @@ repository at all (read-only checkout, no permission), say so, write it where yo
 can, and state in the handoff where it belongs — do not silently drop the
 placement decision.
 
+In the same commit, add the project `CLAUDE.md` block from
+`project-claude-md.md` (next to this file). Without it, a colleague's Claude Code
+never learns the spec exists.
+
 Then hand it to the user and say plainly which parts are their answers, which are
 your inferences from the code, and which questions stayed open. Point out that
-from here on the spec is kept true by the pipeline: decisions land at the design
-gate, state sections get updated by the plan's last task.
+from here on the spec is kept true by the pipeline: decisions land at the plan
+gate, state sections get updated after the run's last task, before the branch
+review.
 
 ## Red flags
 
