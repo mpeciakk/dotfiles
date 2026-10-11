@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { load, plain } from "./qmljs.mjs";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { load, plain, strip } from "./qmljs.mjs";
 
 const N = load("lib/notifs.js");
 const L = load("lib/theme.js").defaults.layout.center;
@@ -53,4 +56,12 @@ test("iconSource(): image wins, then an absolute or image:// appIcon, then the t
     assert.equal(N.iconSource({ image: "", appIcon: "firefox" }, theme), "/icons/firefox.png");
     assert.equal(N.iconSource({ image: "", appIcon: "nope" }, theme), "");
     assert.equal(N.iconSource({ image: "", appIcon: "" }, theme), "");
+});
+
+// Every island window keeps a Toast layer mounted, hidden when not lit. A bar run there renders the window at full
+// rate for toastBarMs on every arrival (DND, other screens) with nothing on screen: only the shown toast runs it.
+test("Toast.qml: the bar runs only while the toast is active", () => {
+    const src = strip(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "states/Toast.qml"), "utf8"));
+    assert.match(src, /function onArrived\(\): void \{\s*if \(root\.active\)\s*root\.restartBar\(\);\s*\}/);
+    assert.match(src, /onActiveChanged: \{\s*if \(root\.active\)\s*root\.restartBar\(\);\s*else\s*barRun\.stop\(\);\s*\}/);
 });

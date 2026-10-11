@@ -39,16 +39,21 @@ Item {
         barRun.restart();
     }
 
+    // Only the shown toast runs the bar: every island window keeps this layer mounted, and a run in a hidden one
+    // (DND, another screen, closed early) renders that window at full rate for toastBarMs with nothing on screen.
     onActiveChanged: {
         if (root.active)
             root.restartBar();
+        else
+            barRun.stop();
     }
 
     Connections {
         target: Notifs
 
         function onArrived(): void {
-            root.restartBar();
+            if (root.active)
+                root.restartBar();
         }
     }
 
