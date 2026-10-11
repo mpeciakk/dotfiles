@@ -42,9 +42,11 @@ PanelWindow {
 
     onMaskModeChanged: root.reportMask()
     onLineChanged: IslandState.reportLine(root.screen.name, root.line)
+    onDevicePixelRatioChanged: IslandState.reportRatio(root.screen.name, root.devicePixelRatio)
     Component.onCompleted: {
         root.reportMask();
         IslandState.reportLine(root.screen.name, root.line);
+        IslandState.reportRatio(root.screen.name, root.devicePixelRatio);
     }
 
     Connections {

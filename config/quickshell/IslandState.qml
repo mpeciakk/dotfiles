@@ -30,6 +30,8 @@ Singleton {
     property var restLoadedByOutput: ({})
     // output name -> whether that output's island is collapsed to the line right now.
     property var lineByOutput: ({})
+    // output name -> its island window's real (fractional) pixel ratio, for the lock surface, which has none of its own.
+    property var ratioByOutput: ({})
     readonly property string lineOn: Object.keys(root.lineByOutput).filter(n => root.lineByOutput[n]).sort().join(",")
 
     // The launcher, as the IPC sees it. The lit Launcher layer owns the field and mirrors its mode, row
@@ -152,6 +154,10 @@ Singleton {
 
     function remountLock(): void {
         root.lockRemounted();
+    }
+
+    function reportRatio(output: string, ratio: real): void {
+        root.ratioByOutput = Object.assign({}, root.ratioByOutput, { [output]: ratio });
     }
 
     function reportLine(output: string, on: bool): void {

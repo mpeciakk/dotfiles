@@ -36,12 +36,16 @@ test("the desktop and the lock overlay request the same wallpaper sourceSize", (
     for (const s of rest) assert.equal(s, first);
 });
 
-test("the lock surface's wallpaper asks the screen for its ratio: WlSessionLockSurface has none of its own", () => {
-    // WlSessionLockSurface has only contentItem, visible, width, height and screen: surface.devicePixelRatio is
-    // undefined in QML and the sourceSize would be NaN.
+test("the lock surface's wallpaper uses the island window's real ratio of its output, so it is the same cache hit", () => {
+    // WlSessionLockSurface has no devicePixelRatio of its own (surface.devicePixelRatio is undefined: a NaN size), and
+    // the screen's is rounded up (2 at 1.5): a 5120x2880 synchronous decode on every lock. The island window of the
+    // same output reports its ratio (IslandState.ratioByOutput); the screen's is only the fallback before it has.
     const size = sourceSizeOf({ file: "Lock.qml", ref: "surface" });
-    assert.ok(/screen\.devicePixelRatio/.test(size), size);
     assert.ok(!/surface\.devicePixelRatio/.test(size), size);
+    assert.match(size, /IslandState\.ratioByOutput\[\s*@\.screen\.name\s*\]\s*\?\?\s*@\.screen\.devicePixelRatio/);
+    const island = src("Island.qml");
+    assert.match(island, /IslandState\.reportRatio\(\s*root\.screen\.name\s*,\s*root\.devicePixelRatio\s*\)/);
+    assert.match(island, /onDevicePixelRatioChanged:\s*IslandState\.reportRatio\(/);
 });
 
 test("a hidden content layer (opacity 0) allocates no offscreen layer for the blur", () => {
