@@ -101,10 +101,10 @@ test("resolve(): dark ciekłe", () => {
     assert.equal(c.onAccent, T.hex("#121118"));
     assert.equal(c.danger, T.hex("#F2A7B8"));
     assert.equal(c.ring, T.rgba(255, 255, 255, 0.07));
-    assert.equal(c.shadowColor, T.rgba(10, 6, 20, 0.5));
-    assert.equal(c.shadowY, 18);
-    assert.equal(c.shadowBlur, 60);
-    assert.equal(c.shadowPad, 78);
+    assert.equal(c.shadowColor, T.rgba(10, 6, 20, 0.38));
+    assert.equal(c.shadowY, 12);
+    assert.equal(c.shadowBlur, 36);
+    assert.equal(c.shadowPad, 48);
     assert.deepStrictEqual(c.lockWallpaper, { blur: 22, saturate: 1.2, brightness: 0.78, scale: 1.08 });
 });
 
@@ -124,9 +124,9 @@ test("resolve(): light subtelne and light mocne", () => {
     assert.equal(s.onAccent, T.hex("#FFFFFF"));
     assert.equal(s.danger, T.hex("#B4405E"));
     assert.equal(s.ring, T.rgba(255, 255, 255, 0.3));
-    assert.equal(s.shadowColor, T.rgba(40, 30, 70, 0.2));
-    assert.equal(s.shadowBlur, 50);
-    assert.equal(s.shadowPad, 68);
+    assert.equal(s.shadowColor, T.rgba(20, 16, 30, 0.16));
+    assert.equal(s.shadowBlur, 30);
+    assert.equal(s.shadowPad, 40);
     assert.deepStrictEqual(s.lockWallpaper, { blur: 18, saturate: 1.2, brightness: 0.92, scale: 1.08 });
     const m = plain(T.resolve(T.defaults, "light", "mocne", true));
     assert.equal(m.islandBg, T.rgba(232, 228, 238, 0.58));

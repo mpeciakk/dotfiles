@@ -24,7 +24,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 | # | Decyzja |
 |---|---|
 | W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura i saturacja globalnie w niri (`blur { passes 3; offset 5; saturation 2.0 }`), `layer-rule` dla przestrzeni nazw `wyspa` tylko z `xray false` (bez `blur true` i bez `saturation`: w regule warstwy działałyby na całej pełnoekranowej powierzchni, gdy powłoka nie ustawia regionu — w trybie kreski nad grą podbijały saturację całego ekranu; naprawione 2026-10-11). Poziomy szkła zmieniają w locie tylko tło i kafle. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
-| W2 | Cień `0 18 60` rysuje QML (`MultiEffect` pod kształtem) — cień z `layer-rule` niri jest prostokątem powierzchni. |
+| W2 | Cień rysuje QML (`MultiEffect` pod kształtem) — cień z `layer-rule` niri jest prostokątem powierzchni. Pełny (ciemny `0 12 36` @38%, jasny `0 10 30` neutralny @16% — zmniejszone 2026-10-11, fioletowy cień jasnego motywu dawał poświatę) od wysokości 160 px (`sizes.shadowFullH`); niższa wyspa ma cień proporcjonalnie mniejszy i słabszy (spoczynek 36 px ≈ 0,23), zmienia się razem z morfingiem. |
 | W3 | Powierzchnia wyspy pełnoekranowa (`ExclusionMode.Ignore`, maska = kształt; w stanach modalnych pełna — scrim i „klik poza”). Exclusive zone 36/0 trzyma osobny pusty `Strut` przy górnej krawędzi. Blok `struts` w `config/niri/layout.kdl` usunięty (kompensował stary `Border`). |
 | W4 | Pełny ekran: `ToplevelManager` (`fullscreen` + `screens`), zawężony do aktywnego obszaru niri danego monitora. |
 | W5 | Font UI i mono konfigurowalne; domyślnie oba `JetBrainsMono Nerd Font` (Geist niezainstalowany). |
@@ -42,7 +42,7 @@ Otwarte: tray (może wróci na końcu).
 |---|---|
 | `island.bg` | `rgba(16,14,26,0.62)` + blur 24 px, saturate 1.5 |
 | `island.ring` | obrys 1 px `rgba(255,255,255,0.07)` po sylwetce z uszami |
-| `island.shadow` | `0 18 60 rgba(10,6,20,0.5)` |
+| `island.shadow` | `0 12 36 rgba(10,6,20,0.38)` (skalowany wysokością, zob. W2) |
 | `surface` (kafle w środku) | `#17161F` / karty `#1F1E2A` / hover `#26243A` |
 | `fg` | `#ECEAF2` |
 | `fg.muted` | `#A29DB3` |
@@ -67,7 +67,7 @@ Ten sam układ, kształty i ruch; podmieniane wyłącznie tokeny. Szkło w kolor
 |---|---|---|
 | `island.bg` | `#100E1A` @ 62% | `#E6E2EC` @ 80% (blur 24, saturate 1.3) |
 | `island.ring` | obrys `rgba(255,255,255,0.07)` | obrys `rgba(255,255,255,0.3)` |
-| `island.shadow` | `0 18 60 rgba(10,6,20,0.5)` | `0 18 50 rgba(40,30,70,0.2)` |
+| `island.shadow` | `0 12 36 rgba(10,6,20,0.38)` | `0 10 30 rgba(20,16,30,0.16)` |
 | `surface` (kafle) | `#17161F` | `#EFECF3` |
 | `card` / zaznaczenie | `#1F1E2A` | `#F3F1F6` |
 | `chip` / kbd | `#2C2A39` | `#DDD9E5` |

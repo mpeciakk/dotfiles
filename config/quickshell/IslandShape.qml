@@ -112,6 +112,8 @@ Item {
         id: shadowHost
 
         readonly property real pad: Theme.shadowPad
+        // A small island (rest, osd) gets a smaller, fainter shadow; it follows the morph.
+        readonly property real scale: Math.min(1, root.animH / Theme.sizes.shadowFullH)
 
         visible: !root.lineMode
         x: bodyItem.x - root.animEar - shadowHost.pad
@@ -142,8 +144,9 @@ Item {
             autoPaddingEnabled: false
             shadowEnabled: true
             shadowColor: Theme.shadowColor
-            shadowVerticalOffset: Theme.shadowY
-            shadowBlur: 1
+            shadowVerticalOffset: Theme.shadowY * shadowHost.scale
+            shadowBlur: shadowHost.scale
+            shadowOpacity: shadowHost.scale
             blurMax: Theme.shadowBlur
             maskEnabled: true
             maskInverted: true

@@ -77,7 +77,8 @@ var defaults = {
 
     fonts: { ui: "JetBrainsMono Nerd Font", mono: "JetBrainsMono Nerd Font" },
 
-    sizes: { iconStroke: 1.6, iconGrid: 24, ringWidth: 1, clockRest: 13 },
+    // shadowFullH: island height from which the shadow is full size; a lower island gets a proportionally smaller one.
+    sizes: { iconStroke: 1.6, iconGrid: 24, ringWidth: 1, clockRest: 13, shadowFullH: 160 },
 
     // Island states. r = bottom radius (lock: all corners).
     geom: {
@@ -229,8 +230,8 @@ var defaults = {
     },
 
     shadow: {
-        dark: { y: 18, blur: 60, color: rgba(10, 6, 20, 0.5) },
-        light: { y: 18, blur: 50, color: rgba(40, 30, 70, 0.2) }
+        dark: { y: 12, blur: 36, color: rgba(10, 6, 20, 0.38) },
+        light: { y: 10, blur: 30, color: rgba(20, 16, 30, 0.16) }
     },
     lockShadow: {
         dark: { y: 24, blur: 80, color: rgba(10, 6, 20, 0.45) },
