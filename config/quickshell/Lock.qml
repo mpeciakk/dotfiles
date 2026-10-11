@@ -99,8 +99,8 @@ Scope {
             return;
         // First the way in on the overlay (L.lockStep): this returns, and preludeTimer comes back here to lock. A
         // request during it waits for the same lock. During the hand-off the overlay turns round from where it is.
-        // A sleep: the instant mode goes on before the island closes, so the close morph of an open state (the power
-        // menu's Uśpij) is at zero durations too and leaves no stale frame in flight.
+        // A sleep: the instant mode goes on before the island closes, so the shape's close morph of an open state (the
+        // power menu's Uśpij) is instant; the content's short cross-fade still runs, under the opaque overlay.
         const sleep = source === "sleep";
         const wasInstant = Theme.lockInstant;
         if (sleep)
@@ -465,6 +465,7 @@ Scope {
                         // Synchronous, so the first frame has it (that frame must match the overlay's); a pixmap-cache hit:
                         // WlSessionLockSurface has no devicePixelRatio, so it takes the real ratio the island window of its
                         // output reported (the overlay's and Wallpaper.qml's), the screen's rounded-up one only before that.
+                        // An output plugged in while locked reports 2, 1, then its real ratio: each is a synchronous decode here.
                         asynchronous: false
                         sourceSize.width: surface.screen ? surface.screen.width * (IslandState.ratioByOutput[surface.screen.name] ?? surface.screen.devicePixelRatio) : 0
                         sourceSize.height: surface.screen ? surface.screen.height * (IslandState.ratioByOutput[surface.screen.name] ?? surface.screen.devicePixelRatio) : 0
