@@ -23,7 +23,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 
 | # | Decyzja |
 |---|---|
-| W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura globalna w niri (`blur { passes 3; offset 5 }`), `layer-rule` dla przestrzeni nazw `wyspa` z `xray false` i `saturation 2.0` (bez `blur true`). Poziomy szkła zmieniają w locie tylko tło i kafle. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
+| W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura i saturacja globalnie w niri (`blur { passes 3; offset 5; saturation 2.0 }`), `layer-rule` dla przestrzeni nazw `wyspa` tylko z `xray false` (bez `blur true` i bez `saturation`: w regule warstwy działałyby na całej pełnoekranowej powierzchni, gdy powłoka nie ustawia regionu — w trybie kreski nad grą podbijały saturację całego ekranu; naprawione 2026-10-11). Poziomy szkła zmieniają w locie tylko tło i kafle. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
 | W2 | Cień `0 18 60` rysuje QML (`MultiEffect` pod kształtem) — cień z `layer-rule` niri jest prostokątem powierzchni. |
 | W3 | Powierzchnia wyspy pełnoekranowa (`ExclusionMode.Ignore`, maska = kształt; w stanach modalnych pełna — scrim i „klik poza”). Exclusive zone 36/0 trzyma osobny pusty `Strut` przy górnej krawędzi. Blok `struts` w `config/niri/layout.kdl` usunięty (kompensował stary `Border`). |
 | W4 | Pełny ekran: `ToplevelManager` (`fullscreen` + `screens`), zawężony do aktywnego obszaru niri danego monitora. |

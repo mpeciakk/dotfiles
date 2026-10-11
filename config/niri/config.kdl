@@ -15,6 +15,9 @@ prefer-no-csd
 blur {
     passes 3
     offset 5
+    // Only where blur is on (the island's region). Not in the wyspa layer-rule: there it would
+    // saturate the whole full-screen surface whenever the shell sets no region (line mode).
+    saturation 2.0
 }
 
 screenshot-path "~/pictures/screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"

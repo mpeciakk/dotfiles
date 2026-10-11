@@ -61,3 +61,12 @@ test("empty, null and malformed inputs give no outputs", () => {
     assert.deepStrictEqual(plain(F.fullscreenOutputs([noScreens], [win("film", 1)], { "DP-2": 1 })), []);
     assert.deepStrictEqual(plain(F.fullscreenOutputs([null, tl("film", ["DP-2"])], [null, win("film", 1)], { "DP-2": 1 })), ["DP-2"]);
 });
+
+test("guard: the niri wyspa layer-rule renders nothing without a region (no saturation, no blur true)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const kdl = readFileSync(new URL("../../niri/window_rules.kdl", import.meta.url), "utf8").replace(/\/\/.*$/gm, "");
+    const rule = /layer-rule\s*\{\s*match namespace="\^wyspa\$"[\s\S]*?\n\}/.exec(kdl);
+    assert.ok(rule, "wyspa layer-rule present");
+    // In line mode the island sets no blur region; any of these then covers the whole full-screen surface.
+    assert.doesNotMatch(rule[0], /\bsaturation\b|\bblur\s+true\b|\bnoise\b/);
+});

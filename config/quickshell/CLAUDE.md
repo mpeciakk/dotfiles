@@ -118,7 +118,9 @@ Several of these properties exist only for tests (`restLoaded`, `contentState`, 
 `config/niri/bindings.kdl`: `Mod+Space` → `island toggle launcher`, `Mod+Shift+V` → `island launcherMenu clipboard`,
 `Mod+L` → `island lock`. The other binds (control, centre, media, power, hide, brightness keys) are commented there
 with their conflicts. Blur: the shell sets the blur region itself (`ext-background-effect`); the `layer-rule`
-for `namespace="^wyspa$"` in `config/niri/window_rules.kdl` has `xray false` and `saturation`, deliberately no `blur true`.
+for `namespace="^wyspa$"` in `config/niri/window_rules.kdl` has only `xray false`, deliberately no `blur true` and no `saturation`: either one renders over the whole
+full-screen surface when the shell sets no region (line mode), e.g. saturating a fullscreen game. The saturation
+lives in the global `blur` block of `config/niri/config.kdl`.
 
 ## Gotchas
 
