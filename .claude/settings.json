@@ -1,4 +1,5 @@
 {
+  "cleanupPeriodDays": 90,
   "env": {
     "CBM_ALLOWED_ROOT": "/home/m",
     "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
@@ -19,7 +20,46 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "opus",
+  "skillOverrides": {
+    "anthropic-skills:cloudflare": "off",
+    "anthropic-skills:cloudflare-email-service": "off",
+    "anthropic-skills:cloudflare-one": "off",
+    "anthropic-skills:workers-best-practices": "off",
+    "anthropic-skills:wrangler": "off",
+    "anthropic-skills:google-workspace": "off",
+    "anthropic-skills:import-memory": "off",
+    "anthropic-skills:the-humanizer": "user-invocable-only",
+    "anthropic-skills:docs": "name-only",
+    "anthropic-skills:pdf": "name-only",
+    "anthropic-skills:docx": "name-only",
+    "anthropic-skills:pptx": "name-only",
+    "anthropic-skills:xlsx": "name-only",
+    "dataviz": "name-only",
+    "update-config": "name-only",
+    "artifact-capabilities": "name-only",
+    "artifact-diagramming": "name-only",
+    "artifact-design": "name-only",
+    "schedule": "name-only",
+    "loop": "name-only",
+    "code-review": "user-invocable-only",
+    "simplify": "user-invocable-only",
+    "security-review": "user-invocable-only",
+    "keybindings-help": "user-invocable-only",
+    "fewer-permission-prompts": "user-invocable-only",
+    "init": "user-invocable-only"
+  },
+  "deniedMcpServers": [
+    {
+      "serverName": "claude.ai Claude Docs"
+    },
+    {
+      "serverName": "claude.ai Canva"
+    },
+    {
+      "serverName": "claude.ai Microsoft 365"
+    }
+  ],
   "hooks": {
     "PreToolUse": [
       {
@@ -98,43 +138,25 @@
   "worktree": {
     "baseRef": "head"
   },
+  "enableArtifact": false,
   "statusLine": {
     "type": "command",
     "command": "~/.claude/hooks/statusline",
     "padding": 0
   },
   "enabledPlugins": {
-    "claude-code-wakatime@wakatime": false,
     "context7@context7-marketplace": true,
-    "github@claude-plugins-official": false,
-    "document-skills@anthropic-agent-skills": false,
-    "frontend-design@claude-plugins-official": false,
-    "cloudflare@cloudflare": false,
-    "cowork-plugin-management@synced": false
+    "cowork-plugin-management@synced": false,
+    "pyright-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "session-report@claude-plugins-official": true,
+    "cloudflare@cloudflare": true
   },
   "extraKnownMarketplaces": {
-    "claude-hud": {
-      "source": {
-        "source": "github",
-        "repo": "jarrodwatts/claude-hud"
-      }
-    },
     "context7-marketplace": {
       "source": {
         "source": "github",
         "repo": "upstash/context7"
-      }
-    },
-    "wakatime": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/wakatime/claude-code-wakatime.git"
-      }
-    },
-    "anthropic-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/skills"
       }
     },
     "cloudflare": {
@@ -153,46 +175,12 @@
       "effortLevel": "high"
     }
   },
-  "agentPushNotifEnabled": false,
-  "skillOverrides": {
-    "anthropic-skills:cloudflare": "off",
-    "anthropic-skills:cloudflare-email-service": "off",
-    "anthropic-skills:cloudflare-one": "off",
-    "anthropic-skills:workers-best-practices": "off",
-    "anthropic-skills:wrangler": "off",
-    "anthropic-skills:google-workspace": "off",
-    "anthropic-skills:import-memory": "off",
-    "anthropic-skills:the-humanizer": "user-invocable-only",
-    "anthropic-skills:docs": "name-only",
-    "anthropic-skills:pdf": "name-only",
-    "anthropic-skills:docx": "name-only",
-    "anthropic-skills:pptx": "name-only",
-    "anthropic-skills:xlsx": "name-only",
-    "dataviz": "name-only",
-    "update-config": "name-only",
-    "artifact-capabilities": "name-only",
-    "artifact-diagramming": "name-only",
-    "artifact-design": "name-only",
-    "schedule": "name-only",
-    "loop": "name-only",
-    "code-review": "user-invocable-only",
-    "simplify": "user-invocable-only",
-    "security-review": "user-invocable-only",
-    "keybindings-help": "user-invocable-only",
-    "fewer-permission-prompts": "user-invocable-only",
-    "init": "user-invocable-only"
-  },
-  "deniedMcpServers": [
-    {"serverName": "claude.ai Claude Docs"},
-    {"serverName": "claude.ai Canva"},
-    {"serverName": "claude.ai Microsoft 365"}
-  ],
-  "enableArtifact": false,
   "autoCompactWindow": 500000,
-  "cleanupPeriodDays": 90,
+  "advisorModel": "fable",
   "promptSuggestionEnabled": false,
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "crossSessionInbound": "accept"
+  "crossSessionInbound": "accept",
+  "agentPushNotifEnabled": false
 }
