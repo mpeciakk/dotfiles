@@ -47,7 +47,7 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 | `IslandShape.qml` | the silhouette: one path with ears, shadow, ring stroked along it |
 | `IslandContent.qml` | one layer per state (`sources`), cross-fade |
 | `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode) |
-| `Wallpaper.qml` | wallpaper per screen |
+| `Wallpaper.qml` | wallpaper per screen, by mode, cross-faded (DESIGN W18) |
 | `Lock.qml`, `LockOverlay.qml`, `LockPreview.qml` | `WlSessionLock` + PAM; the overlay (in each island window) plays the lock's way in and back; the preview shows the card without locking |
 | `lib/` | pure JS (`.pragma library`): `theme`, `island`, `niri`, `fullscreen`, `notifs`, `power`, `lock`, `slider`, `fuzzy`, `calc`, `icons`, `autotheme`, `launch` |
 | `states/` | `Rest`, `Osd`, `Toast`, `Center`, `Launcher`, `Control`, `Media`, `Power`, `PowerDone`, `LockCard` |

@@ -9,6 +9,8 @@ Singleton {
     id: root
 
     property var host: ({})
+    // The FileView loads asynchronously: until it has answered, `host` is not the config yet.
+    property bool hostLoaded: false
     property string modeOverride: ""
     property string levelOverride: ""
     property string autoMode: ""
@@ -32,6 +34,8 @@ Singleton {
     readonly property var appColors: root.c.appColors
     readonly property var lockWallpaper: root.c.lockWallpaper
     readonly property string wallpaper: {
+        if (!root.hostLoaded)
+            return "";
         const p = T.wallpaperFor(root.host.wallpaper ?? "~/.config/dotfiles/wp2.jpg", root.mode);
         return p.startsWith("~") ? Quickshell.env("HOME") + p.slice(1) : p;
     }
@@ -129,8 +133,12 @@ Singleton {
             } catch (e) {
                 root.host = ({});
             }
+            root.hostLoaded = true;
         }
-        onLoadFailed: root.host = ({})
+        onLoadFailed: {
+            root.host = ({});
+            root.hostLoaded = true;
+        }
     }
 
     IpcHandler {

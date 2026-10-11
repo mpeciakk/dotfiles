@@ -62,3 +62,22 @@ test("a hidden content layer (opacity 0) allocates no offscreen layer for the bl
     assert.match(m[0], /slot\.blur > 0/);
     assert.match(m[0], /slot\.opacity > 0/);
 });
+
+test("the cross-fade hands the shown wallpaper back before retargeting the front, and only a settled one", () => {
+    // back must take the old url while front still holds it (a cache hit), and front must be hidden before its
+    // new source is set (a cache hit is Ready inside the assignment). Mid-change the back keeps what is shown.
+    const m = src("Wallpaper.qml").match(/onUrlChanged:\s*\{([\s\S]*?)\n    \}/);
+    assert.ok(m, "Wallpaper.qml: no onUrlChanged");
+    const body = m[1];
+    const at = re => { const i = body.search(re); assert.ok(i >= 0, `${re}`); return i; };
+    assert.match(body, /if \(front\.status === Image\.Ready && !fade\.running\)\s*back\.source = front\.source;/);
+    assert.ok(at(/back\.source = front\.source/) < at(/front\.source = root\.url/));
+    assert.ok(at(/front\.opacity = 0/) < at(/front\.source = root\.url/));
+});
+
+test("no wallpaper until the host config has loaded: a start does not show the fallback first", () => {
+    const theme = src("Theme.qml");
+    assert.match(theme, /readonly property string wallpaper: \{\s*if \(!root\.hostLoaded\)\s*return "";/);
+    assert.match(theme, /onLoaded: \{[\s\S]*?root\.hostLoaded = true;/);
+    assert.match(theme, /onLoadFailed: \{[\s\S]*?root\.hostLoaded = true;/);
+});

@@ -27,11 +27,13 @@ PanelWindow {
     color: "black"
 
     // A new wallpaper fades in over the old one once decoded; the old one is released after the fade (a 4K bitmap
-    // is ~33 MiB, DESIGN W17). The old url is still held by `front` when `back` takes it: a pixmap-cache hit.
+    // is ~33 MiB, DESIGN W17). The old url is still held by `front` when `back` takes it: a pixmap-cache hit. A change
+    // while the previous one is still decoding or fading (or failed) leaves `back` on what it shows.
     Component.onCompleted: front.source = root.url
     onUrlChanged: {
+        if (front.status === Image.Ready && !fade.running)
+            back.source = front.source;
         fade.stop();
-        back.source = front.source;
         front.opacity = 0;
         front.source = root.url;
     }
@@ -64,7 +66,7 @@ PanelWindow {
         onStatusChanged: {
             if (front.status === Image.Ready && front.opacity < 1)
                 fade.restart();
-            else if (front.status === Image.Error || front.status === Image.Null)
+            else if (front.status === Image.Null)
                 back.source = "";
         }
 

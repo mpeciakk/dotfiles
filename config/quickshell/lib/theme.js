@@ -431,7 +431,8 @@ function resolve(tokens, mode, level, glass) {
 }
 
 // The host config's `wallpaper`: one path for both modes, or { dark, light } shown by mode (the other half when
-// the mode's is missing). With a pair, modeSource "wallpaper" stays in the mode it starts in: each half confirms it.
+// the mode's is missing). With a pair, modeSource "wallpaper" judges the half it picked itself: it settles on a half
+// that confirms its own mode (Świt is 0.41, below wallpaperDark: the shipped pair always ends dark). Use manual or sun.
 function wallpaperFor(wallpaper, mode) {
     if (typeof wallpaper === "string")
         return wallpaper;
