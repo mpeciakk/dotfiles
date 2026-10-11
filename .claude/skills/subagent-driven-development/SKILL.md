@@ -1,280 +1,79 @@
 ---
 name: subagent-driven-development
-description: Use when executing an approved implementation plan task by task — one fresh implementer subagent per task, with a review between tasks. Triggers on "go", "execute the plan", "implement the plan", "next task", and on resuming a plan run after compaction. Applies whether the tasks are independent or sequential.
+description: Use when executing an approved plan task by task — one fresh implementer subagent per task, then one whole-branch review. Triggers on "go", "execute the plan", "next task", "kontynuuj", and on resuming a run after compaction.
 ---
 
 # Subagent-Driven Development
 
-Execute an approved plan one task at a time: a fresh implementer subagent per
-task, a review after each (spec compliance + code quality), a fix loop, then
-one broad whole-branch review.
+Execute an approved plan one task at a time: a fresh implementer per task,
+then one review of the whole branch.
 
-## Your role: controller, not implementer
+## Your role
 
-**You do not write the code.** You construct exactly the context each subagent
-needs and adjudicate what comes back. A fresh implementer working from a task
-brief beats a controller carrying six tasks of history — and your context,
-spent on edits, is no longer available for the cross-task decisions only you
-can make. Once the run records a workspace, a PreToolUse hook denies Edit/Write
-from the main thread; that is the rule, not an obstacle to route around — and
-routing around it through Bash (`cat > file`, `sed -i`) trades a visible
-handoff for an invisible one.
+You coordinate. Implementers write the task code, so your context stays small
+enough to talk in for the whole run. You may edit yourself — a spec section, a
+one-line fix, a finding cheaper to fix than to explain — but only while no
+implementer is in flight: one writer per working tree. Commit what you changed
+before the next dispatch; an implementer stops on changes it did not make.
 
-**One implementer at a time.** Two agents writing in one working tree fight
-over the index and the lock. Parallel dispatch is for read-only agents only.
-
-**After a dispatch, the turn ends.** The harness re-invokes this session with a
-`<task-notification>` when the subagent finishes — that is the wake signal, and
-it arrives on its own. Do not schedule a `ScheduleWakeup` to check on it and do
-not poll `ListAgents`: each wakeup re-reads your entire context, and one
-`ScheduleWakeup` puts the session in a loop that must keep calling itself to
-stay alive. Measured in this setup's own transcripts: 83% of all wakeups were
-waiting on a subagent, one task drew five `ListAgents` calls in 26 seconds, and
-the notification arrived by itself half a minute later anyway — millions of
-tokens per run for an answer that was already coming. A guard now denies it
-(hooks/flow-guard). Say what you dispatched and stop; a turn whose only visible
-output is that sentence is correct here. The one sanctioned wakeup is a single
-fallback at 1200s or more, for work that might hang and never notify at all.
-
-**Progress lives in the state file.** Compaction has made controllers
-re-dispatch entire completed task sequences — the most expensive failure
-observed in real sessions. After each clean review:
-
-```bash
-~/.claude/hooks/flow-state task N done "<base7>..<head7>, review clean"
-```
-
-At skill start, read `~/.claude/hooks/flow-state show`: tasks marked complete
-are done. Resume at the first task that is not. After compaction, trust the
-state file and `git log` over your recollection.
+**After a dispatch, the turn ends.** The harness wakes you with a
+`<task-notification>`. Do not poll with `ScheduleWakeup` or `ListAgents`.
 
 ## Before Task 1
 
-1. Ensure an isolated workspace with a clean baseline — invoke
-   using-git-worktrees, and confirm `worktree`, `branch` and `base` are
-   recorded. A ledger entry `0: complete` noting a green baseline means setup and
-   the suite are already done; the `worktree` field alone does not, since it is
-   recorded one step before the suite runs.
-2. `~/.claude/hooks/flow-state set stage=implement plan=<absolute plan path>` — pass the plan
-   path even when writing-plans already recorded it; a plan the user handed you
-   was never recorded, and `implement` without one is refused.
-   **Check your tree first:** if `git rev-parse --show-toplevel` is not the
-   recorded `worktree`, re-enter it (`EnterWorktree` with `path`) before
-   anything else. Every script below resolves against your cwd, so a resumed
-   session sitting in the main checkout would brief, commit and review the
-   wrong tree.
-3. Read the plan; note its Global Constraints and the interfaces tasks share.
-4. The ledger is the progress record — `flow-state task N ...` per task, shown
-   live on the status line. If a todo tool is available in this session, mirror
-   the plan into it as well; there is no reliable built-in one, so nothing
-   depends on it.
-5. **Pre-flight scan.** Read the plan once for tasks that contradict each other
-   or the Global Constraints. Present what you find as one batched question,
-   each finding beside the plan text, before execution starts — not one
-   interrupt per discovery. If it is clean, proceed without comment.
+1. A workspace with a green baseline: using-git-worktrees. Ledger entry `0:
+   done` means it is already there.
+2. `~/.claude/hooks/flow-state set stage=implement plan=<absolute plan path>`.
+3. Resuming: `flow-state show`. Tasks marked done are done — start at the
+   first one that is not.
 
-## The per-task loop
+## Per task
 
-1. **Brief.** The scripts live in this skill's directory, so call them by
-   absolute path — your cwd is the worktree:
+1. **Brief:** `~/.claude/skills/subagent-driven-development/scripts/task-brief N`
+   prints the brief's path — the task's text plus everything above the first
+   task in the plan.
+2. **Record:** `~/.claude/hooks/flow-state task N started`.
+3. **Dispatch** `subagent_type: "implementer"`, `run_in_background: true`.
+   The prompt carries: task number and name; worktree and branch (`flow-state
+   get worktree` / `get branch`); the brief path; the report path (brief name
+   with `report` for `brief`); anything from earlier tasks the brief cannot
+   know. Never session history, never the whole plan.
+4. **Read the status:**
+   - **DONE** — the reply names commits and a passing test run. Check the
+     commits exist (`git log`), then record:
+     `flow-state task N done "<base7>..<head7>"`. Next task.
+   - **DONE_WITH_CONCERNS** — read them. A correctness or scope concern gets
+     resolved before the next task; an observation goes to the branch review.
+   - **NEEDS_CONTEXT** — supply it, re-dispatch.
+   - **BLOCKED** — change something first: more context, a smaller slice,
+     Opus, or the user if the plan itself is wrong.
+   - **Plan conflict** — when the implementer shows the plan is wrong, that is
+     the user's call. Show the plan line and the evidence.
 
-   ```bash
-   ~/.claude/skills/subagent-driven-development/scripts/task-brief N
-   ```
+Do not check in between tasks. Stop only for BLOCKED you cannot resolve,
+ambiguity the plan does not settle, or the end of the plan.
 
-   It reads the plan from the run state and prints the brief's path, nothing
-   else — use that path in the dispatch. The brief carries the task's full text plus the plan's Global Constraints,
-   and it is the single source of requirements — exact values, magic strings,
-   signatures and test cases live there and nowhere else.
-2. **Record the base and the model** before dispatching, in the ledger — a
-   compaction between dispatch and review would otherwise lose the base, and
-   `HEAD~1` silently drops all but the last commit of a multi-commit task. Pick
-   the model first (step 3's rule) and record it every time, `sonnet` included,
-   so fix rounds can be read per model. One `started` entry per task: a second
-   `task N` call replaces the first and drops `base=`.
+## After the last task
 
-   ```bash
-   ~/.claude/hooks/flow-state task N started "base=HEAD model=<haiku|sonnet>"
-   ```
-
-   `flow-state` stores `base=HEAD` as the SHA. When the reviewer needs the base,
-   read it back with `~/.claude/hooks/flow-state get tasks`.
-3. **Dispatch the implementer** — `subagent_type: "implementer"`. See Dispatching
-   below for what the prompt carries. Dispatch with `run_in_background: true`,
-   then end the turn and wait for the task notification (with
-   `CLAUDE_CODE_FORK_SUBAGENT=0` the parameter is back, and a foreground
-   dispatch would block the session). The definition runs Sonnet 5.5; pass
-   `model: "haiku"` for every task that is small, surgical or paste-ready — a
-   spec sync, a config or one-value change, a brief whose complete change is
-   text to insert as given. Haiku is the rule for those, not the exception.
-   Sonnet takes tasks where an implementation has to be built, and tasks whose
-   brief carries decision code (an algorithm, a format, a lock order, the first
-   instance of a pattern): transcribing that is where a wrong plan gets caught.
-4. **Handle the status** (below).
-5. **Dispatch the task reviewer** — `subagent_type: "task-reviewer"`, with
-   `run_in_background: true` (then end the turn, as in step 3) and
-   `model: "opus"` when the diff touches auth, secrets or untrusted input;
-   concurrency or lock order; a data migration or storage format; a public API
-   contract — or exceeds ~400 changed lines. Docs and spec-sync diffs stay on
-   Sonnet, and a re-review keeps the first review's model. Record the choice in
-   the `done` note of step 7, never a second `started` call (it would drop
-   `base=`): `reviewer=opus reason=<trigger>`.
-   It gets BASE and HEAD and builds the review package itself, so the diff
-   never enters your context. On a re-review pass the same `BASE` and the new
-   HEAD (not just the fix commits), so the re-review judges the task, not the
-   patch — and pass the prior findings plus the fixer's report alongside it.
-   Without that, a fresh reviewer either re-litigates ground the fixer already
-   covered, or — hunting for something to say — flags a new nitpick each round.
-   Tell it what to treat as settled; that single habit is what separated a
-   clean second review from a real run's ten-round one.
-
-   A reviewer BLOCKED on "no commits in BASE..HEAD" means the implementer's
-   commits are not in this tree: find them (`git log --all --oneline -5`)
-   before anything else — never re-dispatch the reviewer unchanged.
-6. **Fix loop, two rounds maximum.** Critical and Important findings go to ONE
-   `fixer` dispatch with the complete list, with `run_in_background: true`
-   (then end the turn, as in step 3) — per-finding fixers each rebuild
-   context and re-run suites, which in a real session cost more than all its
-   tasks combined. Its report must contain the covering tests, the command and
-   the output before you re-dispatch the review. Minor findings go into the
-   ledger note and get handed to the final review to triage. An Approved review
-   whose findings are all Minor, with every ⚠️ resolved, ends the task: its
-   Minor findings go to the ledger, never to a fixer. Why: 15 of 147 fixers ran
-   after an Approved review.
-
-   **Circuit breaker: two rounds, not five — and the third is denied by the
-   guard.** If a second fix-and-re-review still does not reach Approved, stop.
-   Past two rounds the reviewer is not finding new defects, it is finding the
-   next variant of one defect, and each round buys a fixer, a review and a slice
-   of your context to patch a symptom. Two clean rounds of disagreement is a
-   signal about the brief or the task: it is ambiguous, or the task was too big
-   to be one task, or the reviewer and the plan disagree about what correct
-   means, or the model is too weak for it. The history this cap came from: 39
-   tasks went past two rounds, 29 of them as fix→review→fix loops that looked
-   like progress, the worst eight rounds across two hours and forty minutes of
-   patching escape cases one at a time. Bring it to the user — the reviewer's
-   findings, what the brief actually requires, and your read on which of the
-   four it is — rather than looping a third time on your own judgment.
-7. **Record it.** `flow-state task N done ...`, mark the todo done, move on
-   — without checking in. After an Opus review the note ends with its choice:
-   `"<base7>..<head7>, review clean, reviewer=opus reason=<trigger>"`. The approved plan is the instruction. Stop only for
-   BLOCKED you cannot resolve, ambiguity the plan does not settle, or the end
-   of the plan.
-
-After the last task, run the whole-branch review — requesting-code-review owns
-how to bound the diff and which template to fill; pass it the Minor findings you
-accumulated. Acting on its findings follows requesting-code-review, step 3.
-Skip it in one case only: a single-task run on development-workflow's
-small lane (the run slug starts with `small/`), where the task review already
-covered the entire branch. Two tasks or more, or any doubt: run it. Then record that the gate ran, because a compaction after the last
-task otherwise leaves a state that looks finished when the branch was never
-reviewed:
+1. **Spec state.** Bring the living spec up to date (`flow-state get spec`).
+   The decision rows went in at the plan gate; the sections describing state —
+   architecture, data model, API, documented behaviour — change now, for every
+   section this branch made untrue. You hold the whole change and no
+   implementer is in flight: edit them yourself, cite code by path and symbol,
+   commit on the branch. Nothing touched the spec's claims: say so in one line.
+2. **Branch review:** requesting-code-review. Pass it the plan path, `base`
+   from the run state, HEAD, the spec sections you updated, and any concerns
+   implementers raised. Act on it per that skill, then record:
 
 ```bash
-~/.claude/hooks/flow-state task branch-review done "<base7>..<head7>, findings triaged"
+~/.claude/hooks/flow-state task branch-review done "<base7>..<head7>"
 ```
 
 Then finishing-a-development-branch.
 
-## Implementer status
-
-**DONE** → dispatch the task reviewer with BASE and HEAD.
-
-**DONE_WITH_CONCERNS** → read the concerns first. Correctness or scope
-concerns get resolved before review; observations ("this file is getting
-large") are noted and review proceeds.
-
-**NEEDS_CONTEXT** → supply what was missing and re-dispatch.
-
-**BLOCKED** → change something before retrying: more context, a stronger
-model, a smaller slice of the task, or escalate to the user if the plan itself
-is wrong. Never force the same model to retry unchanged, and never quietly
-fix it yourself — that is the context pollution this skill avoids.
-
-**⚠️ Cannot verify from diff** (from the reviewer) → requirements living in
-unchanged code or spanning tasks. They do not block the rest of the review,
-but you resolve each one before marking the task complete; you hold the
-cross-task context the reviewer lacks. A confirmed gap is a failed spec review:
-back to the implementer, then re-review.
-
-**A finding that conflicts with what the plan mandates** → the user's call.
-Present the finding and the plan text, ask which governs. Do not dismiss the
-finding, and do not dispatch a fix that contradicts the plan.
-
-## Dispatching
-
-The roles live in `~/.claude/agents/` — `implementer`, `task-reviewer`, `fixer`,
-`branch-reviewer`. Each definition carries its own system prompt, model, effort,
-and tool restrictions, so you do not paste a role description into a prompt: the
-reviewers cannot edit files at all (the harness withholds Edit/Write from them),
-and the implementer and fixer get the test-driven-development skill preloaded.
-Pass `model:` only to override a definition's default — `haiku` for a small,
-surgical or paste-ready implementer task (step 3), `opus` for a
-task-reviewer on the named triggers (step 5: auth, secrets or untrusted input;
-concurrency or lock order; a data migration or storage format; a public API
-contract; or ~400+ changed lines) or for one genuinely hard implementer task.
-
-Your prompt supplies only what varies per dispatch:
-
-| Role | The prompt carries |
-|---|---|
-| `implementer` | task number and name; the **worktree and branch** (`flow-state get worktree` / `get branch` — never `pwd`, which lies on a resumed session); the brief path; the report path; one line on where this task fits; interfaces and decisions from earlier tasks the brief cannot know; your resolution of any ambiguity you noticed |
-| `task-reviewer` | brief path, implementer report path, BASE and HEAD; on a re-review, also the prior findings and the fixer's report, so settled ground is named as settled |
-| `fixer` | the worktree and branch; the verbatim finding list with file:line each; the brief path; the existing report path to append to |
-| `branch-reviewer` | what was built, the requirements, BASE and HEAD of the whole branch, and the run's deferred Minor findings as their own block |
-
-If `flow-state get worktree` prints nothing, stop: the run has no workspace and
-using-git-worktrees has not run. Do not dispatch into a workspace nobody recorded.
-
-Never pass `isolation: "worktree"` to a writer. That hands it a *different*
-working tree, and its commits never reach the branch you are building. The guard
-denies it, but the dispatch is yours to get right.
-
-### Hygiene
-
-Everything you paste into a dispatch — and everything a subagent prints back —
-stays in your context for the rest of the session and is re-read every turn. So
-hand artifacts over as files:
-
-- **The report file** is named after the brief (`task-N-brief.md` →
-  `task-N-report.md`). Detail goes there; the subagent returns status, commits, a
-  one-line test summary, and concerns. Fix dispatches append to the same file.
-- **Never paste session history.** A real dispatch reached 42k characters of
-  which 99% was accumulated prior-task summaries. A fresh subagent needs its
-  task, the interfaces it touches, and the constraints. Nothing else. Pull exact
-  signatures with cbm `get_code_snippet`/`search_graph` rather than reading files
-  into your own context to quote them.
-- **Never pre-judge a reviewer's findings.** If your prompt contains "do not
-  flag", "at most Minor", or "the plan chose", stop — you are buying yourself out
-  of a review loop. Let the reviewer raise it and adjudicate afterwards.
-
-## Example
-
-```
-Task 2: Recovery modes
-[task-brief → dispatch implementer with brief + report paths + interfaces]
-Implementer: DONE, added verify/repair modes, 8/8 passing, 2 commits.
-[dispatch task reviewer with a1b2c3d..e4f5g6h]
-Reviewer: Spec ❌ missing progress reporting; extra --json flag. Important: magic number 100.
-[ONE fix subagent with all three findings]
-Fixer: removed --json, added progress reporting, extracted PROGRESS_INTERVAL, 8/8 passing.
-[re-review] Spec ✅, quality Approved.
-[flow-state task 2 done "a1b2c3d..9f8e7d6, review clean"]
-```
-
 ## Never
 
-- Skip the task review, or accept a report missing either verdict.
-- Move to the next task with unfixed Critical/Important findings, or skip the
-  re-review after a fix — except a Minor-only fix after the branch review
-  (requesting-code-review, step 3).
-- Dispatch a fixer after an Approved task review whose findings are all Minor.
-- Dispatch a third fixer for one task. Two rounds is the budget; past it,
-  escalate instead of patching (step 6).
-- Dispatch a fixer without the brief path in its prompt — 18% of the fixer
-  dispatches in this setup's history carried only the finding list, which is how
-  a fixer ends up satisfying a reviewer rather than the task.
-- Dispatch a reviewer without BASE and HEAD, or hand a subagent the whole plan
-  instead of its brief.
-- Let implementer self-review stand in for review.
-- Re-dispatch a task the state ledger already marks complete.
+- Two writers in one tree — you included, while an implementer runs.
+- `isolation: "worktree"` on a writer: its commits never reach this branch.
+- Re-dispatch a task the ledger marks done.
+- Skip the branch review.

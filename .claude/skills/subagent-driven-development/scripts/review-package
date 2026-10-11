@@ -1,62 +1,104 @@
 #!/usr/bin/env bash
 # Generate a review package: commit list, stat summary, and the net
 # diff with extended context, written to a file the reviewer reads in one
-# call. Using the recorded per-task BASE (not HEAD~1) keeps multi-commit
-# tasks intact.
+# call. Using the recorded BASE (not HEAD~1) keeps multi-commit work intact.
 #
 # Usage: review-package BASE HEAD [OUTFILE]
+#        review-package BASE --worktree [OUTFILE]
+# --worktree covers BASE to the working tree, uncommitted and untracked files
+# included — inline work that is not (all) committed yet.
 # Default OUTFILE: <repo-root>/.flow/sdd/review-<base7>..<head7>.diff
 # (named per range, so a re-review after fixes gets a distinct fresh file).
 set -euo pipefail
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
-  echo "usage: review-package BASE HEAD [OUTFILE]" >&2
+  echo "usage: review-package BASE HEAD|--worktree [OUTFILE]" >&2
   exit 2
 fi
 
 base=$1
 head=$2
+worktree=0
+if [ "$head" = "--worktree" ]; then
+  worktree=1
+  head=HEAD
+fi
 
 git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
 git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&2; exit 2; }
 
+if [ "$worktree" -eq 1 ]; then
+  label=worktree
+else
+  label=$(git rev-parse --short "$head")
+fi
+
 if [ $# -eq 3 ]; then
   out=$3
+  case "$out" in /*) ;; *) out="$PWD/$out" ;; esac
   caller_chose_path=1
 else
   caller_chose_path=0
   dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")
-  out="$dir/review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
+  out="$dir/review-$(git rev-parse --short "$base")..$label.diff"
 fi
 
+# From the root: run in a subdirectory, ls-files would list only its files.
+cd "$(git rev-parse --show-toplevel)"
+
+# Listed before the package file exists, so it never lists itself. NUL-separated:
+# the text form quotes non-ASCII names, which then match no file.
+untracked=()
+[ "$worktree" -eq 1 ] && mapfile -d '' -t untracked < <(git ls-files -z --others --exclude-standard)
+
 {
-  echo "# Review package: ${base}..${head}"
+  echo "# Review package: ${base}..${label}"
   echo
   echo "## Commits"
   git log --oneline "${base}..${head}"
   echo
   echo "## Files changed"
-  git diff --stat "${base}..${head}"
+  if [ "$worktree" -eq 1 ]; then
+    git diff --stat "$base"
+    for f in "${untracked[@]}"; do printf 'untracked: %s\n' "$f"; done
+  else
+    git diff --stat "${base}..${head}"
+  fi
   echo
   echo "## Diff"
-  git diff -U10 "${base}..${head}"
+  if [ "$worktree" -eq 1 ]; then
+    git diff -U10 "$base"
+    for f in "${untracked[@]}"; do
+      # Exit 1 means "differs" — the expected case; anything above is an error.
+      git diff --no-index -U10 /dev/null "$f" || [ $? -eq 1 ]
+    done
+  else
+    git diff -U10 "${base}..${head}"
+  fi
 } > "$out"
 
 # stdout is the package path and nothing else, so `pkg=$(review-package ...)`
 # is safe; the size note goes to stderr.
 commits=$(git rev-list --count "${base}..${head}")
 
-# An empty range is never a reviewable task: either the implementer's commits
-# landed in another working tree (a resumed run whose session cwd is the main
-# checkout is the usual cause) or the wrong base was passed. Failing loudly
-# beats handing a reviewer an empty diff, which reads as "nothing wrong".
-if [ "$commits" -eq 0 ]; then
+# An empty range is never reviewable: either the commits landed in another
+# working tree (a resumed run whose session cwd is the main checkout is the
+# usual cause), the work is still uncommitted (use --worktree), or the wrong
+# base was passed. Failing loudly beats handing a reviewer an empty diff,
+# which reads as "nothing wrong".
+empty=0
+if [ "$worktree" -eq 1 ]; then
+  [ "$commits" -eq 0 ] && git diff --quiet "$base" && [ ${#untracked[@]} -eq 0 ] && empty=1
+else
+  [ "$commits" -eq 0 ] && empty=1
+fi
+if [ "$empty" -eq 1 ]; then
   # Only clean up a path this script chose; a caller-supplied OUTFILE may be
   # something they already had.
   [ "$caller_chose_path" -eq 0 ] && rm -f "$out"
-  echo "no commits in ${base}..${head} — nothing to review. The implementer's
-commits are not in this working tree ($(git rev-parse --show-toplevel)), or BASE
-is wrong. Find them before reviewing: \`git log --all --oneline -5\`." >&2
+  echo "nothing to review in ${base}..${label}. The commits are not in this
+working tree ($(git rev-parse --show-toplevel)), the work is uncommitted (pass
+--worktree), or BASE is wrong. Find it first: \`git log --all --oneline -5\`." >&2
   exit 4
 fi
 

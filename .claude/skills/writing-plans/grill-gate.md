@@ -1,7 +1,7 @@
 # Grill Gate
 
 A conditional completeness check that runs **after** initial clarifying questions
-and **before** proposing approaches. Its job: guarantee every decision that
+and **before** you write the plan's decisions. Its job: guarantee every decision that
 shapes the design is resolved *by the user*, not silently assumed by you — but
 stay completely quiet when nothing is actually open.
 
@@ -52,11 +52,10 @@ Do not proceed to approaches until the scan is clean.
 
 ## Recording decisions
 
-When the grill runs, every resolved decision lands where brainstorming's "The
-Project Spec" puts decisions: the chosen option and its one-line rationale in the
-living spec (its decision table, or the section it governs); the branch the user
-turned down, and why, in the deliberation record. On the spec-intake path, fold
-it back into the provided spec. Nothing gets a third copy.
+Every resolved decision lands in the plan's Decisions section (chosen and
+rejected, one line each) and, when the project has a living spec, as a row in
+its decision record (writing-plans, "The living spec"). On a provided spec,
+fold it back into that spec. Nothing gets a third copy.
 
 A decision point where both branches lead to materially the same
 implementation is not open: pick one, record it the same way, and move on.

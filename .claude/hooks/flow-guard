@@ -1,34 +1,24 @@
 #!/usr/bin/env python3
 """PreToolUse guard for the development-workflow pipeline.
 
-Enforces four things prose demonstrably failed to enforce:
+Enforces three things:
 
-  1. **The controller does not write code.** Edit/Write/MultiEdit/NotebookEdit
-     from the main thread are denied once a run has a workspace. Subagents pass
-     — they are the ones meant to write. Files under `.flow/` pass (briefs,
-     reports, spec, plan) except the run state itself, which governs this guard.
-
-  2. **One workspace per run.** A new `EnterWorktree`, `worktree add`, and an
+  1. **One workspace per run.** A new `EnterWorktree`, `worktree add`, and an
      `Agent` dispatched with `isolation: "worktree"` are denied once a worktree
      is recorded; re-entering the recorded one by `path` is allowed. A second
      workspace is how a run loses track of where its work went.
 
-  3. **The controller does not poll for a dispatched subagent.** A short-interval
-     `ScheduleWakeup` naming an implementer, reviewer, fixer or red-team is
-     denied: the harness already re-invokes the session with a
-     `<task-notification>` when that work finishes. Each wakeup re-reads the
-     whole context, so the polling measured across these transcripts cost
-     millions of tokens per run for information that arrived on its own. This
-     one runs with or without run state — the first wakeup in the observed
-     sessions came at the design stage, before any worktree existed.
+  2. **The controller does not poll for a dispatched subagent.** A short-interval
+     `ScheduleWakeup` naming an implementer, reviewer or red-team is denied: the
+     harness already re-invokes the session with a `<task-notification>` when
+     that work finishes, and each wakeup re-reads the whole context. This one
+     runs with or without run state.
 
-  4. **A task gets at most two fix rounds.** The third `fixer` dispatch for the
-     same task is denied. Past two, the finding is not a patch away: it is the
-     brief or the design, and the next round belongs to the user. Measured
-     across these transcripts (deduplicated by tool-call id): 39 tasks went to
-     three rounds or more, 29 of them as fix→review→fix loops that a
-     "consecutive fixers" rule would miss, the worst eight rounds across two
-     hours and forty minutes.
+  3. **Nobody edits the run state by hand.** Edit/Write on `.flow/run/` is
+     denied while a run has a workspace; `flow-state` is the way to change it.
+
+The controller may edit code: one writer per tree is the skill's rule
+(subagent-driven-development), not this guard's.
 
 Commit location is NOT enforced here: deciding which tree a `git commit` targets
 means parsing arbitrary shell, which produced eleven bypasses and false denials
@@ -36,13 +26,8 @@ on documentation. Instead the workspace contract travels with every subagent
 (hooks/flow-context), the implementer verifies its tree, and `review-package`
 refuses an empty commit range so a misplaced commit surfaces at review.
 
-Not a sandbox: writing code through Bash (`cat > f`, `sed -i`) is not blocked.
-Hardening that against yourself is an arms race with no winner.
-
 Fails open by design — malformed state, an unreadable file, any exception: allow.
-A guard must never break a session it cannot judge. The one exception is a
-missing `agent_id`, which would make an implementer's edits deny; if every
-implementer suddenly reports being blocked, suspect that field first.
+A guard must never break a session it cannot judge.
 """
 
 import importlib.machinery
@@ -69,12 +54,6 @@ AGENT_WORD = re.compile(r"(?<![\w-])agents?(?![\w-])", re.IGNORECASE)
 # The tool's own sanctioned use while dispatched work runs: a rare fallback
 # heartbeat in case the work hangs and never notifies. Below this, it is polling.
 FALLBACK_FLOOR_S = 1200
-# A task's brief or report names it; either identifies the task a fixer is on.
-TASK_KEY = re.compile(r"([^\s`\"']*/)task-(\d+)-(?:brief|report)\.md")
-MAX_FIX_ROUNDS = 2
-# A "fork" subagent inherits the controller's context and model, so letting it
-# write is the controller writing through a proxy.
-PROXY_AGENT_TYPES = {"fork"}
 
 
 def allow():
@@ -113,36 +92,14 @@ def target_file(payload):
     return os.path.realpath(path)
 
 
-def check_edit(payload, module, state, root, worktree, task, target):
-    # Before the subagent exemption: nobody edits the run state by hand.
+def check_run_state(root, task, target):
     run_dir = os.path.join(root, ".flow", "run") + os.sep
     if target.startswith(run_dir):
         deny(
-            "That file is this run's state — what this guard reads. Editing it by "
-            "hand switches enforcement off silently. Only the user decides to move "
-            f"a run inline or end it; if you believe one applies, say so. [{task}]"
+            "That file is this run's state. Editing it by hand changes what every "
+            "hook and resumed session believes about the run. Use `flow-state`; "
+            f"only the user decides to move a run inline or end it. [{task}]"
         )
-
-    if payload.get("agent_id") and (payload.get("agent_type") or "") not in PROXY_AGENT_TYPES:
-        allow()  # a real subagent: writing code is its job
-    if not any(target.startswith(base + os.sep) for base in {root, worktree}):
-        # Could still be another worktree of this same project — those are this
-        # run's code too, wherever they live on disk.
-        if module.repo_root(os.path.dirname(target)) != root:
-            allow()  # not this project's code
-    # Bookkeeping in either tree: briefs, reports, review packages, spec, plan.
-    for base in {root, worktree}:
-        if target.startswith(os.path.join(base, ".flow") + os.sep):
-            allow()
-    deny(
-        "This run's code is written by dispatched implementer subagents, not by "
-        "the controller — an implementer starting fresh from a task brief beats a "
-        "controller carrying six tasks of history, and your context is for "
-        "coordination (subagent-driven-development). Dispatch an implementer. Do "
-        "not route around this through Bash: that trades a visible handoff for an "
-        "invisible one. This is not yours to override — only the user moves a run "
-        f"inline or ends it, so if you believe one applies, say so first. [{task}]"
-    )
 
 
 def creates_worktree(command):
@@ -204,58 +161,6 @@ def check_wakeup(payload):
         "correct here. ListAgents is not a waiting mechanism either. If you want a "
         f"net against work that hangs and never notifies, one wakeup at "
         f"{FALLBACK_FLOOR_S}s or more is the sanctioned form."
-    )
-
-
-def fix_rounds_file(root):
-    return os.path.join(root, ".flow", "run", "fix-rounds.json")
-
-
-def check_fix_rounds(payload, root, task):
-    """Deny the third fix round on one task, however the rounds were interleaved."""
-    # Returns instead of allow(): the workspace check still has to run after it.
-    tool_input = payload.get("tool_input") or {}
-    if tool_input.get("subagent_type") != "fixer":
-        return
-    match = TASK_KEY.search(tool_input.get("prompt") or "")
-    if not match:
-        # Nothing to attribute the round to. The dispatch table says a fixer
-        # prompt carries the brief path; without it this cap cannot see the task.
-        return
-    key = f"{match.group(1)}|{match.group(2)}"
-    path = fix_rounds_file(root)
-    try:
-        with open(path, encoding="utf-8") as handle:
-            rounds = json.load(handle)
-        if not isinstance(rounds, dict):
-            rounds = {}
-    except (OSError, ValueError):
-        rounds = {}
-    count = rounds.get(key, 0) + 1
-    rounds[key] = count
-    try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        tmp = path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as handle:
-            json.dump(rounds, handle)
-        os.replace(tmp, path)
-    except OSError:
-        pass  # counting is best-effort; never break the dispatch over bookkeeping
-    if count <= MAX_FIX_ROUNDS:
-        return
-    deny(
-        f"Fix round {count} on task {match.group(2)}. Two rounds did not close it, "
-        "so the next patch will not either — what is failing is the brief or the "
-        "design, not the code, and each further round pays a fresh fixer, a fresh "
-        "review and your context. In this setup's own history 39 tasks went past "
-        "two rounds, the worst eight times in under three hours, each round fixing "
-        "the next variant of the same defect. Stop and put it to the user: what "
-        "the reviewer keeps finding, what the brief actually requires, and whether "
-        "the task needs re-briefing, re-planning, or a stronger implementer model. "
-        "If they hear all that and still want another round, that is their call to "
-        f"make out loud — the counter is {fix_rounds_file(root)}, and clearing this "
-        "task's entry is something you do on their say-so, never on your own to get "
-        f"past this message. [{task}]"
     )
 
 
@@ -322,10 +227,8 @@ def main():
     if tool in EDIT_TOOLS:
         if not target:
             allow()
-        check_edit(payload, module, state, root, worktree, task, target)
+        check_run_state(root, task, target)
     elif tool in WORKSPACE_TOOLS:
-        if tool == "Agent":
-            check_fix_rounds(payload, root, task)
         check_workspace(payload, state, worktree, task)
     allow()
 

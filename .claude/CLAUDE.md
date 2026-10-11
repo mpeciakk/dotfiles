@@ -1,39 +1,43 @@
 # Workflow (domyślny dla wszystkich projektów)
 
-Każde zadanie na kodzie zaczynasz od skilla `development-workflow` — to mapa
-całego pipeline'u i bramek, z **triage'em na wejściu**: trywialne mechaniczne
-zmiany (config, styl, literówka, wpis w .gitignore) robisz bezpośrednio, bez
-pipeline'u; reszta idzie przez bramki. Skrót kolejności:
-brainstorming (z wbudowanym grill-gate) → writing-plans → using-git-worktrees →
-subagent-driven-development (implementacja w TDD + review per-task + finalny
-review całej gałęzi) → finishing-a-development-branch.
+Domyślnie pracujesz **inline**: czytasz potrzebny kontekst, robisz najmniejszą
+sensowną zmianę i weryfikujesz wynik. **Run** (skill `development-workflow`:
+plan z decyzjami → worktree → implementer na task → review gałęzi → finisz)
+otwierasz, gdy zmiana obejmuje kilka domen albo nie zmieści się w jednym
+posiedzeniu. Pojedynczą decyzję, którą muszę podjąć ja, zadajesz pytaniem
+i pracujesz dalej inline — sama nie jest powodem do runu. Zmiana inline, która
+zmienia zachowanie między modułami albo dotyka decyzji ze speca, przed wejściem
+na main dostaje `branch-reviewer` (skill `requesting-code-review`); przed
+pierwszą edycją takiej zmiany zanotuj SHA `HEAD`.
+„kontynuuj" przy otwartym runie = wznowienie ze stanu `flow-state`.
 Ambientowo, gdy pasuje trigger: test-driven-development, systematic-debugging,
 receiving-code-review.
 
 Zasady:
-1. Skille procesowe (development-workflow, brainstorming, systematic-debugging,
+1. Skille procesowe (development-workflow przy runie, systematic-debugging,
    TDD) PRZED domenowymi.
-2. Nawigacja po kodzie — cbm MCP PRZED Grep/Read. Szukasz symbolu/funkcji/klasy →
-   search_graph; kto-co-woła / łańcuch wywołań → trace_path; źródło symbolu →
-   get_code_snippet; struktura projektu → get_architecture; tekst w kodzie →
-   search_code. Projekt bez indeksu → najpierw index_repository. Graf indeksuje
-   main checkout, nie worktree — kod nowy na gałęzi czytasz Read'em. Nazwa
-   projektu w cbm to ścieżka main checkoutu z myślnikami (np.
-   `home-m-projects-harmonia`), także gdy pracujesz w worktree.
-   Tekst, configi i pliki nie-kodu: grep/find przez Bash + Read (oraz zawsze Read
-   przed edycją pliku).
+2. Nawigacja po kodzie — grep/find przez Bash + Read; plik kodu, którego nie
+   edytujesz, czytasz zakresem, nie w całości. cbm MCP tam, gdzie grep jest
+   gorszy: kto-co-woła / zasięg zmiany → trace_path, struktura projektu przy
+   planie → get_architecture. Projekt bez indeksu → najpierw index_repository.
+   Graf indeksuje main checkout, nie worktree — kod nowy na gałęzi tylko grepem.
+   Nazwa projektu w cbm to ścieżka main checkoutu z myślnikami (np.
+   `home-m-projects-harmonia`). Szerokie pytanie „gdzie/jak X jest w repo”,
+   które zajęłoby kilkanaście wyszukiwań → agent `explorer` (Haiku, zwraca
+   file:line).
 3. Każda biblioteka/API → context7 (/docs); każdy fakt sprawdzalny narzędziem
    (SHA, stan gałęzi, wynik komendy, istnienie symbolu) → sprawdź, nie zgaduj
    z pamięci.
 4. Nic nie jest „zrobione" bez uruchomienia i dowodu.
-5. Implementacja idzie do **worktree** (natywne `EnterWorktree` — to ta jawna
-   instrukcja projektu, której narzędzie wymaga), a stan runu trzyma
-   `~/.claude/hooks/flow-state` (dotyczy głównego wątku). Gdy worktree jest zapisany, kodu nie piszesz
-   sam — dispatchujesz implementerów; szczegóły i bramki: development-workflow.
+5. Implementacja runu idzie do **worktree** (natywne `EnterWorktree` — to ta
+   jawna instrukcja projektu, której narzędzie wymaga), a stan runu trzyma
+   `~/.claude/hooks/flow-state` (dotyczy głównego wątku). Kod tasków piszą
+   implementerzy; sam edytujesz tylko wtedy, gdy żaden implementer nie pracuje
+   — jeden piszący na drzewo. Szczegóły i bramki: development-workflow.
 6. Projekt ma zwykle **żywy `spec.md`** (w rootcie albo per komponent) — czym
    jest, decyzje w mocy, punkty otwarte. Czytasz go PRZED pytaniami do mnie
-   i zostawiasz prawdziwym: decyzja wchodzi na bramce designu, sekcje opisujące
-   stan aktualizuje ostatnie zadanie planu. Spec, który kłamie, jest gorszy niż
+   i zostawiasz prawdziwym: decyzja wchodzi na bramce planu, sekcje opisujące
+   stan aktualizujesz po ostatnim tasku, przed review gałęzi. Spec, który kłamie, jest gorszy niż
    ubogi. Gdy projekt speca nie ma — to osobna robota, skill `writing-specs`,
    nie produkt uboczny bieżącej zmiany.
 
@@ -129,4 +133,4 @@ z ayghri/i-have-adhd — mała pamięć robocza, najtrudniejszy jest start):
 - Nie dotyczy raportów subagentów — ich format ustala dispatcher albo
   definicja w `agents/`.
 
-Pełny opis pipeline'u i bramek: skill `development-workflow`.
+Pełny opis runu i bramek: skill `development-workflow`.

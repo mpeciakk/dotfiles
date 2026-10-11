@@ -7,44 +7,17 @@ description: Use when implementation is done and you need to wrap up a branch or
 
 Verify tests → detect the workspace → present options → execute → clean up.
 
-**Do not record `stage=finish` yet.** That stands the implement-phase guards
-down, and a red suite in Step 1 is exactly when they should still be up and
-fixes should still go to implementers. The stage gets recorded in Step 5, once
-the user has picked what to do.
-
 ## Step 1 — tests green, on the real suite
 
-Run the project's full suite. If anything fails, report the failures and stop:
-merging red code or opening a failing PR costs more than the delay.
+If the branch review ran the suite green on the current HEAD (its
+Verification section names the commit), cite that run. Otherwise — fixes landed
+after the review — run the project's full suite. A branch with no code changes
+needs no suite. If anything fails, report the failures and stop: merging red
+code or opening a failing PR costs more than the delay.
 
-Then one question, which no test answers: **does the project's living spec still
-describe reality?** `~/.claude/hooks/flow-state get spec` names it. Skim the
-sections this branch touched. If one now describes the old behaviour, fix it
-before the merge — you are the last person who holds the whole change in mind,
-and this is the last moment the fix is cheap. Nothing enforces it; it is the step
-most easily skipped and the one whose absence you feel weeks later.
-
-**Archive the run's sdd reports before anything can delete them.** Task briefs,
-implementer reports and reviewer verdicts live in `.flow/sdd/` — real prose that
-does not exist anywhere else, unlike the diff packages there (`*.diff`), which
-`git log`/`git diff` regenerate on demand and stay ignored. Commit the rest now,
-while the worktree is still whole:
-
-```bash
-~/.claude/hooks/flow-state get plan
-git add .flow/sdd
-git commit -m "docs: archive sdd reports for <plan basename>"
-```
-
-Read the plan's basename (no directory, no `.md`) from the first command's
-output and write it in place of `<plan basename>` — two literal commands, not a
-nested `$(…)`, which the worktree guard cannot verify inside a worktree. No-op
-if there is nothing to add. Skipping this is exactly how a real run lost
-ten rounds of review findings: the reports sat gitignored inside the worktree,
-and `git worktree remove --force` at Step 6 deleted them along with everything
-else — the only things that survived were the living spec and whatever
-conclusions got stuffed into code comments instead, which is not what comments
-are for.
+The living spec was brought up to date before the branch review
+(subagent-driven-development). If a fix after the review changed something the
+spec describes, update that section now and commit it.
 
 ## Step 2 — what kind of workspace is this?
 
@@ -83,7 +56,7 @@ keep as-is / discard.
 
 ## Step 5 — execute
 
-Record the stage now — the merge itself must not be denied:
+Record the stage now:
 
 ```bash
 ~/.claude/hooks/flow-state set stage=finish
@@ -109,7 +82,7 @@ MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-tople
 cd "$MAIN_ROOT"
 git checkout <base-branch> && git pull
 git merge <feature-branch>
-<test command>                     # verify the merged result, not just the branch
+<test command>                     # only if the merge was not a fast-forward
 codebase-memory-mcp cli index_repository --repo-path "$MAIN_ROOT"
 ```
 
@@ -182,13 +155,9 @@ next step is `/clear` before the next change.
 
 ## Never
 
-- Record `stage=finish` before the user has picked an option — it disarms the
-  guards, and a red suite is when they matter most.
-- Offer options before the suite is green, or merge without re-running tests on
-  the merged result.
+- Offer options before the suite is green, or land a non-fast-forward merge
+  without running the suite on the merged result.
 - Remove a worktree before the merge succeeded, or remove one you did not
   create.
-- Remove a worktree before `.flow/sdd` is committed (Step 1) — `--force`
-  deletes it right along with the untracked test artifacts it is meant for.
 - Delete the branch before removing the worktree that has it checked out.
 - Discard without typed confirmation, or force-push unless asked.

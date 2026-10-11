@@ -1,76 +1,69 @@
 # Claude Code — workflow & skills
 
 A personal, trimmed adaptation of [obra/superpowers](https://github.com/obra/superpowers):
-a set of **process skills** that drive every code change through an explicit,
-gated pipeline, plus always-on discipline (candor, verification) and a
-codebase-memory navigation layer.
+inline work by default, a planned run for changes that need one, always-on
+discipline (candor, verification) and a codebase-memory navigation layer.
 
 ## The flow
 
-Every code task starts at the **`development-workflow`** skill, which **triages** first:
+**Default: inline.** Read what the change needs, make the smallest sensible
+change, verify it. Inline work that changes behaviour across modules or
+touches a spec decision gets a `branch-reviewer` before it lands on main.
 
-- **Trivial mechanical change** (config value, style token, typo, `.gitignore` /
-  dependency entry, version bump) → done directly, no pipeline. Candor +
-  verification still apply.
-- **Everything else** → the gated pipeline (✋ = you decide):
+**A run** (`development-workflow`) when the change spans several domains or
+needs more than one sitting; a single decision for you is a question inline,
+not a run (✋ = you decide):
 
 | # | Stage | Skill | Gate |
 |---|-------|-------|------|
-| 1 | Understand + design | `brainstorming` (grill-gate embedded) | ✋ approve design (the written record is shown again at the plan gate) |
-| 2 | Plan | `writing-plans` (+ red-team pre-mortem on non-trivial plans) | ✋ approve plan + written design ("go") |
-| 3 | Isolate | `using-git-worktrees` | — |
-| 4 | Implement | `subagent-driven-development` — fresh subagent per task, strict TDD, per-task review (spec + quality), fix loop, final whole-branch review | — |
-| 5 | Finish | `finishing-a-development-branch` | ✋ merge / PR / discard |
+| 1 | Plan — decisions + tasks in one document | `writing-plans` (+ red-team for 2+ tasks) | ✋ "go" |
+| 2 | Isolate | `using-git-worktrees` | — |
+| 3 | Implement — one implementer per task (a domain of the change), in the background | `subagent-driven-development` | — |
+| 4 | Review — spec state sections first, then the whole branch: tests, real verification, spec | `requesting-code-review` | — |
+| 5 | Finish — suite unless the review's run still holds, merge | `finishing-a-development-branch` | ✋ merge / PR / keep / discard |
 
-Artifacts: specs → `.flow/specs/`, plans → `.flow/plans/`, execution scratch → `.flow/sdd/`.
+Run state lives in `flow-state`, so "kontynuuj" in a fresh session resumes at
+the first task not done. Plans → `.flow/plans/`; `.flow/sdd/` is scratch.
 
-**Always-on discipline** (fires on trigger, any stage): `test-driven-development`,
-`systematic-debugging` (independent failures investigated in parallel),
-`receiving-code-review`. Candor (anti-sycophancy), code discipline
-(Karpathy-style) and response shape (adapted from
-[ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)) live always-on in
-`CLAUDE.md`.
+**Always-on discipline:** `test-driven-development`, `systematic-debugging`,
+`receiving-code-review`. Candor, code discipline (Karpathy-style) and response
+shape (adapted from [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd))
+live in `CLAUDE.md`.
 
-**Outside the pipeline:** `writing-specs` establishes a project's living spec;
-`knowledge-transfer` packages current-state handovers for another employee or
-the user's future self, reviewed by the `kt-cold-reader` agent that sees only
-the package. Neither opens a run.
+**Outside the flow:** `writing-specs` establishes a project's living spec;
+`knowledge-transfer` packages handovers, reviewed by the `kt-cold-reader`
+agent.
 
 ## Model & effort
 
-Session default **Sonnet 5.5 · high**; design and planning run on **Opus 5.5 ·
-high**. Dispatched roles carry their model in `agents/`: implementer **Sonnet
-5.5 · high**, overridden to **Haiku 4.5** for small, surgical or paste-ready
-tasks (decision code stays on Sonnet); fixer **Sonnet 5.5 · high**,
-task-reviewer **Sonnet 5.5 · high** with an Opus 5.5 override on named
-triggers, branch-reviewer **Opus 5.5 · high**, plan-red-team **Opus 5.5 ·
-xhigh**. Full table in `development-workflow`.
+Roles carry their model in `agents/`: implementer **Sonnet 5.5 · high**,
+branch-reviewer **Opus 5.5 · high**, plan-red-team **Opus 5.5 · xhigh**. The
+session runs on the model you start it with.
 
-Plans fix the contract — interfaces, full tests, exact values — and carry
-implementation code only where it is a decision. The middle-variant plans are
-kept (D25), see `.flow/specs/2026-09-23-plan-granularity-design.md`.
+Why it looks like this: `.flow/specs/2026-10-10-lean-workflow-design.md`
+(rollback tag `workflow-v1`).
 
 ## codebase-memory (cbm)
 
-Code navigation uses the [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
-graph **before** grep/find via Bash (`search_graph`, `trace_path`, `get_code_snippet`,
-`get_architecture`), wired into brainstorming, planning, the implementer/reviewer
-prompts, and debugging. The protocol itself lives in `CLAUDE.md` rule 2 (loaded
-every session and after compaction). The graph indexes the main checkout, not
-worktrees, so `finishing` re-indexes after merge.
+The [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
+graph is used where grep is worse: `trace_path` for callers and blast radius
+(planning, the branch reviewer's check of changed interfaces) and
+`get_architecture` when planning. Everything else is grep and Read — measured
+2026-10-10, a targeted grep returns less text, faster, than `search_graph`, and
+the blanket "cbm first" rule was followed in under 3% of searches. Broad
+"where is X handled" questions go to the `explorer` agent (Haiku, returns
+file:line only). Rules live in `CLAUDE.md` rule 2. The graph indexes the main
+checkout, not worktrees, so `finishing` re-indexes after merge.
 
 ## How this differs from obra/superpowers
 
-- **Entry map + triage** — `development-workflow` routes every task and lets
-  genuinely trivial changes skip the pipeline (upstream runs the design gate for
-  *everything*).
-- **Trimmed** — removed domain/agent skills; dropped `executing-plans` (always
-  subagent-driven); deduplicated Red Flags / examples across skills.
-- **One per-task reviewer, two verdicts** (spec + quality) instead of two passes.
-- **cbm navigation layer** wired into every stage (not upstream).
-- **Candor ruleset** (always-on, anti-sycophancy *and* anti-over-correction) +
-  **red-team plan pre-mortem** subagent.
-- **Concrete per-stage model/effort policy**.
+- **Inline by default** — a run is opened deliberately, not for every change.
+- **One plan document, one design gate**; tasks are domains with outcomes and
+  acceptance criteria, not pre-written code.
+- **No per-task review** — one stronger branch review that runs the tests and
+  the change's real verification and checks spec decisions.
+- **cbm for callers and blast radius**, **Haiku explorer**, **candor ruleset**,
+  **red-team pre-mortem**.
 - **Localized** — `CLAUDE.md` and discipline notes in Polish.
 
 ## Testing

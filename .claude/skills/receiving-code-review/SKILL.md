@@ -30,7 +30,7 @@ wrong fix. "I understand 1, 2, 3, 6 — need clarification on 4 and 5."
 - **The user** — implement once you understand it, but still verify: a
   suggestion from the user is where agreeing without checking is most tempting.
   Ask when scope is unclear.
-- **A reviewer subagent** (task-reviewer, branch-reviewer) — its findings are
+- **A reviewer subagent** (branch-reviewer) — its findings are
   claims about a diff it read, not about code it could not see. You hold the
   cross-task context it lacks; check each finding against it. A finding that
   contradicts what the plan mandates is the user's call — show both, ask which
@@ -53,9 +53,9 @@ does not extend to scope — CLAUDE.md's "nic ponad to, o co proszono".
 3. Test each fix; check for regressions.
 
 "One at a time" is the order of work, not the number of dispatches: inside a
-plan run the whole Critical/Important list goes to ONE `fixer`, which works it
-in this order. A fixer per finding rebuilds context and re-runs the suite each
-time.
+plan run the whole Critical/Important list goes to ONE implementer dispatch,
+which works it in this order. A dispatch per finding rebuilds context and
+re-runs the suite each time.
 
 ## Push back when
 

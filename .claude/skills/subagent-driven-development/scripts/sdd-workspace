@@ -7,12 +7,9 @@
 #
 # In the working tree rather than under .git/, because agent writes to .git/ are
 # denied — which would block an implementer from writing its report. The
-# .gitignore here excludes only *.diff (review-package's output — regenerable
-# from `git log`/`git diff` any time); briefs and reports (*.md) are tracked, so
-# they survive `git worktree remove --force` at finish instead of being deleted
-# with the worktree. finishing-a-development-branch commits them before
-# cleanup. Single source of truth, so task-brief and review-package cannot
-# drift apart.
+# directory is scratch: everything in it is ignored and goes with the worktree.
+# The record of a run is the plan, the spec and the commits. Single source of
+# truth, so task-brief and review-package cannot drift apart.
 #
 # Usage: sdd-workspace
 set -euo pipefail
@@ -20,5 +17,12 @@ set -euo pipefail
 root=$(git rev-parse --show-toplevel)
 dir="$root/.flow/sdd"
 mkdir -p "$dir"
-printf '*.diff\n' > "$dir/.gitignore"
+# Only when absent: projects from the archiving era track a `*.diff` version,
+# and rewriting a tracked file would leave the tree dirty for the implementer.
+[ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore"
+# Those projects would still show briefs and reports as untracked, so ignore
+# the directory in info/exclude too: shared by every worktree, never tracked.
+exclude="$(git rev-parse --git-common-dir)/info/exclude"
+grep -qxF '/.flow/sdd/' "$exclude" 2>/dev/null \
+  || { mkdir -p "$(dirname "$exclude")" && echo '/.flow/sdd/' >> "$exclude"; } || true
 cd "$dir" && pwd

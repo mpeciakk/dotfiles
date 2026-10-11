@@ -35,7 +35,7 @@ again. Ask only if the user has said otherwise in this session, and if they
 decline isolation, work in place: create a feature branch first if HEAD is on
 main/master, then record it with Step 2's block anyway — `worktree` pointing at
 this checkout. Skipping the record leaves the run without a workspace, which
-disables the guards *and* blocks `stage=finish` later.
+breaks resuming *and* blocks `stage=finish` later.
 
 ## Step 1 — create it
 
@@ -80,13 +80,13 @@ on a sandbox permission error, say so and work in place.
 SHA. Run it from inside the worktree.
 
 If that prints "no run state", nobody opened the run: `flow-state init
-<task-slug>` and re-run the block. An unrecorded workspace silently disables
-every guard — the controller may then edit code freely with no message.
+<task-slug>` and re-run the block. An unrecorded workspace is one a resumed
+session cannot find.
 
 Recording is what turns the workspace from something remembered into something
 the tooling can act on: from here on every subagent is told which tree and
 branch it owns (a SubagentStart hook injects it), a second workspace is refused,
-and the controller can no longer edit code itself. `base` is the branch's
+and "kontynuuj" in a fresh session finds the tree again. `base` is the branch's
 starting commit, which the whole-branch review reads instead of guessing a merge
 base.
 
