@@ -32,6 +32,7 @@ depends = []
 "config/logid.cfg" = { target = "/etc/logid.cfg", type = "symbolic", owner = "root" }
 "config/keyd/default.conf" = { target = "/etc/keyd/default.conf", type = "symbolic", owner = "root" }
 "config/mimeapps.list" = "~/.config/mimeapps.list"
+"config/xdg-terminals.list" = "~/.config/xdg-terminals.list"
 "config/user-dirs.dirs" = "~/.config/user-dirs.dirs"
 
 "applications" = "~/.local/share/applications/"

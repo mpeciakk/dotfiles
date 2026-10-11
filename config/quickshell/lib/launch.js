@@ -12,9 +12,9 @@ function wrap(argv) {
     return ["uwsm", "app", "--"].concat(argv);
 }
 
-// A valid ID runs as the desktop entry (uwsm reads Path=, and Terminal= through xdg-terminals.list, which no
-// host has yet: it then picks the first TerminalEmulator entry); any other runs its parsed command
-// (Terminal= ignored, as DesktopEntry.execute() did; the caller passes the working directory).
+// A valid ID runs as the desktop entry (uwsm reads Path=, and Terminal= with the terminal from
+// ~/.config/xdg-terminals.list); any other runs its parsed command (Terminal= ignored, as
+// DesktopEntry.execute() did; the caller passes the working directory).
 function entryArgv(id, command) {
     return ENTRY_ID.test(id) ? wrap([id + ".desktop"]) : wrap(command);
 }
