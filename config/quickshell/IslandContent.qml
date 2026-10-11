@@ -64,7 +64,7 @@ Item {
             readonly property real scaleAmount: slot.lit || !slot.fancy ? 1 : Theme.motion.contentScaleFrom
             readonly property var geo: IslandState.geometryFor(slot.modelData)
 
-            // §2.8: only the enter has a delay; exits use the plain ease curve.
+            // §2.8: only the enter has a delay; exits use the fast-start exit curve.
             function pause(delay: int): int {
                 return slot.lit && slot.fancy ? delay : 0;
             }
@@ -76,7 +76,7 @@ Item {
             }
 
             function curve(): var {
-                return slot.lit ? Theme.motion.enterCurve : Theme.motion.easeCurve;
+                return slot.lit ? Theme.motion.enterCurve : Theme.motion.exitCurve;
             }
 
             x: (root.width - slot.width) / 2

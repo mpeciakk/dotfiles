@@ -37,7 +37,7 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 | `Theme.qml` | singleton: tokens (`lib/theme.js`) merged with the host config, mode, glass level, IPC `theme` |
 | `IslandState.qml` | singleton: state machine, timers, OSD, line mode, launcher/lock hooks, IPC `island` |
 | `Island.qml` | per-screen full-screen panel; input mask = the shape (full in modal states, hover zone (plus the body while it grows) in line mode); blur region (`blurShape`, `BackgroundEffect.blurRegion`) |
-| `IslandShape.qml` | the silhouette: one path with ears, shadow, inner glow |
+| `IslandShape.qml` | the silhouette: one path with ears, shadow, glass rim |
 | `IslandContent.qml` | one layer per state (`sources`), cross-fade |
 | `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode) |
 | `Wallpaper.qml` | wallpaper per screen |
@@ -125,8 +125,8 @@ for `namespace="^wyspa$"` in `config/niri/window_rules.kdl` has `xray false` and
 1. `Region { item: x }` tracks only `x`'s own geometry: animate the item itself. No concave corners in a Region: an ear
    is a rect minus an ellipse (`intersection: Intersection.Subtract`).
 2. IPC: typed args/returns only; instance flags before the subcommand (`qs ipc -p <dir> call …`).
-3. Quickshell 0.3.2 parses `on<Capital>…` property and `Behavior` names as signal handlers and segfaults
-   (hence `Theme.onAccentFade`, not `onAccent`).
+3. Quickshell 0.3.2 parses `on<Capital>…` property and `Behavior` names as signal handlers: the `Behavior`
+   segfaults, the property's binding never runs (hence `Theme.accentFg` for the `onAccent` token; `tests/theme.test.mjs` guards it).
 4. Files in `states/` and `components/` need `import ".."` to see the root singletons. `Icon` from `states/`:
    `import "../components" as Components` (unqualified fails on Qt 6.12). `import Quickshell.Networking` shadows the
    `Network` service: import it `as QsNetworking`.

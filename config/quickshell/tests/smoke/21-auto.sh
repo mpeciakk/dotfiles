@@ -13,13 +13,24 @@ expect theme islandBg "#47161224"
 printf '{"wallpaper":"/tmp/wyspa-bright.png","lock":{"timeout":0},"island":{"modeSource":"wallpaper"}}' > "$CFG"
 wait_ms 1500
 expect theme mode light
-# The boost is for the dark theme only.
+# A light island over a bright wallpaper gets no boost.
 expect theme islandBg "#70eae6f0"
 
 # Dark theme (forced) over a bright wallpaper: the island's alpha rises by 0.2 (0x47 -> 0x7a), once the crossfade is done.
 call theme setMode dark
 wait_ms 900
 expect theme islandBg "#7a161224"
+
+# Light theme over a dark wallpaper: the island's alpha rises by 0.36 (0x70 -> 0xcc), or the light glass turns grey.
+printf '{"wallpaper":"/tmp/wyspa-black.png","lock":{"timeout":0},"island":{"mode":"light"}}' > "$CFG"
+call theme setMode ""
+wait_ms 1500
+expect theme islandBg "#cceae6f0"
+
+# No wallpaper sample (no readable wallpaper) is no evidence of a dark one: no boost.
+printf '{"wallpaper":"/tmp/wyspa-does-not-exist.png","lock":{"timeout":0},"island":{"mode":"light"}}' > "$CFG"
+wait_ms 1500
+expect theme islandBg "#70eae6f0"
 
 # Only what is under the island counts: a bright wallpaper with a dark column at the centre (the island's crop
 # is narrower than the column on any screen at least 1000 px wide) gives no boost.

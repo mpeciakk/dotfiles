@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { load, plain } from "./qmljs.mjs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const T = load("lib/theme.js");
 
@@ -80,8 +83,6 @@ test("defaults: choices", () => {
     assert.equal(T.defaults.fonts.mono, "JetBrainsMono Nerd Font");
     assert.equal(T.defaults.sizes.iconStroke, 1.6);
     assert.equal(T.defaults.sizes.iconGrid, 24);
-    assert.equal(T.defaults.sizes.sheenGlow, 30);
-    assert.equal(T.defaults.sizes.sheenMidStop, 0.45);
 });
 
 test("resolve(): dark ciekłe", () => {
@@ -106,11 +107,8 @@ test("resolve(): dark ciekłe", () => {
     assert.equal(c.shadowY, 18);
     assert.equal(c.shadowBlur, 60);
     assert.equal(c.shadowPad, 78);
-    assert.equal(c.sheenTop, T.rgba(255, 255, 255, 0.12));
-    assert.equal(c.sheenMid, T.rgba(255, 255, 255, 0.02));
     assert.equal(c.sheenEdge, T.rgba(255, 255, 255, 0.22));
     assert.equal(c.sheenOutline, T.rgba(255, 255, 255, 0.1));
-    assert.equal(c.sheenGlow, T.rgba(255, 255, 255, 0.06));
     assert.deepStrictEqual(c.lockWallpaper, { blur: 22, saturate: 1.2, brightness: 0.78, scale: 1.08 });
 });
 
@@ -131,7 +129,6 @@ test("resolve(): light subtelne and light mocne", () => {
     assert.equal(s.shadowColor, T.rgba(40, 30, 70, 0.2));
     assert.equal(s.shadowBlur, 50);
     assert.equal(s.shadowPad, 68);
-    assert.equal(s.sheenGlow, T.rgba(255, 255, 255, 0));
     assert.deepStrictEqual(s.lockWallpaper, { blur: 18, saturate: 1.2, brightness: 0.92, scale: 1.08 });
     const m = plain(T.resolve(T.defaults, "light", "mocne", true));
     assert.equal(m.islandBg, T.rgba(232, 228, 238, 0.58));
@@ -285,4 +282,14 @@ test("defaults: layout.lock matches reference 3.10 and §4.6", () => {
         cornerGap: 10, cornerButton: 48, cornerIcon: 18, ringRadius: 22,
         extrasDelayMs: 520, extrasMs: 300
     });
+});
+
+test("guard: no QML property is named on<Capital> (Quickshell 0.3.2 drops its binding: Theme.onAccent read black)", () => {
+    const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+    const qml = dir => readdirSync(join(root, dir)).filter(f => f.endsWith(".qml")).map(f => join(dir, f));
+    for (const f of [...qml("."), ...qml("states"), ...qml("components"), ...qml("services")]) {
+        const s = readFileSync(join(root, f), "utf8");
+        assert.doesNotMatch(s, /\bproperty\s+\w+(<[^>]*>)?\s+on[A-Z]/, f);
+        assert.doesNotMatch(s, /\bTheme\.on[A-Z]/, f);
+    }
 });

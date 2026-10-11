@@ -109,13 +109,9 @@ Item {
             topRightRadius: root.topRadius
             bottomLeftRadius: root.bottomRadius
             bottomRightRadius: root.bottomRadius
+            color: Qt.alpha(Theme.sheenOutline, 0)
             border.color: Theme.sheenOutline
             border.width: Theme.sizes.ringWidth
-            gradient: Gradient {
-                GradientStop { position: 0; color: Theme.sheenTop }
-                GradientStop { position: Theme.sizes.sheenMidStop; color: Theme.sheenMid }
-                GradientStop { position: 1; color: Qt.alpha(Theme.sheenMid, 0) }
-            }
         }
     }
 
@@ -255,7 +251,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: L.initial(Theme.host.lock?.name ?? "", Quickshell.env("USER"))
-                                        color: Theme.onAccent
+                                        color: Theme.accentFg
                                         font.family: Theme.fonts.ui
                                         font.pixelSize: root.spec.avatarFont
                                         font.weight: Font.DemiBold

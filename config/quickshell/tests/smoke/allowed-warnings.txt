@@ -6,7 +6,10 @@ Could not find an available backend
 Failed to create DBusObjectManagerInterface for "org\.bluez"
 # The user's running shell owns org.freedesktop.Notifications during development.
 Could not register notification server
+Registration will be attempted again if the active service is unregistered
 # Themed icon names absent from the icon theme (menu rows, some apps).
 Could not load icon
 # No xdg-desktop-portal host registration for this instance.
 Failed to register with host portal
+# 21-auto points the wallpaper at a missing file on purpose (no sample, no boost).
+Cannot open: file:///tmp/wyspa-does-not-exist\.png

@@ -14,7 +14,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 - Kierunek: dynamiczna wyspa (wariant D).
 - Ruch: płynny, `cubic-bezier(0.32, 0.72, 0, 1)`, 460 ms.
 - Materiał: szkło (półprzezroczyste tło + blur). **Wszystkie kolory konfigurowalne** (plik konfiguracyjny).
-- Kotwica: wtopiona w górną krawędź (płaska góra, zaokrąglony dół, odwrócone narożniki „uszy” r=16).
+- Kotwica: wtopiona w górną krawędź (płaska góra, zaokrąglony dół, odwrócone narożniki „uszy” r=16). Obrys biegnie po całej sylwetce razem z uszami (bez górnej krawędzi), więc wyspa wychodzi z krawędzi ekranu.
 - Okno pełnoekranowe na danym monitorze → wyspa zwija się do kreski 56×5 i nie rezerwuje miejsca.
 - Opcjonalnie: skrót chowający wyspę (toggle tego samego trybu „kreska”).
 - Ekran blokady, menu zasilania, stos powiadomień — zaakceptowane jak w prototypach.
@@ -41,7 +41,7 @@ Otwarte: tray (może wróci na końcu).
 | Token | Wartość |
 |---|---|
 | `island.bg` | `rgba(16,14,26,0.62)` + blur 24 px, saturate 1.5 |
-| `island.ring` | inset 1 px `rgba(255,255,255,0.07)` |
+| `island.ring` | obrys 1 px `rgba(255,255,255,0.07)` po sylwetce z uszami |
 | `island.shadow` | `0 18 60 rgba(10,6,20,0.5)` |
 | `surface` (kafle w środku) | `#17161F` / karty `#1F1E2A` / hover `#26243A` |
 | `fg` | `#ECEAF2` |
@@ -66,7 +66,7 @@ Ten sam układ, kształty i ruch; podmieniane wyłącznie tokeny. Szkło w kolor
 | Token | Ciemny | Jasny |
 |---|---|---|
 | `island.bg` | `#100E1A` @ 62% | `#E6E2EC` @ 80% (blur 24, saturate 1.3) |
-| `island.ring` | inset `rgba(255,255,255,0.07)` | inset `rgba(255,255,255,0.55)` |
+| `island.ring` | obrys `rgba(255,255,255,0.07)` | obrys `rgba(255,255,255,0.55)` |
 | `island.shadow` | `0 18 60 rgba(10,6,20,0.5)` | `0 18 50 rgba(40,30,70,0.2)` |
 | `surface` (kafle) | `#17161F` | `#EFECF3` |
 | `card` / zaznaczenie | `#1F1E2A` | `#F3F1F6` |
@@ -89,8 +89,8 @@ Przełączanie: tryb ręczny / wg pory dnia (wschód–zachód) / wg jasności t
 | mocne | `#100E1A`@40% / `#E8E4EE`@58% | 36, sat 1.8 | białe @6% / @42% | 50% |
 | ciekłe | `#161224`@28% / `#EAE6F0`@44% | 44, sat 2.0, jasność 1.05 | białe @7% / @40% | 100% |
 
-Połysk = nakładka na kształt: gradient pionowy biel 12%→0 (jasny: 38%→0), dolna krawędź `inset 0 -1 0` biel 22% (jasny 75%), obrys `inset 0 0 0 1` biel 10% (jasny 35%), wewnętrzna poświata 30 px biel 6%.
-Kafle przy mocnym/ciekłym szkle są półprzezroczyste — nie zabijają efektu. Przy jasnej tapecie pilnuj czytelności (ew. lekki text-shadow albo automatyczne podbicie alfy tła, gdy jasność tapety pod wyspą > 0.7).
+Połysk = krawędź szkła nad treścią: obrys 1 px biel 10% (jasny 35%) po całej sylwetce z uszami i dolna krawędź 1 px biel 22% (jasny 75%). Bez gradientu i wewnętrznej poświaty (usunięte 2026-10-11: rozjaśnienie od krawędzi do środka było nieładne, a w jasnym motywie bieliło tekst).
+Kafle przy mocnym/ciekłym szkle są półprzezroczyste — nie zabijają efektu. Czytelność pilnuje automatyczne podbicie alfy tła wg luminancji (liniowej, Rec. 709) tapety pod wyspą: ciemna wyspa nad tapetą jaśniejszą niż 0,7 dostaje +0,2, jasna nad tapetą ciemniejszą niż 0,25 dostaje +0,36 (ciekłe 44% → 80%, jak w 3a).
 
 ## 4. Geometria stanów
 
@@ -118,7 +118,7 @@ W trybie `line` exclusive zone = 0.
 
 - Kształt (szerokość, wysokość, promień, `top`): 460 ms, Bezier `0.32, 0.72, 0, 1`.
   Blokada/odblokowanie: 640 ms, ta sama krzywa.
-- Stara treść — wyjście: opacity 120 ms ease, scale → 0.94 w 160 ms, blur → 6 px.
+- Stara treść — wyjście: opacity 80 ms, krzywa `0.2, 0, 0, 1` (szybki start: treść znika, zanim kształt urośnie), scale → 0.94 w 160 ms, blur → 6 px.
 - Nowa treść — wejście: opacity 220 ms `0.2,0,0,1` z opóźnieniem 160 ms; scale 0.94→1 320 ms z opóźnieniem 120 ms; blur 6→0 px.
 - Treść każdego stanu ma od początku **docelową szerokość** (nie reflowuje się w trakcie morfingu), wycentrowana, przycinana przez kształt (`clip: true`).
 - Przerwanie animacji startuje z bieżącego rozmiaru (Behavior w QML robi to sam).
@@ -162,7 +162,7 @@ Theme.qml            singleton: tokeny z lib/theme.js + config hosta (FileView, 
                      tryb i poziom szkła, IPC `theme`
 IslandState.qml      singleton: maszyna stanów, timery, OSD, tryb linii, IPC `island`
 Island.qml           PanelWindow per ekran (pełnoekranowa, maska = kształt, w stanach modalnych pełna), region blura
-IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i wewnętrzna poświata
+IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i krawędź szkła
 IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
 Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
 Wallpaper.qml        tapeta per ekran

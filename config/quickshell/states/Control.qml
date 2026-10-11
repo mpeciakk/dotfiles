@@ -111,7 +111,7 @@ Item {
                 Components.Icon {
                     anchors.centerIn: parent
                     name: tile.icon
-                    color: tile.checked ? Theme.onAccent : Theme.fg
+                    color: tile.checked ? Theme.accentFg : Theme.fg
                     size: tile.spec.tileIcon
                 }
             }
@@ -272,7 +272,7 @@ Item {
             Components.Icon {
                 anchors.centerIn: parent
                 name: toggle.icon
-                color: toggle.checked ? Theme.onAccent : Theme.fg
+                color: toggle.checked ? Theme.accentFg : Theme.fg
                 size: toggle.spec.toggleIcon
             }
         }

@@ -68,14 +68,16 @@ var defaults = {
     location: { lat: null, lon: null },
     wallpaperLight: 0.6,            // mean luminance above which the wallpaper mode picks light
     wallpaperDark: 0.5,             // ... below which it picks dark (hysteresis between)
-    legibility: { threshold: 0.7, boost: 0.2, sampleSize: 64 },   // sampleSize: px the wallpaper is rescaled to for sampling
+    // Dark island over wallpaper brighter than `threshold`: alpha + `boost`. Light island over wallpaper darker than
+    // `lightThreshold`: alpha + `lightBoost`. sampleSize: px the wallpaper is rescaled to for sampling.
+    legibility: { threshold: 0.7, boost: 0.2, lightThreshold: 0.25, lightBoost: 0.36, sampleSize: 64 },
     glass: true,
     glassLevel: "ciekłe",           // "subtelne" | "mocne" | "ciekłe"
     reducedMotion: false,
 
     fonts: { ui: "JetBrainsMono Nerd Font", mono: "JetBrainsMono Nerd Font" },
 
-    sizes: { iconStroke: 1.6, iconGrid: 24, ringWidth: 1, clockRest: 13, sheenGlow: 30, sheenMidStop: 0.45 },
+    sizes: { iconStroke: 1.6, iconGrid: 24, ringWidth: 1, clockRest: 13 },
 
     // Island states. r = bottom radius (lock: all corners).
     geom: {
@@ -105,6 +107,7 @@ var defaults = {
         morphMs: 460,
         morphCurve: [0.32, 0.72, 0, 1, 1, 1],
         enterCurve: [0.2, 0, 0, 1, 1, 1],
+        exitCurve: [0.2, 0, 0, 1, 1, 1],    // fast start: the old content is mostly gone before the morph has grown much
         easeCurve: [0.25, 0.1, 0.25, 1, 1, 1],
         shakeCurve: [0.36, 0.07, 0.19, 0.97, 1, 1],
         lockMorphMs: 640,
@@ -117,7 +120,7 @@ var defaults = {
         enterScaleDelayMs: 120,
         enterBlurMs: 220,
         enterBlurDelayMs: 160,
-        exitOpacityMs: 120,
+        exitOpacityMs: 80,
         exitScaleMs: 160,
         exitBlurMs: 120,
         contentScaleFrom: 0.94,
@@ -204,7 +207,7 @@ var defaults = {
     // Alpha of the colours derived from `accent`.
     accentAlpha: { soft: 0.18, halo: 0.2, focus: 0.9 },
 
-    // Per glass level and theme. `card` falls back to `sel`; `sheen` is the gloss opacity.
+    // Per glass level and theme. `card` falls back to `sel`; `sheen` is the glass rim opacity.
     glassLevels: {
         "subtelne": {
             dark: { bg: rgba(16, 14, 26, 0.62), tile: "#17161F", sel: "#1E1D28", chip: "#2C2A39", card: "#1F1E2A", sheen: 0 },
@@ -226,10 +229,10 @@ var defaults = {
         light: { bg: rgba(230, 226, 236, 0.78), tile: "#EFECF3", sel: "#F3F1F6", chip: "#DDD9E5", card: "#F3F1F6" }
     },
 
-    // Gloss overlay.
+    // Glass rim (R13, §2a): bottom-edge highlight and outline, scaled by the level's `sheen`.
     sheen: {
-        dark: { top: rgba(255, 255, 255, 0.12), mid: rgba(255, 255, 255, 0.02), edge: rgba(255, 255, 255, 0.22), outline: rgba(255, 255, 255, 0.1), glow: rgba(255, 255, 255, 0.06) },
-        light: { top: rgba(255, 255, 255, 0.38), mid: rgba(255, 255, 255, 0.06), edge: rgba(255, 255, 255, 0.75), outline: rgba(255, 255, 255, 0.35), glow: rgba(255, 255, 255, 0) }
+        dark: { edge: rgba(255, 255, 255, 0.22), outline: rgba(255, 255, 255, 0.1) },
+        light: { edge: rgba(255, 255, 255, 0.75), outline: rgba(255, 255, 255, 0.35) }
     },
 
     shadow: {
@@ -417,11 +420,8 @@ function resolve(tokens, mode, level, glass) {
         lockField: hex(pick(p.lockField, mat.tile)),
         lockFieldRing: hex(p.lockFieldRing),
         lockGlass: hex(pick(p.lockGlass, mat.bg)),
-        sheenTop: hex(sheen.top),
-        sheenMid: hex(sheen.mid),
         sheenEdge: hex(sheen.edge),
         sheenOutline: hex(sheen.outline),
-        sheenGlow: hex(sheen.glow),
         sheen: glass ? mat.sheen : 0,
         shadowY: shadow.y,
         shadowBlur: shadow.blur,

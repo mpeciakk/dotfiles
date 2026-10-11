@@ -101,7 +101,7 @@ Item {
                 anchors.centerIn: parent
                 visible: !root.pictured
                 text: N.initial(root.snap.appName)
-                color: Theme.onAccent
+                color: Theme.accentFg
                 font.family: Theme.fonts.ui
                 font.pixelSize: root.spec.iconLetter
                 font.weight: Font.DemiBold
@@ -149,7 +149,7 @@ Item {
 
                 anchors.centerIn: parent
                 text: "+" + root.shownMore
-                color: Theme.onAccent
+                color: Theme.accentFg
                 font.family: Theme.fonts.mono
                 font.pixelSize: root.spec.chipFont
                 font.weight: Font.Medium

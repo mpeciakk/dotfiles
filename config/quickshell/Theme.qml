@@ -42,8 +42,10 @@ Singleton {
     }
 
     // One animated colour per resolved colour key: a theme or level change crossfades.
-    // Over a bright wallpaper the dark island gets denser (set by AutoTheme); the boost feeds the one mirror.
-    property color islandBg: root.legibilityBoost ? T.raiseAlpha(root.c.islandBg, root.tokens.legibility.boost) : root.c.islandBg
+    // Over a wallpaper that fights its text the island gets denser (set by AutoTheme); the boost feeds the one mirror.
+    property color islandBg: root.legibilityBoost
+        ? T.raiseAlpha(root.c.islandBg, root.mode === "light" ? root.tokens.legibility.lightBoost : root.tokens.legibility.boost)
+        : root.c.islandBg
     Behavior on islandBg { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color ring: root.c.ring
     Behavior on ring { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
@@ -83,10 +85,10 @@ Singleton {
     Behavior on accentHalo { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color focusRing: root.c.focusRing
     Behavior on focusRing { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
-    // `Behavior on onAccent` segfaults Qt 6.12 (parsed as a signal handler), so the fade runs on a helper.
-    property color onAccentFade: root.c.onAccent
-    Behavior on onAccentFade { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
-    readonly property color onAccent: root.onAccentFade
+    // The `onAccent` token as `accentFg`: a property named on<Capital> is parsed as a signal handler
+    // (its binding never runs, it read black) and `Behavior on onAccent` segfaults.
+    property color accentFg: root.c.onAccent
+    Behavior on accentFg { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color inverseBg: root.c.inverseBg
     Behavior on inverseBg { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color inverseFg: root.c.inverseFg
@@ -107,16 +109,10 @@ Singleton {
     Behavior on lockFieldRing { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color lockGlass: root.c.lockGlass
     Behavior on lockGlass { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
-    property color sheenTop: root.c.sheenTop
-    Behavior on sheenTop { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
-    property color sheenMid: root.c.sheenMid
-    Behavior on sheenMid { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color sheenEdge: root.c.sheenEdge
     Behavior on sheenEdge { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color sheenOutline: root.c.sheenOutline
     Behavior on sheenOutline { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
-    property color sheenGlow: root.c.sheenGlow
-    Behavior on sheenGlow { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
 
     property real sheen: root.c.sheen
     Behavior on sheen { NumberAnimation { duration: root.motion.sheenFadeMs; easing.type: Easing.BezierSpline; easing.bezierCurve: root.motion.easeCurve } }

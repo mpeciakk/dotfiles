@@ -9,7 +9,8 @@ import "../lib/autotheme.js" as A
 // island.location (re-evaluated every minute; no location, or polar day/night, gives "" and Theme falls back
 // to island.mode); for "wallpaper" it follows the mean luminance of the wallpaper, with hysteresis. Either way
 // the result reaches Theme through autoMode; a manual `setMode` still wins there. Independently of the source,
-// `boost` says the dark island sits over a bright patch of wallpaper and needs a denser background.
+// `boost` says the wallpaper under the island fights its text (a dark island over a bright patch, a light island
+// over a dark one) and the island needs a denser background.
 Singleton {
     id: root
 
@@ -31,7 +32,11 @@ Singleton {
         ? A.islandCrop(root.nativeSize.width, root.nativeSize.height, root.screen.width, root.screen.height, Theme.geom.rest.w, Theme.geom.rest.h)
         : null
     readonly property real regionLuminance: region.colors.length > 0 ? root.luminanceOf(region.colors[0]) : 0
-    readonly property bool boost: Theme.mode === "dark" && root.regionLuminance > Theme.tokens.legibility.threshold
+    // No sample of the current wallpaper (unreadable, or not sized yet: the quantizer keeps the previous
+    // wallpaper's colours) is no evidence either way: no boost.
+    readonly property bool boost: root.crop !== null && region.colors.length > 0 && (Theme.mode === "dark"
+        ? root.regionLuminance > Theme.tokens.legibility.threshold
+        : root.regionLuminance < Theme.tokens.legibility.lightThreshold)
 
     function luminanceOf(c: color): real {
         return A.luminance(c.r * 255, c.g * 255, c.b * 255);

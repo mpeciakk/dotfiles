@@ -54,6 +54,9 @@ Item {
         required property real bodyHeight
         required property real earSize
         required property real cornerRadius
+        // The rim: a stroke of the open path (no top edge, the top is the screen edge).
+        property color stroke: "transparent"
+        property real strokeW: -1
 
         preferredRendererType: Shape.CurveRenderer
 
@@ -63,8 +66,8 @@ Item {
             readonly property real right: sil.bodyLeft + sil.bodyWidth
 
             fillColor: sil.paint
-            strokeColor: "transparent"
-            strokeWidth: -1
+            strokeColor: sil.stroke
+            strokeWidth: sil.strokeW
 
             startX: sil.bodyLeft - sil.earSize
             startY: 0
@@ -179,110 +182,69 @@ Item {
             clip: true
         }
 
-        // Ring (R13) and gloss (§2a) paint above the content and take no input; the
-        // ears get neither, and the line state drops both (R16).
-        Rectangle {
-            anchors.fill: parent
-            visible: !root.lineMode
-            color: Qt.alpha(Theme.ring, 0)
-            border.color: Theme.ring
-            border.width: Theme.sizes.ringWidth
-            bottomLeftRadius: root.animR
-            bottomRightRadius: root.animR
-        }
-
-        Item {
-            id: gloss
+        // Bottom-edge highlight of the glass (§2a): 1 px along the bottom edge and both bottom corners.
+        Shape {
             anchors.fill: parent
             visible: !root.lineMode && Theme.sheen > 0
             opacity: Theme.sheen
+            preferredRendererType: Shape.CurveRenderer
 
-            Rectangle {
-                anchors.fill: parent
-                bottomLeftRadius: root.animR
-                bottomRightRadius: root.animR
-                gradient: Gradient {
-                    GradientStop { position: 0; color: Theme.sheenTop }
-                    GradientStop { position: Theme.sizes.sheenMidStop; color: Theme.sheenMid }
-                    GradientStop { position: 1; color: Qt.alpha(Theme.sheenMid, 0) }
+            ShapePath {
+                id: edgePath
+                readonly property real inset: 0.5
+
+                fillColor: Qt.alpha(Theme.sheenEdge, 0)
+                strokeColor: Theme.sheenEdge
+                strokeWidth: Theme.sizes.ringWidth
+
+                startX: edgePath.inset
+                startY: root.animH - root.animR
+                PathArc {
+                    x: root.animR
+                    y: root.animH - edgePath.inset
+                    radiusX: root.animR - edgePath.inset
+                    radiusY: root.animR - edgePath.inset
+                    direction: PathArc.Counterclockwise
                 }
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                color: Qt.alpha(Theme.sheenOutline, 0)
-                border.color: Theme.sheenOutline
-                border.width: Theme.sizes.ringWidth
-                bottomLeftRadius: root.animR
-                bottomRightRadius: root.animR
-            }
-
-            // Bottom-edge highlight: a 1 px stroke along the bottom edge and both bottom corners.
-            Shape {
-                anchors.fill: parent
-                preferredRendererType: Shape.CurveRenderer
-
-                ShapePath {
-                    id: edgePath
-                    readonly property real inset: 0.5
-
-                    fillColor: Qt.alpha(Theme.sheenEdge, 0)
-                    strokeColor: Theme.sheenEdge
-                    strokeWidth: Theme.sizes.ringWidth
-
-                    startX: edgePath.inset
-                    startY: root.animH - root.animR
-                    PathArc {
-                        x: root.animR
-                        y: root.animH - edgePath.inset
-                        radiusX: root.animR - edgePath.inset
-                        radiusY: root.animR - edgePath.inset
-                        direction: PathArc.Counterclockwise
-                    }
-                    PathLine { x: root.animW - root.animR; y: root.animH - edgePath.inset }
-                    PathArc {
-                        x: root.animW - edgePath.inset
-                        y: root.animH - root.animR
-                        radiusX: root.animR - edgePath.inset
-                        radiusY: root.animR - edgePath.inset
-                        direction: PathArc.Counterclockwise
-                    }
+                PathLine { x: root.animW - root.animR; y: root.animH - edgePath.inset }
+                PathArc {
+                    x: root.animW - edgePath.inset
+                    y: root.animH - root.animR
+                    radiusX: root.animR - edgePath.inset
+                    radiusY: root.animR - edgePath.inset
+                    direction: PathArc.Counterclockwise
                 }
-            }
-
-            // Inner glow: a blurred inner stroke, cut to the body by the mask.
-            Rectangle {
-                id: glowSource
-                anchors.fill: parent
-                layer.enabled: true
-                visible: false
-                color: Qt.alpha(Theme.sheenGlow, 0)
-                border.color: Theme.sheenGlow
-                border.width: Theme.sizes.sheenGlow / 2
-                bottomLeftRadius: root.animR
-                bottomRightRadius: root.animR
-            }
-
-            Rectangle {
-                id: glowMask
-                anchors.fill: parent
-                layer.enabled: true
-                visible: false
-                color: Qt.alpha(Theme.sheenGlow, 1)
-                bottomLeftRadius: root.animR
-                bottomRightRadius: root.animR
-            }
-
-            MultiEffect {
-                anchors.fill: parent
-                source: glowSource
-                autoPaddingEnabled: false
-                blurEnabled: true
-                blur: 1
-                blurMax: Theme.sizes.sheenGlow
-                maskEnabled: true
-                maskSource: glowMask
             }
         }
+    }
+
+    // The rim (R13, §2a) paints above the content and takes no input: the ring and, on glass, the
+    // outline, stroked along the whole silhouette with its ears, so the island reads as coming out of
+    // the top edge. The line state drops both (R16).
+    Silhouette {
+        anchors.fill: parent
+        visible: !root.lineMode
+        paint: "transparent"
+        stroke: Theme.ring
+        strokeW: Theme.sizes.ringWidth
+        bodyLeft: bodyItem.x
+        bodyWidth: root.animW
+        bodyHeight: root.animH
+        earSize: root.animEar
+        cornerRadius: root.animR
+    }
+
+    Silhouette {
+        anchors.fill: parent
+        visible: !root.lineMode && Theme.sheen > 0
+        opacity: Theme.sheen
+        paint: "transparent"
+        stroke: Theme.sheenOutline
+        strokeW: Theme.sizes.ringWidth
+        bodyLeft: bodyItem.x
+        bodyWidth: root.animW
+        bodyHeight: root.animH
+        earSize: root.animEar
+        cornerRadius: root.animR
     }
 }

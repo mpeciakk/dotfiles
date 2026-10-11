@@ -100,13 +100,13 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         name: "moon"
                         size: root.spec.dndIcon
-                        color: Notifs.dnd ? Theme.onAccent : Theme.fg
+                        color: Notifs.dnd ? Theme.accentFg : Theme.fg
                     }
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Nie przeszkadzać"
-                        color: Notifs.dnd ? Theme.onAccent : Theme.fg
+                        color: Notifs.dnd ? Theme.accentFg : Theme.fg
                         font.family: Theme.fonts.ui
                         font.pixelSize: root.spec.btnFont
                     }
@@ -141,44 +141,37 @@ Item {
             }
         }
 
-        ColumnLayout {
-            visible: root.empty
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: root.spec.emptyGap
-
-            Item {
-                Layout.fillHeight: true
-            }
-
-            Components.Icon {
-                Layout.alignment: Qt.AlignHCenter
-                name: "check"
-                size: root.spec.emptyIcon
-                color: Theme.fgMuted
-            }
-
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                text: "Wszystko przeczytane"
-                color: Theme.fgMuted
-                font.family: Theme.fonts.ui
-                font.pixelSize: root.spec.emptyFont
-            }
-
-            Item {
-                Layout.fillHeight: true
-            }
-        }
-
+        // One always-visible slot: toggling `visible` on a direct layout child left the empty block at
+        // its implicit width (left-aligned) after a clear.
         Item {
-            visible: !root.empty
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            Column {
+                anchors.centerIn: parent
+                visible: root.empty
+                spacing: root.spec.emptyGap
+
+                Components.Icon {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    name: "check"
+                    size: root.spec.emptyIcon
+                    color: Theme.fgMuted
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Wszystko przeczytane"
+                    color: Theme.fgMuted
+                    font.family: Theme.fonts.ui
+                    font.pixelSize: root.spec.emptyFont
+                }
+            }
 
             Flickable {
                 id: list
 
+                visible: !root.empty
                 anchors.fill: parent
                 contentWidth: width
                 contentHeight: groups.height
@@ -382,7 +375,7 @@ Item {
                                                         anchors.centerIn: parent
                                                         visible: !card.pictured
                                                         text: N.initial(card.modelData.appName)
-                                                        color: Theme.onAccent
+                                                        color: Theme.accentFg
                                                         font.family: Theme.fonts.ui
                                                         font.pixelSize: root.spec.cardIconLetter
                                                         font.weight: Font.DemiBold
