@@ -24,6 +24,9 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
   (`call`, `expect`, `wait_ms`, `shot`), fails on any logged WARN/ERROR not listed in `tests/smoke/allowed-warnings.txt`,
   always kills the instance. Run it as `QS_DISABLE_CRASH_HANDLER=1 tests/smoke.sh …` (a crash otherwise leaves an
   orphan reporter process).
+- A check file containing the line `# smoke: private-bus` (`22-notifs-dbus.sh`) is re-run by `smoke.sh` under `dbus-run-session`: the
+  test instance owns `org.freedesktop.Notifications` there, so `notify-send` / `gdbus` never reach the live shell. Only such a smoke may call them
+  (`tests/smoke.test.mjs`).
 - `tests/shot.sh <name>` — crop around the island (by `targetW` / `targetH`) to `/tmp/wyspa-shots/<name>.png` (real screenshot of the live session).
 - `tests/niri-validate.sh` — validates `config/niri/*.kdl` with `hosts/pc/niri-output.kdl` (the `pc` host's output config) on every machine; run it after editing niri files.
 - Smokes with a `shot` line take real screenshots; `19-lock-preview.sh` shows the lock card in a plain window.
@@ -112,6 +115,7 @@ States: `rest`, `media`, `osd`, `toast`, `control`, `power`, `center`, `powerDon
 | `dnd(on: bool)` | do-not-disturb |
 | `clear()` | clear the history |
 | `count`, `unread`, `series` (int), `dndOn` (bool) | history size, unread badge, toast series, DND state |
+| `top` (string) | summary of the newest card in the history (tests) |
 
 Several of these properties exist only for tests (`restLoaded`, `contentState`, `maskMode`, `lineOn`, `target*`, `launcher*`).
 
@@ -136,7 +140,7 @@ lives in the global `blur` block of `config/niri/config.kdl`.
    `Network` service: import it `as QsNetworking`.
 5. Lazy singletons (`Niri`, `Apps`, `Fullscreen`, `AutoTheme`) run only when referenced: keep them referenced
    from `shell.qml`. `ToplevelManager` fills lazily.
-6. Notification `image://qsimage` URLs die with the `Notification` object (not tracked): stored snapshots drop only those (`storedSource()`) and keep file-path and `image://icon` images, else `appIcon`.
+6. Notification `image://qsimage` URLs die with the `Notification` object. A non-transient notification is `tracked` while its card is in `history` (a replacement then updates that object in place, DESIGN W15); a transient one dies right after the handler. Stored snapshots still drop only those URLs (`storedSource()`) and keep file-path and `image://icon` images, else `appIcon`.
    The toast reads the image synchronously inside the handler, never `asynchronous`.
 7. niri posts its own notification for every screenshot and the test instance is the daemon: take the shot last (the
    `shot` line is the last line of a smoke and nothing is asserted after the first one; `tests/smoke.test.mjs` pins it),

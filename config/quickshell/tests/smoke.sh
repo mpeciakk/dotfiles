@@ -5,6 +5,11 @@
 # warning or error not listed in tests/smoke/allowed-warnings.txt, and always
 # kills the instance.
 set -uo pipefail
+# A check file marked `# smoke: private-bus` runs on its own session bus, so the test instance owns
+# org.freedesktop.Notifications and `notify-send` never reaches the live shell.
+if grep -q '^# smoke: private-bus$' "$1" && [ -z "${WYSPA_PRIVATE_BUS:-}" ]; then
+    exec env WYSPA_PRIVATE_BUS=1 dbus-run-session -- "$0" "$@"
+fi
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 export WYSPA_TEST=1 QSG_RENDER_LOOP=threaded

@@ -17,6 +17,28 @@ function group(items) {
     return out;
 }
 
+// History edits (D4): one snapshot per id, newest first. None of them mutates its input.
+// `snap` to the top; an older snapshot with the same id is replaced by it (a replacement moves the card up).
+function replaceById(history, snap) {
+    return [snap].concat(history.filter(function (s) { return s.id !== snap.id; }));
+}
+
+function removeById(history, id) {
+    return history.filter(function (s) { return s.id !== id; });
+}
+
+// The newest `max` snapshots, and the ids of those that fell out (their Notification objects get dismiss()).
+function cap(history, max) {
+    return {
+        kept: history.slice(0, max),
+        dropped: history.slice(max).map(function (s) { return s.id; })
+    };
+}
+
+function clampUnread(unread, length) {
+    return Math.max(0, Math.min(unread, length));
+}
+
 // Height of the notification centre. `expanded` maps app -> bool; `L` = layout.center tokens.
 function centerHeight(groups, expanded, L) {
     if (groups.length === 0)
