@@ -363,8 +363,10 @@ const ALLOWED = {
     "services/Brightness.qml": ["execDetached", "Process"],
     // niri msg: focus a window, and the event stream
     "services/Niri.qml": ["execDetached", "Process"],
-    // the launcher's own perform(): copy, run a typed command, run a menu command; the menus' Process
-    "states/Launcher.qml": ["execDetached", "Process"]
+    // the menus' Process (the launcher's perform() starts everything else through Apps)
+    "states/Launcher.qml": ["Process"],
+    // uwsm app: launch an app, copy, run a typed command, run a menu command (called from the launcher's perform())
+    "services/Apps.qml": ["execDetached"]
 };
 
 test("guard: the gate exists with a perform() function", () => {

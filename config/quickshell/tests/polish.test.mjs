@@ -69,7 +69,7 @@ test("guard: a menu row without a command runs nothing", () => {
     const l = src("states/Launcher.qml");
     const branch = l.match(/row\.kind === "item"\) \{[\s\S]*?\n        \}\n    \}/)[0];
     assert.match(branch, /if\s*\(\s*row\.command\s*===\s*""\s*\)\s*return;/);
-    assert.ok(branch.indexOf('row.command === ""') < branch.indexOf("execDetached"));
+    assert.ok(branch.indexOf('row.command === ""') < branch.indexOf("Apps.run"));
 });
 
 test("guard: a default sink change shuts the OSD gate inside the value handlers, not after them", () => {

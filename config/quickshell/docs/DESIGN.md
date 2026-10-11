@@ -33,6 +33,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 | W8 | Poza zakresem na razie: przełączniki Ciepłe światło i Nagrywanie (panel ma DND i Zasilanie), tryb `/` pliki. Launcher: aplikacje, `=` kalkulator (JS), `>` polecenie, `@` okna, menu VPN i schowka. |
 | W9 | Bindy niri dopiero na końcu; do tego czasu stany wywołuje `qs ipc call island <stan>`. Kolizje `Mod+Shift+E` (zrzut) i `Mod+M` (makro) rozstrzygamy wtedy. |
 | W10 | Brak backlightu / NetworkManagera / bluetootha (np. `pc`) → suwak i OSD jasności, kafle Wi‑Fi/BT ukryte. |
+| W11 | Launcher uruchamia wszystko (aplikacje, `>` polecenie, polecenia menu, `wl-copy`) przez `uwsm app --` (`lib/launch.js`, `Apps.launch` / `Apps.run`): każdy proces dostaje własny scope w `app-graphical.slice`, więc restart `quickshell.service` (zabija całą swoją cgroupę) ich nie zabija; wcześniej `execDetached` zostawiał je w cgroupie powłoki (zmienione 2026-10-11). Aplikacja z poprawnym Desktop Entry ID idzie po ID (uwsm czyta `Path=`; `Terminal=` wymaga `xdg-terminals.list`, którego żaden host jeszcze nie ma — bez niego uwsm bierze pierwszy wpis TerminalEmulator, na `pc` `kitty-open.desktop`, więc wpisy terminalowe nadal nie działają, jak przy `execute()`); ID spoza reguły uwsm (np. wpis Steama „Big Walk”) idzie po sparsowanej komendzie z `workingDirectory`. Sesja na `pc` i `laptop` jest pod uwsm. Maski w `~/dotfiles/applications/` (`Hidden=true`) muszą mieć `Type=Application` i `Name=`: bez nich Quickshell 0.3.2 ich nie czyta (wpis zostaje na liście), a uwsm odrzuca je przy starcie. |
 
 Otwarte: tray (może wróci na końcu).
 
@@ -172,7 +173,7 @@ components/          Icon, MiniPlayer, PowerActions (jedyna bramka poleceń zasi
 services/            Niri, Fullscreen, Apps, Menus, Notifs, Audio, Brightness, Network, Battery,
                      Players, Time, AutoTheme
 lib/                 czysty JS (`.pragma library`), testowany w node: theme, island, niri, fullscreen,
-                     notifs, power, lock, slider, fuzzy, calc, icons, autotheme
+                     notifs, power, lock, slider, fuzzy, calc, icons, autotheme, launch
 menus/               skrypty menu launchera (schowek, VPN)
 tests/               testy node, smoke (`tests/smoke/*.sh`), `shot.sh`, `niri-validate.sh`
 ```
@@ -182,7 +183,7 @@ Zasady:
 - Wszystkie liczby i kolory UI pochodzą z `Theme`. Pilnuje tego `tests/no-magic.test.mjs`.
 - Nowy stan to cztery zmiany: wiersz geometrii w `lib/theme.js`, wpis w `PRIORITY` w `lib/island.js`, wpis w `IslandContent.sources` i plik `states/X.qml`.
 - Skróty niri wołają `qs ipc call island <funkcja>`. Cel `island` ma funkcje `open`, `toggle`, `close`, `hide`, `launcherMenu`, `lock`, `unlock`. Cele `theme` i `notifs` służą do ustawiania motywu i do testów.
-- Blur robi shell przez `ext-background-effect`. `layer-rule` dla `wyspa` w `config/niri/window_rules.kdl` tylko włącza blur okien i saturację.
+- Blur robi shell przez `ext-background-effect`. `layer-rule` dla `wyspa` w `config/niri/window_rules.kdl` ma tylko `xray false` (W1).
 - Polecenia zasilania i blokada przechodzą przez jedną bramkę (`PowerActions.perform()`, `Lock.engageLock()`). W trybie testowym (`WYSPA_TEST=1`) bramka tylko loguje.
 - Natywne moduły Quickshell: Pipewire (głośność), Mpris (media), Notifications (serwer powiadomień), UPower (bateria), Pam, Bluetooth, Networking. Jasność czyta sysfs i ustawia przez `brightnessctl`.
 

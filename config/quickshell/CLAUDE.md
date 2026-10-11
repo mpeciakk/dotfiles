@@ -42,7 +42,7 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 | `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode) |
 | `Wallpaper.qml` | wallpaper per screen |
 | `Lock.qml`, `LockPreview.qml` | `WlSessionLock` + PAM; the preview shows the card without locking |
-| `lib/` | pure JS (`.pragma library`): `theme`, `island`, `niri`, `fullscreen`, `notifs`, `power`, `lock`, `slider`, `fuzzy`, `calc`, `icons`, `autotheme` |
+| `lib/` | pure JS (`.pragma library`): `theme`, `island`, `niri`, `fullscreen`, `notifs`, `power`, `lock`, `slider`, `fuzzy`, `calc`, `icons`, `autotheme`, `launch` |
 | `states/` | `Rest`, `Osd`, `Toast`, `Center`, `Launcher`, `Control`, `Media`, `Power`, `PowerDone`, `LockCard` |
 | `components/` | `Icon`, `MiniPlayer`, `PowerActions` |
 | `services/` | `Niri`, `Fullscreen`, `Apps`, `Menus`, `Notifs`, `Audio`, `Brightness`, `Network`, `Battery`, `Players`, `Time`, `AutoTheme` |
@@ -59,6 +59,8 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 - Icons only through `components/Icon.qml` (paths in `lib/icons.js`).
 - Adding a state: (1) geometry row in `lib/theme.js` (`geom`), (2) `lib/island.js` `PRIORITY` (and `MODAL` if it takes
   the keyboard), (3) `IslandContent.sources` entry, (4) `states/X.qml`. Then a smoke in `tests/smoke/`.
+- The launcher starts every process through `Apps.launch` / `Apps.run` (`uwsm app --`, `lib/launch.js`): a plain
+  `execDetached` child stays in `quickshell.service`'s cgroup and dies with every restart of the shell.
 - Test mode is decided in ONE place per side effect (`PowerActions.perform()`, `Lock.engageLock()`, the per-component
   `testMode` guard) and pinned by source-grep tests (`tests/power.test.mjs`, `tests/lock.test.mjs`). Never weaken them.
 

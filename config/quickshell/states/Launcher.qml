@@ -121,10 +121,10 @@ Item {
             root.perform("launch " + row.entry.name, () => Apps.launch(row.entry));
             IslandState.close();
         } else if (row.kind === "calc") {
-            root.perform("copy " + row.label, () => Quickshell.execDetached(["wl-copy", "--", row.label]));
+            root.perform("copy " + row.label, () => Apps.run(["wl-copy", "--", row.label]));
             IslandState.close();
         } else if (row.kind === "command") {
-            root.perform("run: " + row.text, () => Quickshell.execDetached(["sh", "-c", row.text]));
+            root.perform("run: " + row.text, () => Apps.run(["sh", "-c", row.text]));
             IslandState.close();
         } else if (row.kind === "window") {
             root.perform("focus window " + row.id, () => Niri.focusWindow(row.id));
@@ -132,7 +132,7 @@ Item {
         } else if (row.kind === "item") {
             if (row.command === "")
                 return;
-            root.perform("run menu command: " + row.command, () => Quickshell.execDetached(["sh", "-c", row.command]));
+            root.perform("run menu command: " + row.command, () => Apps.run(["sh", "-c", row.command]));
             if (Menus.get(root.menuId)?.closeOnRun) {
                 IslandState.close();
             } else {

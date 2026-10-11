@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import "../lib/fuzzy.js" as F
+import "../lib/launch.js" as L
 
 // Desktop application index + fuzzy search over Quickshell's DesktopEntries.
 // Self-contained (no fuzzysort/sqlite plugin): lib/fuzzy.js ranks the name by
@@ -12,9 +13,17 @@ Singleton {
 
     readonly property var list: DesktopEntries.applications.values.filter(a => !a.noDisplay)
 
+    // Every start goes through `uwsm app` (lib/launch.js): its own scope, so restarting the shell keeps it.
     function launch(entry: DesktopEntry): void {
         if (entry)
-            entry.execute();
+            Quickshell.execDetached({
+                command: L.entryArgv(entry.id, entry.command),
+                workingDirectory: entry.workingDirectory
+            });
+    }
+
+    function run(argv: list<string>): void {
+        Quickshell.execDetached(L.wrap(argv));
     }
 
     // Returns [{entry: DesktopEntry, ranges: [[start, end)]}], best match first; `ranges`
