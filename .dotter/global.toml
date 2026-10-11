@@ -14,7 +14,7 @@ depends = []
 "config/uwsm" = "~/.config/uwsm"
 "config/wireplumber" = "~/.config/wireplumber"
 "config/xdg-desktop-portal" = "~/.config/xdg-desktop-portal"
-"config/quickshell" = "~/.config/quickshell"
+"config/quickshell" = { target = "~/.config/quickshell", type = "symbolic" }
 "config/systemd/user/quickshell.service" = "~/.config/systemd/user/quickshell.service"
 
 # herdr — only the two config files; the rest of ~/.config/herdr is runtime state
