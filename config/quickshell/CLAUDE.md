@@ -41,7 +41,7 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 | `IslandContent.qml` | one layer per state (`sources`), cross-fade |
 | `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode) |
 | `Wallpaper.qml` | wallpaper per screen |
-| `Lock.qml`, `LockPreview.qml` | `WlSessionLock` + PAM; the preview shows the card without locking |
+| `Lock.qml`, `LockOverlay.qml`, `LockPreview.qml` | `WlSessionLock` + PAM; the overlay (in each island window) plays the lock's way in and back; the preview shows the card without locking |
 | `lib/` | pure JS (`.pragma library`): `theme`, `island`, `niri`, `fullscreen`, `notifs`, `power`, `lock`, `slider`, `fuzzy`, `calc`, `icons`, `autotheme`, `launch` |
 | `states/` | `Rest`, `Osd`, `Toast`, `Center`, `Launcher`, `Control`, `Media`, `Power`, `PowerDone`, `LockCard` |
 | `components/` | `Icon`, `MiniPlayer`, `PowerActions` |
@@ -144,7 +144,8 @@ lives in the global `blur` block of `config/niri/config.kdl`.
 8. Smokes: `QS_DISABLE_CRASH_HANDLER=1 tests/smoke.sh …`. `WYSPA_TEST=1` sets keyboard focus to None and turns every
    side effect (power commands, lock, `sh -c`, `wl-copy`, player / volume / brightness controls, app launch,
    `focusWindow`) into a log line.
-9. The lock: recovery is `qs ipc -p <dir> call island unlock` (from a TTY first
+9. The lock: both ways play on `LockOverlay.qml` inside each island window (DESIGN W12, `IslandState.lockPhase`): a request plays the way in over the windows and
+   locks after `lockInMs` (~0.8 s); a correct password unlocks at once and the overlay plays the way back. Recovery is `qs ipc -p <dir> call island unlock` (from a TTY first
    `export XDG_RUNTIME_DIR=/run/user/1000`). `loginctl unlock-session` does NOT work. `pam_faillock` defaults: deny=3,
    unlock after 600 s. UNVERIFIED (not tried live): if the shell dies while locked, the compositor keeps the blank lock
    and a restarted shell starts unlocked; the likely recovery is `systemctl --user restart quickshell`, then

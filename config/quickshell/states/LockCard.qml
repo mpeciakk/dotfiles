@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Shapes
 import Quickshell
 import ".."
 import "../components" as Components
@@ -21,8 +22,15 @@ Item {
     // The card's corners: the lock screen morphs them from the rest island's to geom.lock.r.
     property real topRadius: Theme.geom.lock.r
     property real bottomRadius: Theme.geom.lock.r
+    // Docked at the top edge (lib/lock.js dock()): the island's ears, outside the card's own width, and no ring
+    // along the top. Never together with a topRadius.
+    property real earSize: 0
+    // The shadow, 0..1: it fades as the card docks into the island (whose fill no shadow shows through).
+    property real shadowAmount: 1
     // The content: true = in (enter after the lock's delay), false = out (exit, no delay).
     property bool revealed: true
+    // false: the content is in from the first frame (the unlock overlay, whose first frame is the one shown).
+    property bool enterAnimated: true
 
     signal submitted(string password)
 
@@ -82,24 +90,64 @@ Item {
 
     RectangularShadow {
         anchors.fill: bg
+        opacity: root.shadowAmount
         radius: root.bottomRadius
         blur: Theme.lockShadowBlur
         offset.y: Theme.lockShadowY
         color: Theme.lockShadowColor
     }
 
-    // Island material of the current level and theme (R3): fill, ring.
-    Rectangle {
+    // The body, for the shadow.
+    Item {
         id: bg
 
         anchors.fill: parent
-        topLeftRadius: root.topRadius
-        topRightRadius: root.topRadius
-        bottomLeftRadius: root.bottomRadius
-        bottomRightRadius: root.bottomRadius
-        color: Theme.islandBg
-        border.color: Theme.ring
-        border.width: Theme.sizes.ringWidth
+    }
+
+    // Island material of the current level and theme (R3): fill and ring on one outline, the island's (IslandShape)
+    // when docked: ears, and the ring open at the top edge. Floating, the rounded top corners and a top ring
+    // (fading out as topRadius goes to 0, i.e. as the card docks).
+    Shape {
+        id: outline
+
+        readonly property real e: root.earSize
+        readonly property real tr: root.topRadius
+        readonly property real br: root.bottomRadius
+        readonly property real w: root.width
+        readonly property real h: root.height
+
+        x: -outline.e
+        width: root.width + 2 * outline.e
+        height: root.height
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+            fillColor: Theme.islandBg
+            strokeColor: Theme.ring
+            strokeWidth: Theme.sizes.ringWidth
+
+            startX: outline.tr
+            startY: 0
+            PathArc { x: 0; y: outline.tr; radiusX: outline.tr; radiusY: outline.tr; direction: PathArc.Counterclockwise }
+            PathArc { x: outline.e; y: outline.e + outline.tr; radiusX: outline.e; radiusY: outline.e; direction: PathArc.Clockwise }
+            PathLine { x: outline.e; y: outline.h - outline.br }
+            PathArc { x: outline.e + outline.br; y: outline.h; radiusX: outline.br; radiusY: outline.br; direction: PathArc.Counterclockwise }
+            PathLine { x: outline.e + outline.w - outline.br; y: outline.h }
+            PathArc { x: outline.e + outline.w; y: outline.h - outline.br; radiusX: outline.br; radiusY: outline.br; direction: PathArc.Counterclockwise }
+            PathLine { x: outline.e + outline.w; y: outline.e + outline.tr }
+            PathArc { x: 2 * outline.e + outline.w; y: outline.tr; radiusX: outline.e; radiusY: outline.e; direction: PathArc.Clockwise }
+            PathArc { x: 2 * outline.e + outline.w - outline.tr; y: 0; radiusX: outline.tr; radiusY: outline.tr; direction: PathArc.Counterclockwise }
+        }
+
+        ShapePath {
+            fillColor: "transparent"
+            strokeColor: Qt.alpha(Theme.ring, Theme.ring.a * Math.min(1, outline.tr / Theme.geom.lock.r))
+            strokeWidth: Theme.sizes.ringWidth
+
+            startX: outline.w - outline.tr
+            startY: 0
+            PathLine { x: outline.tr; y: 0 }
+        }
     }
 
     // The content keeps the card's locked size; while the card morphs it is clipped to it.
@@ -129,6 +177,7 @@ Item {
             transitions: [
                 Transition {
                     to: "revealed"
+                    enabled: root.enterAnimated
                     SequentialAnimation {
                         PauseAnimation { duration: root.spec.enterDelayMs }
                         NumberAnimation { property: "opacity"; duration: root.spec.enterOpacityMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.enterCurve }

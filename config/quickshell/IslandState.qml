@@ -46,10 +46,16 @@ Singleton {
     property string powerLabel: ""
     signal lockRequested
 
-    // The session lock (Lock.qml): `locked` mirrors its WlSessionLock (reportLocked() is its only writer). The
+    // The session lock (Lock.qml): `locked` mirrors its lockOn (WlSessionLock.locked does not notify an unlock;
+    // reportLocked() is the only writer). The
     // IPC lock() / unlock() reach Lock.qml through lockAsked / unlockAsked, never through lockRequested, which
     // tests/power.test.mjs pins to the power gate. Lock.qml decides: in test mode a lock request only logs.
     property bool locked: false
+    // The island stays hidden from the lock's way in, under the lock and on the way back until the card has nearly
+    // reached it (Lock.qml; reportLockHides() is the only writer).
+    property bool lockHides: false
+    // The lock overlay's phase (Lock.qml; reportLockPhase() is the only writer): "in", "locked", "back" or "".
+    property string lockPhase: ""
     signal lockAsked
     signal unlockAsked
 
@@ -118,6 +124,14 @@ Singleton {
 
     function reportLocked(on: bool): void {
         root.locked = on;
+    }
+
+    function reportLockHides(on: bool): void {
+        root.lockHides = on;
+    }
+
+    function reportLockPhase(phase: string): void {
+        root.lockPhase = phase;
     }
 
     function reportLine(output: string, on: bool): void {

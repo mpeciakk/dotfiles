@@ -16,11 +16,40 @@ function engage(testMode, locked) {
     return { engage: true, message: "lock: locking the session" };
 }
 
-// Whether a lock request arriving now only has to cancel the reverse morph: the session is still locked but the
-// card is on its way back to rest (a correct password), so the request must not be dropped as "already locked".
+// Whether a lock request arriving now only has to cancel the unlock: the password was accepted but the lock is still
+// on (Lock.qml releaseTimer, handoffMs), so the request must not be dropped as "already locked".
 // Only an explicit false test mode does it.
 function keepsLocked(testMode, locked, unlocking) {
     return testMode === false && locked === true && unlocking === true;
+}
+
+// The next step of an allowed lock request (DESIGN W12): "prelude" = play the way in on the overlay first, "wait" =
+// it is playing (the lock follows when it ends), "lock" = lock now (it ended, or reduced motion: no way in).
+// prelude: 0 none, 1 playing, 2 ended.
+function lockStep(prelude, reducedMotion) {
+    if (prelude === 1)
+        return "wait";
+    if (prelude === 0 && !reducedMotion)
+        return "prelude";
+    return "lock";
+}
+
+// How long the way in plays: until the last of the morph, the wallpaper, the card's content and the extras is in.
+function lockInMs(motion, spec) {
+    return Math.max(motion.lockMorphMs, motion.wallpaperMs, spec.deskMs,
+        spec.enterDelayMs + spec.enterOpacityMs, spec.enterDelayMs - spec.enterScaleLeadMs + spec.enterScaleMs,
+        spec.enterDelayMs + spec.enterBlurMs, spec.extrasDelayMs + spec.extrasMs);
+}
+
+// How far the card is docked into the screen's top edge, from the lock morph (1 = the card in the middle, 0 = the
+// rest island): { top, ear }, each 0..1. Above dockAt the card has rounded top corners (top), below it the island's
+// ears instead (ear); never both, so the outline is either a floating card or the island, and the change is
+// continuous (both are 0 at dockAt).
+function dock(morph, dockAt) {
+    return {
+        top: morph > dockAt ? (morph - dockAt) / (1 - dockAt) : 0,
+        ear: morph < dockAt ? 1 - morph / dockAt : 0
+    };
 }
 
 // The idle lock: { enabled, timeout } from the host's lock.timeout (seconds). Absent -> the default; a positive

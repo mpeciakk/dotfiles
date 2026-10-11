@@ -119,7 +119,7 @@ PanelWindow {
             height: 2 * root.earSize
         }
     }
-    BackgroundEffect.blurRegion: Theme.glass && root.effState !== "line" ? root.blurShape : null
+    BackgroundEffect.blurRegion: Theme.glass && root.effState !== "line" && !IslandState.lockHides ? root.blurShape : null
 
     Timer {
         id: mediaLeave
@@ -185,6 +185,23 @@ PanelWindow {
             r: root.geo.r
             ears: root.geo.ears
             lineMode: root.effState === "line"
+            // Hidden from the lock's way in (it fades out as the lock overlay's card grows out of it) until the card
+            // docks again on the way back (Lock.qml).
+            states: State {
+                name: "lockHidden"
+                when: IslandState.lockHides
+                PropertyChanges { shape.opacity: 0 }
+            }
+            transitions: [
+                Transition {
+                    to: "lockHidden"
+                    NumberAnimation { property: "opacity"; duration: Theme.reducedMotion ? 0 : Theme.layout.lock.exitOpacityMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.easeCurve }
+                },
+                Transition {
+                    from: "lockHidden"
+                    NumberAnimation { property: "opacity"; duration: Theme.reducedMotion ? 0 : Theme.layout.lock.earMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.easeCurve }
+                }
+            ]
 
             IslandContent {
                 id: content
@@ -211,6 +228,15 @@ PanelWindow {
                         mediaLeave.restart();
                 }
             }
+        }
+    }
+
+    // The lock's way in and way back (Lock.qml, DESIGN W12), above the island; never in the input mask.
+    Loader {
+        anchors.fill: parent
+        active: IslandState.lockPhase !== ""
+        sourceComponent: LockOverlay {
+            screen: root.screen
         }
     }
 }

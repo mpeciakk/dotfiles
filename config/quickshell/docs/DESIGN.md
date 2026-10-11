@@ -34,6 +34,8 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 | W9 | Bindy niri dopiero na końcu; do tego czasu stany wywołuje `qs ipc call island <stan>`. Kolizje `Mod+Shift+E` (zrzut) i `Mod+M` (makro) rozstrzygamy wtedy. |
 | W10 | Brak backlightu / NetworkManagera / bluetootha (np. `pc`) → suwak i OSD jasności, kafle Wi‑Fi/BT ukryte. |
 | W11 | Launcher uruchamia wszystko (aplikacje, `>` polecenie, polecenia menu, `wl-copy`) przez `uwsm app --` (`lib/launch.js`, `Apps.launch` / `Apps.run`): każdy proces dostaje własny scope w `app-graphical.slice`, więc restart `quickshell.service` (zabija całą swoją cgroupę) ich nie zabija; wcześniej `execDetached` zostawiał je w cgroupie powłoki (zmienione 2026-10-11). Aplikacja z poprawnym Desktop Entry ID idzie po ID (uwsm czyta `Path=` i `Terminal=`; terminal z `config/xdg-terminals.list` → `kitty.desktop` — bez tej listy uwsm brał pierwszy wpis TerminalEmulator, na `pc` `kitty-open.desktop`, który tylko otwiera pliki); ID spoza reguły uwsm (np. wpis Steama „Big Walk”) idzie po sparsowanej komendzie z `workingDirectory`. Sesja na `pc` i `laptop` jest pod uwsm. Maski w `~/dotfiles/applications/` (`Hidden=true`) muszą mieć `Type=Application` i `Name=`: bez nich Quickshell 0.3.2 ich nie czyta (wpis zostaje na liście), a uwsm odrzuca je przy starcie. |
+| W12 | Blokada i odblokowanie grane na nakładce (2026-10-11): protokół `ext-session-lock` nie pokazuje okien, dopóki sesja jest zablokowana, a powierzchnia zasłonięta blokadą nie dostaje od niri nowych klatek — przy odblokowaniu niri pokazuje jej ostatnią klatkę. Dlatego obie drogi gra nakładka `LockOverlay.qml` w oknie wyspy każdego ekranu (już istnieje, pełnoekranowe, warstwa Overlay, poza maską wejścia; osobne okno potrzebowało ~170 ms do pierwszej klatki), sterowana fazą `IslandState.lockPhase` (`in` → `locked` → `back`, bez przejścia przez pustą fazę). Blokowanie: po żądaniu nakładka gra całe wejście nad oknami (tapeta wjeżdża i się rozmywa, wyspa gaśnie, a z jej miejsca rośnie karta, wchodzi treść i dodatki) i dopiero po nim (`lib/lock.js` `lockInMs`, ~0,82 s) zakłada się blokada, której powierzchnia od pierwszej klatki wygląda tak samo (bez własnej animacji) — sesja jest więc naprawdę zablokowana ~0,8 s po `Mod+L` (decyzja użytkownika: płynność; klawisze do tego czasu trafiają do okna). Nakładka zostaje pod blokadą; jej ostatnia klatka to wygląd blokady. Odblokowanie: blokada schodzi od razu po haśle (`lock.handoffMs` 0), nakładka gra powrót: treść i dodatki gasną, karta leci w górę i przy krawędzi zamienia zaokrąglone rogi na uszy wyspy (`dock()`, ten sam kształt co wyspa), tapeta zanika od 240 ms, od 420 ms karta przenika się z wyspą (`IslandState.lockHides`). Stan blokady dla wiązań to własne `lockOn` w `Lock.qml`: `WlSessionLock.locked` w Quickshell 0.3.2 nie zgłasza odblokowania (wiązania zostają na `true`). |
+| W13 | Tło blokady to tapeta, lekko rozmyta (blur 12 / jasny 10, scale 1.08), bez zmiany saturacji i jasności (2026-10-11). Zrzut ekranu sprzed blokady (jak dawniej `swaylock -S`) był wdrożony i odrzucony tego samego dnia: dokładał ~0,1 s przed blokadą, a wyspa musiała znikać przed zrzutem (inaczej po odblokowaniu karta leciała na wyspę ze zrzutu). |
 
 Otwarte: tray (może wróci na końcu).
 
@@ -78,7 +80,7 @@ Ten sam układ, kształty i ruch; podmieniane wyłącznie tokeny. Szkło w kolor
 | `accent` | `#B9A7F5` | `#4E3A9E` |
 | `onAccent` | `#121118` | `#FFFFFF` |
 | `danger` | `#F2A7B8` | `#B4405E` |
-| Blokada: tapeta | blur 22, brightness 0.78 | blur 18, brightness 0.92 |
+| Blokada: tapeta | blur 12 | blur 10 |
 
 Przełączanie: tryb ręczny / wg pory dnia (wschód–zachód) / wg jasności tapety. Zmiana = przenikanie kolorów 600 ms (`ColorAnimation`), bez morfingu kształtu. `Theme.qml` trzyma dwa zestawy i właściwość `mode`.
 
@@ -149,8 +151,8 @@ Behavior on implicitWidth {
 
 **Menu zasilania** — 5 okrągłych przycisków 60 px: Zablokuj (L), Uśpij (S) działają od razu; Wyloguj (O), Restart (R), Wyłącz (P) wymagają **przytrzymania** (domyślnie 900 ms, konfigurowalne) — pierścień postępu wokół ikony, puszczenie wcześniej cofa pierścień (220 ms). Wyłącz w kolorze `danger`. Pulpit przygaszony `rgba(8,6,14,0.45)`. Po akcji → `powerDone` z etykietą („Wyłączanie…”). Klawiatura: strzałki + przytrzymanie Enter.
 
-**Blokada** (`WlSessionLock`, PAM) — wyspa zjeżdża z krawędzi do karty 460×360 na środku; tapeta blur 22 px, saturate 1.2, brightness 0.78, scale 1.08 (700 ms); okna znikają. Karta: zegar 88 px, data, pole hasła (avatar z inicjałem, input, przycisk →), linia statusu, na dole bateria / Wi‑Fi / **tylko liczba** powiadomień (bez treści). Dodatkowo: mini odtwarzacz na dole ekranu, przyciski Uśpij/Wyłącz w prawym dolnym rogu. Błąd: shake 380 ms (±10/8/6/3 px) + obwódka `danger`. Sukces: odwrotny morfing do `rest`, okna wracają z opóźnieniem 240 ms.
-Uwaga: lock surface to osobna powierzchnia — „zjazd” wyspy symulujemy animacją wejścia karty z pozycji/rozmiaru `rest`.
+**Blokada** (`WlSessionLock`, PAM) — wyspa zjeżdża z krawędzi do karty 460×360 na środku (nad oknami, przed założeniem blokady — W12); pod nią tapeta, lekko rozmyta (W13): blur 12 px, scale 1.08, bez zmiany saturacji i jasności (700 ms); okna znikają. Karta: zegar 88 px, data, pole hasła (avatar z inicjałem, input, przycisk →), linia statusu, na dole bateria / Wi‑Fi / **tylko liczba** powiadomień (bez treści). Dodatkowo: mini odtwarzacz na dole ekranu, przyciski Uśpij/Wyłącz w prawym dolnym rogu. Błąd: shake 380 ms (±10/8/6/3 px) + obwódka `danger`. Sukces: odwrotny morfing do `rest` (cień karty gaśnie, przy dokowaniu wyrastają uszy: od 420 ms przez 200 ms), okna wracają z opóźnieniem 240 ms (tapeta zanika przez 420 ms) — przez przekazanie na nakładkę (W12).
+Uwaga: lock surface to osobna powierzchnia i sama się nie animuje — „zjazd” wyspy i powrót gra nakładka w oknie wyspy (W12).
 
 ## 7. Architektura
 
@@ -167,7 +169,8 @@ IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i
 IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
 Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
 Wallpaper.qml        tapeta per ekran
-Lock.qml             WlSessionLock + PAM; LockPreview.qml pokazuje kartę bez blokowania (zrzuty)
+Lock.qml             WlSessionLock + PAM; LockOverlay.qml (w oknie wyspy) gra wejście i powrót blokady;
+                     LockPreview.qml pokazuje kartę bez blokowania (zrzuty)
 states/              Rest, Osd, Toast, Center, Launcher, Control, Media, Power, PowerDone, LockCard
 components/          Icon, MiniPlayer, PowerActions (jedyna bramka poleceń zasilania i blokady)
 services/            Niri, Fullscreen, Apps, Menus, Notifs, Audio, Brightness, Network, Battery,

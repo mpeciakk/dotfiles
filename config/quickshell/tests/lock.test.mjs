@@ -145,7 +145,7 @@ test("guard: the IdleMonitor takes enabled and timeout from L.idle with the file
     const m = lock.code.match(/IdleMonitor\s*\{[\s\S]*?\n\s{4}\}/);
     assert.ok(m, "no IdleMonitor block");
     assert.match(m[0], /respectInhibitors\s*:\s*true/);
-    assert.match(m[0], /enabled\s*:\s*root\.idle\.enabled\s*&&\s*!\s*sessionLock\.locked/);
+    assert.match(m[0], /enabled\s*:\s*root\.idle\.enabled\s*&&\s*!\s*root\.lockOn/);
     assert.match(m[0], /timeout\s*:\s*root\.idle\.timeout/);
     assert.match(lock.code, /readonly\s+property\s+var\s+idle\s*:\s*L\.idle\([^)]*,\s*root\.testMode\s*\)/);
 });
@@ -228,4 +228,90 @@ test("guard: tests/shot.sh refuses while the live shell or the checkout's instan
     assert.match(shot, /qs ipc prop get island locked/);
     assert.match(shot, /qs ipc -p "\$DIR" prop get island locked/);
     assert.doesNotMatch(shot, /qs ipc call lock\b/, "the old shell's lock target is gone after deploy");
+});
+
+test("guard: the lock overlay lives in the island windows, only while the lock has a phase, and takes no input", () => {
+    const island = readFileSync(join(root, "Island.qml"), "utf8");
+    assert.match(island, /Loader\s*\{[^}]*active:\s*IslandState\.lockPhase\s*!==\s*""[\s\S]*?LockOverlay\s*\{/);
+    const overlay = readFileSync(join(root, "LockOverlay.qml"), "utf8");
+    assert.doesNotMatch(overlay, /\b(MouseArea|TapHandler|HoverHandler|Keys\.|focus\s*:)/);
+    // The phase never passes through "" between "in" and "locked", or between "back" and "in".
+    assert.match(lock.code, /lockPhase:\s*root\.lockOn\s*\?\s*"locked"\s*:\s*root\.handoff\s*\?\s*"back"\s*:\s*root\.prelude\s*!==\s*0\s*\?\s*"in"\s*:\s*""/);
+    const b = body("engageLock");
+    assert.ok(b.search(/root\.lockOn\s*=/) < b.search(/root\.prelude\s*=\s*0/), "prelude is cleared only after lockOn is set");
+    const start = b.slice(b.search(/step\s*===\s*"prelude"/));
+    assert.ok(start.search(/root\.prelude\s*=\s*1/) < start.search(/root\.stopHandoff\(\)/), "the way in starts before the hand-off stops");
+});
+
+test("guard: the lock drops handoffMs after a correct password, and the hand-off ends after the last of its animations", () => {
+    assert.match(lock.code, /id:\s*releaseTimer[\s\S]{0,120}interval:\s*Theme\.reducedMotion\s*\?\s*0\s*:\s*Theme\.layout\.lock\.handoffMs/);
+    assert.match(lock.code, /id:\s*handoffEnd[\s\S]{0,200}interval:\s*Theme\.reducedMotion\s*\?\s*0\s*:\s*Math\.max\(Theme\.motion\.lockMorphMs,\s*Theme\.layout\.lock\.deskDelayMs\s*\+\s*Theme\.layout\.lock\.deskMs,\s*Theme\.layout\.lock\.earDelayMs\s*\+\s*Theme\.layout\.lock\.earMs\)/);
+    // The lock surface's first frame is the look the overlay's way in ended on: its card's content in without an enter.
+    assert.match(lock.code, /enterAnimated:\s*false\s*\n\s*revealed:\s*surface\.shown/);
+});
+
+test("guard: bindings follow lockOn, never WlSessionLock.locked outside the lock surfaces (it does not notify an unlock)", () => {
+    const surfaceStart = lock.code.indexOf("surface: Component {");
+    assert.ok(surfaceStart > 0);
+    const surfaceEnd = lock.code.length; // the surface component is the last thing in the file
+    const outside = lock.code.slice(0, surfaceStart) + lock.code.slice(surfaceEnd);
+    // A declarative binding is `name: <expr>` on one line; imperative reads (in functions) end in `;` or `(`/`)`.
+    const bound = outside.split("\n").filter(l => /^\s*[\w.]+\s*:\s*[^{]*\bsessionLock\.locked\b/.test(l) && !/\bfunction\b/.test(l));
+    assert.deepEqual(bound, []);
+    assert.match(lock.code, /readonly property bool hidesIsland:\s*root\.prelude\s*!==\s*0\s*\|\|\s*root\.lockOn\b/);
+    assert.match(lock.code, /enabled:\s*root\.idle\.enabled\s*&&\s*!root\.lockOn/);
+    assert.match(lock.code, /onLockOnChanged:\s*IslandState\.reportLocked\(root\.lockOn\)/);
+});
+
+test("guard: the release starts the hand-off before it unlocks (the unlock clears secure, which would drop the overlay)", () => {
+    const m = lock.code.match(/id:\s*releaseTimer[\s\S]*?onTriggered:\s*\{([\s\S]*?)\n\s{8}\}/);
+    assert.ok(m, "no releaseTimer onTriggered block");
+    const b = m[1];
+    const handoff = b.search(/root\.handoff\s*=/);
+    const unlock = b.search(/sessionLock\.locked\s*=\s*false/);
+    assert.ok(handoff >= 0 && unlock > handoff);
+});
+
+test("dock: rounded top corners above dockAt, the island's ears below it, never both, 0 at dockAt", () => {
+    const d = 0.05;
+    assert.deepEqual(plain(L.dock(1, d)), { top: 1, ear: 0 });
+    assert.deepEqual(plain(L.dock(0, d)), { top: 0, ear: 1 });
+    assert.deepEqual(plain(L.dock(d, d)), { top: 0, ear: 0 });
+    for (const m of [0, 0.01, 0.03, 0.049, 0.05, 0.06, 0.3, 0.7, 1]) {
+        const r = L.dock(m, d);
+        assert.ok(r.top === 0 || r.ear === 0, `both at ${m}`);
+        assert.ok(r.top >= 0 && r.top <= 1 && r.ear >= 0 && r.ear <= 1, `range at ${m}`);
+    }
+    assert.ok(L.dock(0.02, d).ear > L.dock(0.04, d).ear, "the ears grow as the card docks");
+});
+
+test("lockStep: the way in first, wait while it plays, then lock; reduced motion locks at once", () => {
+    assert.equal(L.lockStep(0, false), "prelude");
+    assert.equal(L.lockStep(1, false), "wait");
+    assert.equal(L.lockStep(2, false), "lock");
+    assert.equal(L.lockStep(0, true), "lock");
+    assert.equal(L.lockStep(1, true), "wait");
+});
+
+test("lockInMs: the way in lasts until its last part is in (the extras, with the defaults)", () => {
+    const m = T.defaults.motion, s = T.defaults.layout.lock;
+    const ms = L.lockInMs(m, s);
+    for (const part of [m.lockMorphMs, m.wallpaperMs, s.deskMs, s.enterDelayMs + s.enterOpacityMs, s.extrasDelayMs + s.extrasMs])
+        assert.ok(ms >= part, `${ms} < ${part}`);
+    assert.equal(ms, s.extrasDelayMs + s.extrasMs);
+});
+
+test("guard: engageLock() starts the way in only after its test-mode decision, and the prelude timer comes back to it", () => {
+    const b = body("engageLock");
+    const bail = b.search(/if\s*\(\s*!\s*d\.engage\s*\)\s*return\b/);
+    const step = b.search(/L\.lockStep\(\s*root\.prelude\s*,\s*Theme\.reducedMotion\s*\)/);
+    const start = b.search(/root\.prelude\s*=\s*1/);
+    assert.ok(bail >= 0 && step > bail && start > step);
+    assert.match(lock.code, /id:\s*preludeTimer[\s\S]{0,200}interval:\s*L\.lockInMs\(Theme\.motion,\s*Theme\.layout\.lock\)[\s\S]{0,120}root\.prelude\s*=\s*2;\s*root\.engageLock\(root\.preludeFor\)/);
+    // The hatch stops a pending way in and clears it, so it cannot lock after an unlock nor leave the island hidden.
+    assert.match(body("unlockNow"), /preludeTimer\.stop\(\);\s*root\.prelude\s*=\s*0/);
+});
+
+test("guard: a lock the compositor ends itself releases through secure, not locked (locked still reads true in that signal)", () => {
+    assert.match(lock.code, /onSecureStateChanged:\s*\{\s*if\s*\(\s*!sessionLock\.secure\s*&&\s*root\.lockOn\s*\)\s*root\.released\(\)/);
 });

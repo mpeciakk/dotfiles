@@ -12,10 +12,13 @@ import "services"
 import "lib/lock.js" as L
 import "lib/power.js" as P
 
-// The session lock (reference 3.10, DESIGN §6 "Blokada", R3, R21, R32): a WlSessionLock with a surface per
-// screen. The wallpaper blurs, the card morphs in from the rest island's geometry to the centre of the screen,
-// the mini player and the Uśpij / Wyłącz buttons fade in. PAM (assets/pam.d/passwd) checks the password; on
-// success the card morphs back to rest and only then does the lock go.
+// The session lock (reference 3.10, DESIGN §6 "Blokada", R3, R21, R32, W12): a WlSessionLock with a surface per
+// screen, and the lock overlay that animates both ways where the lock surface cannot. The protocol shows no window
+// while the session is locked, and a surface hidden by the lock gets no new frame, so at the unlock the compositor
+// shows its last one. Locking: the overlay plays the whole way in over the windows (the wallpaper fades in and blurs,
+// the island becomes the card, its content and the mini player and Uśpij / Wyłącz buttons come in), then the lock
+// goes on with a surface whose first frame is that same look. Unlocking: PAM (assets/pam.d/passwd) says yes, the
+// lock goes at once, and the overlay, kept under the lock with that look as its last frame, plays the way back.
 //
 // engageLock() is the ONE place that locks: the power menu's Zablokuj (IslandState.lockRequested), the IPC
 // `island lock` (IslandState.lockAsked) and the idle monitor all end there, and it decides through L.engage():
@@ -32,18 +35,40 @@ Scope {
     property bool failed: false
     // The typed text, held only from submit until PAM asks for it.
     property string pending: ""
-    // The reverse morph to rest is running; the lock goes when it ends.
+    // The password was accepted; the lock goes handoffMs later.
     property bool unlocking: false
+    // The way in (DESIGN W12): 0 none, 1 the overlay is playing it (the lock follows when it ends), 2 it ended.
+    property int prelude: 0
+    property string preludeFor: ""
+    // The hand-off overlay is playing the morph back to rest (from the unlock for the morph or the wallpaper's fade,
+    // whichever is longer). It outlives the lock.
+    property bool handoff: false
+    // The island is back (its fade-in started); false from accept() until earDelayMs after the unlock.
+    property bool islandBack: true
+    // Whether the session is locked, for bindings. WlSessionLock's `locked` reads right but does not notify an unlock
+    // (Quickshell 0.3.2 session_lock.cpp unlock() emits lockStateChanged only `if (this->isLocked())`, i.e. never
+    // after unlocking), so a binding on it stays true: the island stayed hidden, the idle monitor off, IPC `locked`
+    // true. Set on every lock (engageLock) and unlock (released()); imperative reads of sessionLock.locked are fine.
+    property bool lockOn: false
+    onLockOnChanged: IslandState.reportLocked(root.lockOn)
+    // From the way in (the island fades out as the overlay's card grows out of it), through the lock, until
+    // earDelayMs after the unlock.
+    readonly property bool hidesIsland: root.prelude !== 0 || root.lockOn || !root.islandBack
+    onHidesIslandChanged: IslandState.reportLockHides(root.hidesIsland)
+    // For the lock overlay in each island window (LockOverlay.qml): "in", "locked", "back" or "".
+    readonly property string lockPhase: root.lockOn ? "locked" : root.handoff ? "back" : root.prelude !== 0 ? "in" : ""
+    onLockPhaseChanged: IslandState.reportLockPhase(root.lockPhase)
 
     // A refused attempt: every surface's card shakes.
     signal attemptFailed
 
     function engageLock(source: string): void {
-        // A request during the reverse morph (the password was accepted, the card is leaving): the session is
-        // still locked, so there is nothing to lock again; cancel the leaving instead of dropping the request.
+        // A request between an accepted password and the unlock (handoffMs, 0 by default: one event-loop turn): the
+        // session is still locked, so there is nothing to lock again; cancel the unlock instead of dropping the request.
         if (L.keepsLocked(root.testMode, sessionLock.locked, root.unlocking)) {
-            console.info("lock: request during the unlock morph, staying locked (" + source + ")");
+            console.info("lock: request before the unlock, staying locked (" + source + ")");
             releaseTimer.stop();
+            root.stopHandoff();
             root.unlocking = false;
             return;
         }
@@ -51,9 +76,29 @@ Scope {
         console.info(d.message + " (" + source + ")");
         if (!d.engage)
             return;
+        // First the way in on the overlay (L.lockStep): this returns, and preludeTimer comes back here to lock. A
+        // request during it waits for the same lock. During the hand-off the overlay turns round from where it is.
+        const step = L.lockStep(root.prelude, Theme.reducedMotion);
+        if (step === "prelude") {
+            // The way in first, then the hand-off stops: the phase goes straight from "back" to "in" (no "" between,
+            // which would drop the overlay for a frame).
+            root.prelude = 1;
+            root.stopHandoff();
+            root.preludeFor = source;
+            preludeTimer.restart();
+            return;
+        }
+        if (step === "wait")
+            return;
         root.failed = false;
         root.unlocking = false;
         sessionLock.locked = true;
+        root.lockOn = sessionLock.locked;
+        // Only now: the phase goes straight from "in" to "locked" (a "" between dropped the overlay and showed the
+        // windows for a moment before the lock).
+        preludeTimer.stop();
+        root.prelude = 0;
+        root.stopHandoff();
     }
 
     function authenticate(typed: string): void {
@@ -77,11 +122,20 @@ Scope {
         root.attemptFailed();
     }
 
-    // PAM said yes: the surfaces morph back to rest; releaseTimer drops the lock once they have.
+    // PAM said yes: releaseTimer drops the lock at once (handoffMs) and the overlay plays the whole way back from its
+    // last frame, the lock's look.
     function accept(): void {
         console.info("lock: authentication succeeded");
         root.unlocking = true;
+        root.islandBack = false;
         releaseTimer.restart();
+    }
+
+    function stopHandoff(): void {
+        handoffEnd.stop();
+        islandTimer.stop();
+        root.handoff = false;
+        root.islandBack = true;
     }
 
     // The recovery hatch (`island unlock`): at once, no PAM, no morph. Harmless while not locked.
@@ -91,14 +145,60 @@ Scope {
             pam.abort();
         root.pending = "";
         releaseTimer.stop();
+        preludeTimer.stop();
+        root.prelude = 0;
+        root.stopHandoff();
         sessionLock.locked = false;
+        root.released();
+    }
+
+    // The session is unlocked (by us, or by the compositor): what the lock held goes.
+    function released(): void {
+        root.lockOn = false;
+        root.unlocking = false;
+        root.failed = false;
+        root.pending = "";
     }
 
     Timer {
         id: releaseTimer
 
-        interval: Theme.reducedMotion ? 0 : Theme.motion.lockMorphMs
-        onTriggered: sessionLock.locked = false
+        interval: Theme.reducedMotion ? 0 : Theme.layout.lock.handoffMs
+        // The hand-off first: the unlock clears `secure` at once, and with no hand-off yet the overlay would go and
+        // come back already at its end (no animation at all).
+        onTriggered: {
+            root.handoff = !Theme.reducedMotion;
+            handoffEnd.restart();
+            islandTimer.restart();
+            sessionLock.locked = false;
+            root.released();
+        }
+    }
+
+    // The way in has played (L.lockInMs: the morph, the wallpaper, the card's content and the extras): lock.
+    Timer {
+        id: preludeTimer
+
+        interval: L.lockInMs(Theme.motion, Theme.layout.lock)
+        onTriggered: {
+            root.prelude = 2;
+            root.engageLock(root.preludeFor);
+        }
+    }
+
+    Timer {
+        id: handoffEnd
+
+        // The morph, the wallpaper's fade or the card's cross-fade with the island, whichever ends last.
+        interval: Theme.reducedMotion ? 0 : Math.max(Theme.motion.lockMorphMs, Theme.layout.lock.deskDelayMs + Theme.layout.lock.deskMs, Theme.layout.lock.earDelayMs + Theme.layout.lock.earMs)
+        onTriggered: root.handoff = false
+    }
+
+    Timer {
+        id: islandTimer
+
+        interval: Theme.reducedMotion ? 0 : Theme.layout.lock.earDelayMs
+        onTriggered: root.islandBack = true
     }
 
     Connections {
@@ -120,7 +220,7 @@ Scope {
     // Idle lock after the host's lock.timeout seconds (default lock.timeoutDefault; 0 disables it; never in test
     // mode). respectInhibitors: no lock while something inhibits idle (a fullscreen video).
     IdleMonitor {
-        enabled: root.idle.enabled && !sessionLock.locked
+        enabled: root.idle.enabled && !root.lockOn
         timeout: root.idle.timeout
         respectInhibitors: true
         onIsIdleChanged: if (isIdle) root.engageLock("idle")
@@ -159,46 +259,23 @@ Scope {
     WlSessionLock {
         id: sessionLock
 
-        onLockStateChanged: {
-            IslandState.reportLocked(sessionLock.locked);
-            if (!sessionLock.locked) {
-                root.unlocking = false;
-                root.failed = false;
-                root.pending = "";
-            }
+        // The compositor can end the lock on its own (finished, or another client holds the lock); that arrives only as a
+        // secure-state change (see lockOn), emitted while `locked` still reads true but `secure` already false
+        // (Quickshell 0.3.2 lock.cpp unlock() clears the manager's active lock before it emits). released() is
+        // idempotent, so our own unlock passing here too is harmless.
+        onSecureStateChanged: {
+            if (!sessionLock.secure && root.lockOn)
+                root.released();
         }
 
         surface: Component {
             WlSessionLockSurface {
                 id: surface
 
-                // False for the first frame, so everything enters from its unlocked end.
-                property bool entered: false
-                readonly property bool shown: surface.entered && !root.unlocking
+                // The locked look from the first frame: the overlay played the way in (W12).
+                readonly property bool shown: !root.unlocking
                 readonly property var wp: Theme.lockWallpaper
                 readonly property var spec: Theme.layout.lock
-                readonly property var rest: IslandState.badge ? Theme.geom.restBadge : Theme.geom.rest
-
-                // 0 = the rest island, 1 = the card (reference 3.10: 640 ms Curve S).
-                property real morph: surface.shown ? 1 : 0
-                Behavior on morph {
-                    NumberAnimation {
-                        duration: Theme.reducedMotion ? 0 : Theme.motion.lockMorphMs
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Theme.motion.morphCurve
-                    }
-                }
-
-                // 0 = the plain wallpaper, 1 = blurred, saturated, dimmed and scaled (700 ms Curve S).
-                property real veil: surface.shown ? 1 : 0
-                Behavior on veil {
-                    NumberAnimation {
-                        duration: Theme.reducedMotion ? 0 : Theme.motion.wallpaperMs
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Theme.motion.morphCurve
-                    }
-                }
-
                 // The corner buttons' hold (lib/power.js reduce, R32): pointer events and key releases only. A key
                 // press is never handed over: a letter typed into the password field must not start a hold.
                 property var hold: P.initial()
@@ -222,10 +299,7 @@ Scope {
                 color: "black"
 
                 onShownChanged: surface.dispatch({ type: "active", on: surface.shown })
-                Component.onCompleted: {
-                    surface.entered = true;
-                    card.focusField();
-                }
+                Component.onCompleted: card.focusField()
 
                 Timer {
                     id: holdTimer
@@ -242,18 +316,19 @@ Scope {
                         anchors.fill: parent
                         source: Theme.wallpaper ? "file://" + Theme.wallpaper : ""
                         fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
+                        // Synchronous, so the first frame has it (that frame must match the overlay's); a pixmap-cache hit.
+                        asynchronous: false
                         sourceSize.width: surface.screen ? surface.screen.width * surface.screen.devicePixelRatio : 0
                         sourceSize.height: surface.screen ? surface.screen.height * surface.screen.devicePixelRatio : 0
-                        scale: 1 + (surface.wp.scale - 1) * surface.veil
+                        scale: surface.wp.scale
                         layer.enabled: true
                         layer.effect: MultiEffect {
                             autoPaddingEnabled: false
                             blurEnabled: true
-                            blur: surface.veil
+                            blur: 1
                             blurMax: surface.wp.blur
-                            saturation: (surface.wp.saturate - 1) * surface.veil
-                            brightness: (surface.wp.brightness - 1) * surface.veil
+                            saturation: surface.wp.saturate - 1
+                            brightness: surface.wp.brightness - 1
                         }
                     }
                 }
@@ -267,16 +342,15 @@ Scope {
                         event.accepted = false;
                     }
 
-                    // From the rest island (top centre, rest size and corners) to the centred card (R21).
+                    // The centred card (R21), where the overlay's way in left it.
                     States.LockCard {
                         id: card
 
-                        width: surface.rest.w + (Theme.geom.lock.w - surface.rest.w) * surface.morph
-                        height: surface.rest.h + (Theme.geom.lock.h - surface.rest.h) * surface.morph
+                        width: Theme.geom.lock.w
+                        height: Theme.geom.lock.h
                         x: (surface.width - card.width) / 2
-                        y: (surface.height - Theme.geom.lock.h) / 2 * surface.morph
-                        topRadius: Theme.geom.lock.r * surface.morph
-                        bottomRadius: surface.rest.r + (Theme.geom.lock.r - surface.rest.r) * surface.morph
+                        y: (surface.height - card.height) / 2
+                        enterAnimated: false
                         revealed: surface.shown
                         failed: root.failed
                         busy: pam.active || root.unlocking
@@ -292,22 +366,20 @@ Scope {
                     }
                 }
 
-                // The extras fade in after the card and out at once; they take input only while locked and shown.
+                // The extras, in from the first frame; they take input only while locked and shown.
                 Item {
+                    id: extras
+
                     anchors.fill: parent
-                    opacity: surface.shown ? 1 : 0
+                    opacity: 0
                     enabled: sessionLock.locked && surface.shown
 
-                    Behavior on opacity {
-                        SequentialAnimation {
-                            PauseAnimation { duration: surface.shown && !Theme.reducedMotion ? surface.spec.extrasDelayMs : 0 }
-                            NumberAnimation {
-                                duration: Theme.reducedMotion ? 0 : surface.spec.extrasMs
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: Theme.motion.easeCurve
-                            }
-                        }
+                    states: State {
+                        name: "shown"
+                        when: surface.shown
+                        PropertyChanges { extras.opacity: 1 }
                     }
+
 
                     Components.MiniPlayer {
                         anchors.horizontalCenter: parent.horizontalCenter

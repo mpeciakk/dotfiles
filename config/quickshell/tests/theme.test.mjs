@@ -105,7 +105,7 @@ test("resolve(): dark ciekłe", () => {
     assert.equal(c.shadowY, 12);
     assert.equal(c.shadowBlur, 36);
     assert.equal(c.shadowPad, 48);
-    assert.deepStrictEqual(c.lockWallpaper, { blur: 22, saturate: 1.2, brightness: 0.78, scale: 1.08 });
+    assert.deepStrictEqual(c.lockWallpaper, { blur: 12, saturate: 1, brightness: 1, scale: 1.08 });
 });
 
 test("resolve(): light subtelne and light mocne", () => {
@@ -127,7 +127,7 @@ test("resolve(): light subtelne and light mocne", () => {
     assert.equal(s.shadowColor, T.rgba(20, 16, 30, 0.16));
     assert.equal(s.shadowBlur, 30);
     assert.equal(s.shadowPad, 40);
-    assert.deepStrictEqual(s.lockWallpaper, { blur: 18, saturate: 1.2, brightness: 0.92, scale: 1.08 });
+    assert.deepStrictEqual(s.lockWallpaper, { blur: 10, saturate: 1, brightness: 1, scale: 1.08 });
     const m = plain(T.resolve(T.defaults, "light", "mocne", true));
     assert.equal(m.islandBg, T.rgba(232, 228, 238, 0.58));
     assert.equal(m.tile, T.rgba(255, 255, 255, 0.42));
@@ -276,7 +276,9 @@ test("defaults: layout.lock matches reference 3.10 and §4.6", () => {
         exitOpacityMs: 140, exitScaleMs: 180, exitBlurMs: 140,
         playerW: 380, playerH: 56, playerRadius: 28, edge: 32,
         cornerGap: 10, cornerButton: 48, cornerIcon: 18, ringRadius: 22,
-        extrasDelayMs: 520, extrasMs: 300
+        extrasDelayMs: 520, extrasMs: 300,
+        handoffMs: 0, deskDelayMs: 240, deskMs: 420, earDelayMs: 420, earMs: 200,
+        dockAt: 0.05
     });
 });
 

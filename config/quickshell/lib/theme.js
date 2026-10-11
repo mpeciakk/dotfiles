@@ -238,8 +238,8 @@ var defaults = {
         light: { y: 24, blur: 70, color: rgba(40, 30, 70, 0.25) }
     },
     lockWallpaper: {
-        dark: { blur: 22, saturate: 1.2, brightness: 0.78, scale: 1.08 },
-        light: { blur: 18, saturate: 1.2, brightness: 0.92, scale: 1.08 }
+        dark: { blur: 12, saturate: 1, brightness: 1, scale: 1.08 },
+        light: { blur: 10, saturate: 1, brightness: 1, scale: 1.08 }
     },
 
     // Per-state extras, filled in by the state tasks.
@@ -357,7 +357,13 @@ var defaults = {
             exitOpacityMs: 140, exitScaleMs: 180, exitBlurMs: 140,
             playerW: 380, playerH: 56, playerRadius: 28, edge: 32,
             cornerGap: 10, cornerButton: 48, cornerIcon: 18, ringRadius: 22,
-            extrasDelayMs: 520, extrasMs: 300
+            extrasDelayMs: 520, extrasMs: 300,
+            // The unlock hand-off (DESIGN W12, reference LockLive): the lock goes handoffMs after the password is
+            // accepted (0: at once, the overlay's first frame is the lock's look); from then the wallpaper fades out from
+            // deskDelayMs over deskMs and the ears and the island come in from earDelayMs over earMs.
+            handoffMs: 0, deskDelayMs: 240, deskMs: 420, earDelayMs: 420, earMs: 200,
+            // Below this lock morph the card's rounded top corners have become the island's ears (lib/lock.js dock()).
+            dockAt: 0.05
         }
     }
 };
