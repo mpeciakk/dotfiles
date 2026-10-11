@@ -132,3 +132,10 @@ test("guard: content layers enter and exit through two Transitions, not Behavior
     assert.match(s, /to:\s*"lit"/);
     assert.match(s, /from:\s*"lit"/);
 });
+
+test("guard: the lock card's content reveals and hides through two Transitions, not Behaviors keyed on `revealed`", () => {
+    const s = src("states/LockCard.qml");
+    assert.doesNotMatch(s, /Behavior\s+on\s+(opacity|scale|blur)\b/);
+    assert.match(s, /to:\s*"revealed"/);
+    assert.match(s, /from:\s*"revealed"/);
+});

@@ -110,44 +110,45 @@ Item {
         Item {
             id: content
 
-            property real blur: root.revealed ? 0 : root.spec.contentBlur
+            property real blur: root.spec.contentBlur
 
             anchors.centerIn: parent
             width: Theme.geom.lock.w
             height: Theme.geom.lock.h
-            opacity: root.revealed ? 1 : 0
-            scale: root.revealed ? 1 : root.spec.contentScaleFrom
+            opacity: 0
+            scale: root.spec.contentScaleFrom
 
-            Behavior on opacity {
-                SequentialAnimation {
-                    PauseAnimation { duration: root.revealed ? root.spec.enterDelayMs : 0 }
-                    NumberAnimation {
-                        duration: root.revealed ? root.spec.enterOpacityMs : root.spec.exitOpacityMs
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: root.revealed ? Theme.motion.enterCurve : Theme.motion.easeCurve
-                    }
-                }
+            // The reveal and the hide are two Transitions, not Behaviors keyed on `revealed`: a Behavior could start
+            // before its `revealed`-bound durations re-evaluated and run a quick reversal with the other timings.
+            states: State {
+                name: "revealed"
+                when: root.revealed
+                PropertyChanges { content.opacity: 1; content.scale: 1; content.blur: 0 }
             }
-            Behavior on scale {
-                SequentialAnimation {
-                    PauseAnimation { duration: root.revealed ? root.spec.enterDelayMs - root.spec.enterScaleLeadMs : 0 }
-                    NumberAnimation {
-                        duration: root.revealed ? root.spec.enterScaleMs : root.spec.exitScaleMs
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: root.revealed ? Theme.motion.enterCurve : Theme.motion.easeCurve
+
+            transitions: [
+                Transition {
+                    to: "revealed"
+                    SequentialAnimation {
+                        PauseAnimation { duration: root.spec.enterDelayMs }
+                        NumberAnimation { property: "opacity"; duration: root.spec.enterOpacityMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.enterCurve }
                     }
-                }
-            }
-            Behavior on blur {
-                SequentialAnimation {
-                    PauseAnimation { duration: root.revealed ? root.spec.enterDelayMs : 0 }
-                    NumberAnimation {
-                        duration: root.revealed ? root.spec.enterBlurMs : root.spec.exitBlurMs
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Theme.motion.easeCurve
+                    SequentialAnimation {
+                        PauseAnimation { duration: root.spec.enterDelayMs - root.spec.enterScaleLeadMs }
+                        NumberAnimation { property: "scale"; duration: root.spec.enterScaleMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.enterCurve }
                     }
+                    SequentialAnimation {
+                        PauseAnimation { duration: root.spec.enterDelayMs }
+                        NumberAnimation { property: "blur"; duration: root.spec.enterBlurMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.easeCurve }
+                    }
+                },
+                Transition {
+                    from: "revealed"
+                    NumberAnimation { property: "opacity"; duration: root.spec.exitOpacityMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.easeCurve }
+                    NumberAnimation { property: "scale"; duration: root.spec.exitScaleMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.easeCurve }
+                    NumberAnimation { property: "blur"; duration: root.spec.exitBlurMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.easeCurve }
                 }
-            }
+            ]
 
             layer.enabled: content.blur > 0
             layer.effect: MultiEffect {
