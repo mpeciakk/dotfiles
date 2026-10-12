@@ -25,7 +25,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 |---|---|
 | W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura i saturacja globalnie w niri (`blur { passes 3; offset 5; saturation 2.0 }`), `layer-rule` dla przestrzeni nazw `wyspa` tylko z `xray false` (bez `blur true` i bez `saturation`: w regule warstwy działałyby na całej pełnoekranowej powierzchni, gdy powłoka nie ustawia regionu — w trybie kreski nad grą podbijały saturację całego ekranu; naprawione 2026-10-11). Poziomy szkła zmieniają w locie tylko tło i kafle. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
 | W2 | Cień rysuje QML (`MultiEffect` pod kształtem) — cień z `layer-rule` niri jest prostokątem powierzchni. Pełny (ciemny `0 12 36` @38%, jasny `0 10 30` neutralny @16% — zmniejszone 2026-10-11, fioletowy cień jasnego motywu dawał poświatę) od wysokości 160 px (`sizes.shadowFullH`); niższa wyspa ma cień proporcjonalnie mniejszy i słabszy (spoczynek 36 px ≈ 0,23), zmienia się razem z morfingiem. |
-| W3 | Powierzchnia wyspy pełnoekranowa (`ExclusionMode.Ignore`, maska = kształt; w stanach modalnych pełna — scrim i „klik poza”). Exclusive zone 36/0 trzyma osobny pusty `Strut` przy górnej krawędzi. Blok `struts` w `config/niri/layout.kdl` usunięty (kompensował stary `Border`). |
+| W3 | Powierzchnia wyspy pełnoekranowa (`ExclusionMode.Ignore`, maska = kształt; w stanach modalnych pełna — scrim i „klik poza”). Exclusive zone 36/0 (na wyjściu z notchem wysokość notcha, W19) trzyma osobny pusty `Strut` przy górnej krawędzi. Blok `struts` w `config/niri/layout.kdl` usunięty (kompensował stary `Border`). |
 | W4 | Pełny ekran: `ToplevelManager` (`fullscreen` + `screens`), zawężony do aktywnego obszaru niri danego monitora. |
 | W5 | Font UI i mono konfigurowalne; domyślnie oba `JetBrainsMono Nerd Font` (Geist niezainstalowany). |
 | W6 | Ikony: ścieżki Lucide (dane `d` na siatce 24) w `lib/icons.js`, rysowane `Shape` + `PathSvg` kolorem z Theme. |
@@ -41,6 +41,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 | W16 | Odrzucone hasło: linia statusu karty pokazuje komunikaty PAM z tej próby (np. pam_faillock: konto zablokowane, zostało N minut), a bez nich stały tekst. Licznik faillocka zostaje wspólny z `system-auth` (2026-10-11). |
 | W17 | Pamięć GPU (2026-10-11): tapeta dekoduje się w rzeczywistej skali okna (1,5 na DP-2), nie w zaokrąglonej skali ekranu (2), a ukryta warstwa stanu nie trzyma warstwy rozmycia. Obrazy tapety (`Wallpaper.qml`, od W18 dwa: przednia i tylna, `LockOverlay.qml`, powierzchnia blokady w `Lock.qml`) mają ten sam `sourceSize`, więc cache dekoduje ją raz; pilnuje tego `tests/wallpaper.test.mjs`. Zmierzone na `pc`: −40…50 MiB GPU, −25 MiB RAM. |
 | W18 | Tapeta wg trybu (2026-10-11): `wallpaper` w `config.json` to jedna ścieżka albo para `{ "dark": …, "light": … }` (`lib/theme.js` `wallpaperFor`; brak połowy = druga połowa). Zmiana trybu przenika tapety przez `themeFadeMs` (600 ms; kolory ruszają od razu, tapeta po zdekodowaniu nowej), a stara zwalnia się po przenikaniu (W17). Zmiana w trakcie poprzedniej zostawia pod spodem to, co widać; błąd wczytania też (zostaje ostatnia dobra tapeta). Do wczytania `config.json` tapety nie ma, więc start nie pokazuje najpierw zapasowej `wp2.jpg`. Para „Świt” (jasna) / „Zmierzch” (ciemna) leży w `hosts/<host>/wallpaper-{light,dark}.png` w rozdzielczości maszyny (`pc` 3840×2160, `laptop` 2560×1664) i dotter linkuje ją pod tę samą nazwę w `~/.config/dotfiles/`, więc `config.json` zostaje wspólny. Z parą `modeSource: "wallpaper"` ocenia tapetę, którą sam wybrał, i ustala się na połowie potwierdzającej własny tryb: „Świt” ma średnią luminancję 0,41 (poniżej `wallpaperDark` 0,5), więc ta para zawsze kończy na ciemnym. Dla pary tryb idzie ręcznie albo wg słońca. Blokada i jej nakładka biorą tapetę bieżącego trybu bez przenikania. |
+| W19 | Notch (2026-10-12, `laptop`: MacBook Air M2, eDP-1). Wymiary notcha leżą we wspólnym configu hosta pod nazwą wyjścia: `notch: { "eDP-1": { "w": 205, "h": 43 } }` (px logiczne, zmierzone linijką: ukryte x 750–955 z 1706; 64 rzędy fizyczne przy skali 1.5). Wyjście bez wpisu wygląda jak dotąd. Na wyjściu z notchem spoczynek leży obok notcha: wysokość = wysokość notcha, szerokość = notch + 2 × `geom.notchSide` (124; z licznikiem każda strona szersza o połowę różnicy `restBadge`−`rest`), kropki po lewej, zegar, eq i licznik po prawej. Pozostałe stany są wyższe o wysokość notcha, a treść zaczyna się pod nim. Kreska zostaje pod notchem (niewidoczna; strefa hover działa). Exclusive zone = wysokość notcha; ukrycie (`hide`) jej nie oddaje (okna nie wjeżdżają pod notch), zeruje ją tylko okno pełnoekranowe. Warunek: eDP-1 w trybie `2560x1664@60` i parametr jądra `appledrm.show_notch=1`; przy 2560x1600 wpis `notch` trzeba usunąć. Odrzucone: notch wewnątrz wyższej wyspy (pas 79 px), wyspa zsunięta pod notch (uszy wiszą w tapecie), plik per host w `hosts/mac/`. |
 
 Otwarte: tray (może wróci na końcu).
 
@@ -107,7 +108,7 @@ Kotwica zawsze: górny środek aktywnego monitora, `top = 0`.
 | Stan | Szer.×wys. | Promień dołu | Czas życia / wyzwalacz |
 |---|---|---|---|
 | `line` (pełny ekran / ukryta) | 56×5 | 3 | okno fullscreen lub skrót; hover na górnej krawędzi (strefa 400×28) → `rest` |
-| `rest` | 200×36 (252×36 z licznikiem powiadomień) | 18 | zawsze |
+| `rest` | 200×36 (252×36 z licznikiem powiadomień); przy notchu 453×43 (505×43), W19 | 18 (przy notchu 21,5) | zawsze |
 | `osd` (głośność / jasność) | 300×44 | 22 | 1,6 s od ostatniej zmiany |
 | `media` | 380×56 | 28 | hover / ⊞M |
 | `toast` (powiadomienie) | 420×76 | 30 | 3,6 s; klik → `center` |
@@ -120,7 +121,8 @@ Kotwica zawsze: górny środek aktywnego monitora, `top = 0`.
 
 Priorytet przy kolizji: launcher › panel/power/center › toast › osd › media.
 Exclusive zone: tylko wysokość `rest` (36) — rozwinięcia nakładają się na okna. Z przerwą niri 8 px okno zaczyna się na 44 px.
-W trybie `line` exclusive zone = 0.
+Wyjście z notchem (W19, `lib/island.js` `geometry`, `exclusiveZone`): każdy stan poza `rest` i `line` jest wyższy o wysokość notcha, a jego treść zaczyna się pod nim (`top`); exclusive zone = wysokość notcha, w trybie `line` 0 tylko przy oknie pełnoekranowym.
+W trybie `line` exclusive zone = 0 (wyjście bez notcha).
 
 ## 5. Ruch
 
@@ -172,7 +174,7 @@ IslandState.qml      singleton: maszyna stanów, timery, OSD, tryb linii, IPC `i
 Island.qml           PanelWindow per ekran (pełnoekranowa, maska = kształt, w stanach modalnych pełna), region blura
 IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i obrys (ring)
 IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
-Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
+Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0; przy notchu W19)
 Wallpaper.qml        tapeta per ekran, wg trybu, z przenikaniem (W18)
 Lock.qml             WlSessionLock + PAM, blokada przed uśpieniem (inhibitor logind, W14); LockOverlay.qml (w oknie wyspy) gra wejście i powrót blokady;
                      LockPreview.qml pokazuje kartę bez blokowania (zrzuty)

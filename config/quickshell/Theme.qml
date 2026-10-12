@@ -40,6 +40,11 @@ Singleton {
         return p.startsWith("~") ? Quickshell.env("HOME") + p.slice(1) : p;
     }
 
+    // The notch of `output` ({ w, h }, logical px) from the host config's top-level `notch`, or null.
+    function notchFor(output: string): var {
+        return T.notchFor(root.host.notch, output);
+    }
+
     function setMode(m: string): void {
         root.modeOverride = m;
     }

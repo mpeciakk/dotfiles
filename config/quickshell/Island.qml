@@ -34,7 +34,7 @@ PanelWindow {
     // The lock's way in (DESIGN W12): no key and no click reaches a window until the lock is on.
     readonly property bool wayIn: IslandState.lockPhase === "in"
     readonly property string maskMode: root.modalHere || root.wayIn ? "full" : root.lineWanted ? "line" : "shape"
-    readonly property var geo: IslandState.geometryFor(root.effState)
+    readonly property var geo: IslandState.geometryFor(root.effState, root.screen.name)
 
     function reportMask(): void {
         IslandState.reportMask(root.screen.name, root.maskMode);

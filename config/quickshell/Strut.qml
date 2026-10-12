@@ -16,10 +16,11 @@ PanelWindow {
         right: true
     }
 
-    implicitHeight: Theme.geom.exclusive
+    implicitHeight: Theme.notchFor(root.screen.name)?.h ?? Theme.geom.exclusive
     exclusionMode: ExclusionMode.Normal
-    // The strip is given back while this screen's island is the line (fullscreen there, or hidden).
-    exclusiveZone: IslandState.lineRequested(root.screen.name) ? 0 : Theme.geom.exclusive
+    // The strip is given back while this screen's island is the line (fullscreen there, or hidden); on a notch
+    // output only a fullscreen window gives it back.
+    exclusiveZone: IslandState.exclusiveFor(root.screen.name)
     color: "transparent"
     mask: Region {}
 

@@ -316,3 +316,23 @@ test("wallpaperFor() takes one path for both modes, or a {dark, light} pair by m
     assert.equal(T.wallpaperFor(undefined, "dark"), "");
     assert.equal(T.wallpaperFor({}, "dark"), "");
 });
+
+test("notchFor: a valid per-output entry gives { w, h }", () => {
+    const host = { "eDP-1": { w: 205, h: 43 } };
+    assert.deepStrictEqual(plain(T.notchFor(host, "eDP-1")), { w: 205, h: 43 });
+});
+
+test("notchFor: null for a missing config, output, or a non-object entry", () => {
+    const host = { "eDP-1": { w: 205, h: 43 }, bad: "x", nul: null };
+    for (const [h, o] of [[undefined, "eDP-1"], [null, "eDP-1"], ["x", "eDP-1"], [[1], "0"], [host, "DP-1"], [host, ""], [host, "bad"], [host, "nul"]])
+        assert.equal(T.notchFor(h, o), null, JSON.stringify([h, o]));
+});
+
+test("notchFor: null unless both sizes are positive numbers", () => {
+    for (const e of [{ w: 0, h: 43 }, { w: 205, h: -1 }, { w: "205", h: 43 }, { w: 205 }, { h: 43 }, { w: NaN, h: 43 }, { w: Infinity, h: 43 }])
+        assert.equal(T.notchFor({ o: e }, "o"), null, JSON.stringify(e));
+});
+
+test("defaults: the beside-the-notch rest keeps 124 px each side of the notch", () => {
+    assert.equal(T.defaults.geom.notchSide, 124);
+});

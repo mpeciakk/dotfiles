@@ -77,8 +77,13 @@ Singleton {
         powerDone: Theme.motion.powerDoneMs
     })
 
-    function geometryFor(s: string): var {
-        return L.geometry(s, Theme.geom, { centerHeight: root.centerHeight, badge: root.badge });
+    function geometryFor(s: string, output: string): var {
+        return L.geometry(s, Theme.geom, { centerHeight: root.centerHeight, badge: root.badge, notch: Theme.notchFor(output) });
+    }
+
+    // The strip this output's Strut reserves (lib/island.js exclusiveZone).
+    function exclusiveFor(output: string): int {
+        return L.exclusiveZone(Theme.geom, Theme.notchFor(output), Fullscreen.on(output), root.hidden);
     }
 
     // IPC passes arbitrary strings; only own keys of PRIORITY are real states.
@@ -280,8 +285,8 @@ Singleton {
         readonly property string lineOn: root.lineOn
         readonly property string contentState: root.contentState
         readonly property bool restLoaded: root.restLoadedByOutput[Niri.focusedOutput] ?? false
-        readonly property int targetW: root.geometryFor(root.current).w
-        readonly property int targetH: root.geometryFor(root.current).h
+        readonly property int targetW: root.geometryFor(root.current, root.current === "rest" ? Niri.focusedOutput : root.output).w
+        readonly property int targetH: root.geometryFor(root.current, root.current === "rest" ? Niri.focusedOutput : root.output).h
         readonly property string launcherQuery: root.launcherQuery
         readonly property int launcherCount: root.launcherCount
         readonly property string launcherMode: root.launcherMode
