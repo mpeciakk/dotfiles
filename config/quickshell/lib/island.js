@@ -24,17 +24,31 @@ function radiusFor(h, cap) {
     return Math.min(h / 2, cap);
 }
 
+// `ctx.notch` ({ w, h } or null): the output has a notch. Rest sits beside it, as tall as it; every other state
+// except the line grows by its height and offsets its content (`top`) below it.
 function geometry(state, geom, ctx) {
     var ears = state !== "line";
+    var notch = state === "line" ? null : ctx.notch;
+    var top = notch ? notch.h : 0;
     if (state === "center") {
         var c = geom.center;
-        var h = Math.max(c.hMin, Math.min(c.hMax, ctx.centerHeight));
-        return { w: c.w, h: h, r: radiusFor(h, c.r), ears: ears };
+        var ch = Math.max(c.hMin, Math.min(c.hMax, ctx.centerHeight)) + top;
+        return { w: c.w, h: ch, r: radiusFor(ch, c.r), ears: ears, top: top };
     }
     if (state === "rest" || (state !== "line" && !(state in PRIORITY)))
         state = ctx.badge ? "restBadge" : "rest";
     var g = geom[state];
-    return { w: g.w, h: g.h, r: g.r, ears: ears };
+    if (notch && (state === "rest" || state === "restBadge"))
+        return { w: notch.w + 2 * geom.notchSide + (g.w - geom.rest.w), h: notch.h, r: notch.h / 2, ears: ears, top: 0 };
+    return { w: g.w, h: g.h + top, r: g.r, ears: ears, top: top };
+}
+
+// The strip tiled windows leave at the top of an output: the notch height there (kept while hidden, given back
+// only by a fullscreen window), else geom.exclusive, given back in line mode (fullscreen or hidden).
+function exclusiveZone(geom, notch, fullscreen, hidden) {
+    if (notch)
+        return fullscreen ? 0 : notch.h;
+    return fullscreen || hidden ? 0 : geom.exclusive;
 }
 
 // The OSD icon: a sun for brightness; for volume by mute, level and `highFrom`.

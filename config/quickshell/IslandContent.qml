@@ -60,7 +60,7 @@ Item {
 
             readonly property bool lit: root.target === slot.modelData
             readonly property bool fancy: !Theme.reducedMotion
-            readonly property var geo: IslandState.geometryFor(slot.modelData)
+            readonly property var geo: IslandState.geometryFor(slot.modelData, root.output)
 
             // §2.8: only the enter has a delay; exits use the fast-start exit curve. The enter and the exit are
             // two Transitions, not Behaviors: a Behavior's durations are bindings on `lit`, and when `lit` flips
@@ -75,9 +75,9 @@ Item {
             }
 
             x: (root.width - slot.width) / 2
-            y: 0
+            y: slot.geo.top
             width: slot.geo.w
-            height: slot.geo.h
+            height: slot.geo.h - slot.geo.top
             transformOrigin: Item.Center
             enabled: slot.lit
             opacity: 0

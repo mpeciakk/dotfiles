@@ -34,6 +34,19 @@ function isObject(x) {
     return x !== null && typeof x === "object" && !Array.isArray(x);
 }
 
+function positive(x) {
+    return typeof x === "number" && isFinite(x) && x > 0;
+}
+
+// The notch of `output` from the host config's `notch` ({ "<output>": { w, h } }, logical px): { w, h }, or null
+// when there is none (missing key, missing output, anything that is not two positive numbers).
+function notchFor(hostNotch, output) {
+    if (!isObject(hostNotch) || !Object.prototype.hasOwnProperty.call(hostNotch, output))
+        return null;
+    var n = hostNotch[output];
+    return isObject(n) && positive(n.w) && positive(n.h) ? { w: n.w, h: n.h } : null;
+}
+
 function clone(x) {
     if (Array.isArray(x))
         return x.slice();
@@ -96,6 +109,7 @@ var defaults = {
         lock: { w: 460, h: 360, r: 36 },
         ear: 16,
         exclusive: 36,
+        notchSide: 124,         // rest beside a notch: each side of it (12 workspace dots left, clock + eq + badge right)
         hoverZone: { w: 400, h: 28 }
     },
 

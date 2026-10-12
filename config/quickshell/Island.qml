@@ -32,7 +32,7 @@ PanelWindow {
     readonly property string effState: root.line ? "line" : root.baseState
     readonly property bool modalHere: IslandState.modal && IslandState.output === root.screen.name
     readonly property string maskMode: root.modalHere ? "full" : root.lineWanted ? "line" : "shape"
-    readonly property var geo: IslandState.geometryFor(root.effState)
+    readonly property var geo: IslandState.geometryFor(root.effState, root.screen.name)
 
     function reportMask(): void {
         IslandState.reportMask(root.screen.name, root.maskMode);

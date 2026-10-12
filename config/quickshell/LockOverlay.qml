@@ -23,7 +23,7 @@ Item {
 
     readonly property var wp: Theme.lockWallpaper
     readonly property var spec: Theme.layout.lock
-    readonly property var rest: IslandState.badge ? Theme.geom.restBadge : Theme.geom.rest
+    readonly property var rest: IslandState.geometryFor("rest", over.screen ? over.screen.name : "")
     // As the island's ears (IslandShape animEar at rest); the card trades them for rounded corners off the edge.
     readonly property real ear: Math.min(Theme.geom.ear, over.rest.h - over.rest.r)
     readonly property var dock: L.dock(over.morph, over.spec.dockAt)
