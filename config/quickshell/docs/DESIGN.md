@@ -25,7 +25,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 |---|---|
 | W1 | Blur przez `ext-background-effect`: `BackgroundEffect.blurRegion` (Quickshell 0.3.2) = kształt wyspy z uszami; siła blura i saturacja globalnie w niri (`blur { passes 3; offset 5; saturation 2.0 }`), `layer-rule` dla przestrzeni nazw `wyspa` tylko z `xray false` (bez `blur true` i bez `saturation`: w regule warstwy działałyby na całej pełnoekranowej powierzchni, gdy powłoka nie ustawia regionu — w trybie kreski nad grą podbijały saturację całego ekranu; naprawione 2026-10-11). Poziomy szkła zmieniają w locie tylko tło i kafle. Fallback (`glass: false` w configu): tło z alfą 0,78 bez blura. |
 | W2 | Cień rysuje QML (`MultiEffect` pod kształtem) — cień z `layer-rule` niri jest prostokątem powierzchni. Pełny (ciemny `0 12 36` @38%, jasny `0 10 30` neutralny @16% — zmniejszone 2026-10-11, fioletowy cień jasnego motywu dawał poświatę) od wysokości 160 px (`sizes.shadowFullH`); niższa wyspa ma cień proporcjonalnie mniejszy i słabszy (spoczynek 36 px ≈ 0,23), zmienia się razem z morfingiem. |
-| W3 | Powierzchnia wyspy pełnoekranowa (`ExclusionMode.Ignore`, maska = kształt; w stanach modalnych pełna — scrim i „klik poza”). Exclusive zone 36/0 trzyma osobny pusty `Strut` przy górnej krawędzi. Blok `struts` w `config/niri/layout.kdl` usunięty (kompensował stary `Border`). |
+| W3 | Powierzchnia wyspy pełnoekranowa (`ExclusionMode.Ignore`, maska = kształt; w stanach modalnych pełna — scrim i „klik poza”). Exclusive zone 36/0 (na wyjściu z notchem wysokość notcha, W14) trzyma osobny pusty `Strut` przy górnej krawędzi. Blok `struts` w `config/niri/layout.kdl` usunięty (kompensował stary `Border`). |
 | W4 | Pełny ekran: `ToplevelManager` (`fullscreen` + `screens`), zawężony do aktywnego obszaru niri danego monitora. |
 | W5 | Font UI i mono konfigurowalne; domyślnie oba `JetBrainsMono Nerd Font` (Geist niezainstalowany). |
 | W6 | Ikony: ścieżki Lucide (dane `d` na siatce 24) w `lib/icons.js`, rysowane `Shape` + `PathSvg` kolorem z Theme. |
@@ -103,7 +103,7 @@ Kotwica zawsze: górny środek aktywnego monitora, `top = 0`.
 | Stan | Szer.×wys. | Promień dołu | Czas życia / wyzwalacz |
 |---|---|---|---|
 | `line` (pełny ekran / ukryta) | 56×5 | 3 | okno fullscreen lub skrót; hover na górnej krawędzi (strefa 400×28) → `rest` |
-| `rest` | 200×36 (252×36 z licznikiem powiadomień) | 18 | zawsze |
+| `rest` | 200×36 (252×36 z licznikiem powiadomień); przy notchu 453×43 (505×43), W14 | 18 (przy notchu 21,5) | zawsze |
 | `osd` (głośność / jasność) | 300×44 | 22 | 1,6 s od ostatniej zmiany |
 | `media` | 380×56 | 28 | hover / ⊞M |
 | `toast` (powiadomienie) | 420×76 | 30 | 3,6 s; klik → `center` |
@@ -116,6 +116,7 @@ Kotwica zawsze: górny środek aktywnego monitora, `top = 0`.
 
 Priorytet przy kolizji: launcher › panel/power/center › toast › osd › media.
 Exclusive zone: tylko wysokość `rest` (36) — rozwinięcia nakładają się na okna. Z przerwą niri 8 px okno zaczyna się na 44 px.
+Wyjście z notchem (W14, `lib/island.js` `geometry`, `exclusiveZone`): każdy stan poza `rest` i `line` jest wyższy o wysokość notcha, a jego treść zaczyna się pod nim (`top`); exclusive zone = wysokość notcha, w trybie `line` 0 tylko przy oknie pełnoekranowym.
 W trybie `line` exclusive zone = 0.
 
 ## 5. Ruch
@@ -168,7 +169,7 @@ IslandState.qml      singleton: maszyna stanów, timery, OSD, tryb linii, IPC `i
 Island.qml           PanelWindow per ekran (pełnoekranowa, maska = kształt, w stanach modalnych pełna), region blura
 IslandShape.qml      jedna ścieżka z uszami, animowana wymiarami, plus cień i obrys (ring)
 IslandContent.qml    warstwy stanów (`sources`), płynne przenikanie
-Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0)
+Strut.qml            pusta powierzchnia z exclusive zone (36 px, w trybie linii 0; przy notchu W14)
 Wallpaper.qml        tapeta per ekran
 Lock.qml             WlSessionLock + PAM; LockOverlay.qml (w oknie wyspy) gra wejście i powrót blokady;
                      LockPreview.qml pokazuje kartę bez blokowania (zrzuty)

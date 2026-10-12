@@ -16,6 +16,8 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 - `qs log -p .` — its log. `qs list --all` — what runs. `qs kill -p <dir>` — stop that instance; never a bare `qs kill`
   (it would kill the live shell).
 - Config: `~/.config/dotfiles/config.json` (key `island` overrides tokens, hot-reloaded); `WYSPA_CONFIG` points elsewhere.
+  Top-level `notch: { "<output>": { "w", "h" } }` (logical px, DESIGN W14) draws the island around a display notch on
+  that output (`laptop`: eDP-1 205x43; needs eDP-1 at `2560x1664@60` and `appledrm.show_notch=1`).
 
 ## Tests
 
@@ -39,7 +41,7 @@ the old one), and dotter symlinks make every write in the repo a reload. Only `c
 | `Island.qml` | per-screen full-screen panel; input mask = the shape (full in modal states, hover zone (plus the body while it grows) in line mode); blur region (`blurShape`, `BackgroundEffect.blurRegion`) |
 | `IslandShape.qml` | the silhouette: one path with ears, shadow, ring stroked along it |
 | `IslandContent.qml` | one layer per state (`sources`), cross-fade |
-| `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode) |
+| `Strut.qml` | empty window that holds the exclusive zone (36 px, 0 in line mode; notch output: notch h, 0 only under a fullscreen window) |
 | `Wallpaper.qml` | wallpaper per screen |
 | `Lock.qml`, `LockOverlay.qml`, `LockPreview.qml` | `WlSessionLock` + PAM; the overlay (in each island window) plays the lock's way in and back; the preview shows the card without locking |
 | `lib/` | pure JS (`.pragma library`): `theme`, `island`, `niri`, `fullscreen`, `notifs`, `power`, `lock`, `slider`, `fuzzy`, `calc`, `icons`, `autotheme`, `launch` |
@@ -90,7 +92,7 @@ States: `rest`, `media`, `osd`, `toast`, `control`, `power`, `center`, `powerDon
 | `hidden`, `locked` | bool | user-hidden line mode, session lock engaged |
 | `maskMode`, `lineOn`, `contentState` | string | input mask mode of the current output, outputs in line mode (comma list), state whose content is shown |
 | `restLoaded` | bool | rest content loaded on the focused output (test) |
-| `targetW`, `targetH` | int | geometry of `current` (`tests/shot.sh` crops by it) |
+| `targetW`, `targetH` | int | geometry of `current` on its output (at rest the focused one; `tests/shot.sh` crops by it) |
 | `launcherQuery`, `launcherMode`, `launcherResult` | string | launcher state (tests) |
 | `launcherCount` | int | rows in the launcher list |
 | `powerLabel` | string | label shown by `powerDone` |
