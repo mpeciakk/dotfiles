@@ -19,5 +19,12 @@ call island close
 wait_ms 700
 expect island targetW 453
 expect island targetH 43
-# Last: the rest shot on the notch.
+# An unread notification grows each side by (restBadge - rest) / 2: 453 -> 505, still centred on the notch.
+# DND keeps the toast away, so the island stays at rest.
+call notifs dnd true
+call notifs inject a x y
+wait_ms 700
+expect island targetW 505
+expect island targetH 43
+# Last: the rest shot on the notch, the split with the badge (dots left, clock + badge right, the notch empty).
 shot notch
