@@ -117,7 +117,7 @@ Kotwica zawsze: górny środek aktywnego monitora, `top = 0`.
 Priorytet przy kolizji: launcher › panel/power/center › toast › osd › media.
 Exclusive zone: tylko wysokość `rest` (36) — rozwinięcia nakładają się na okna. Z przerwą niri 8 px okno zaczyna się na 44 px.
 Wyjście z notchem (W14, `lib/island.js` `geometry`, `exclusiveZone`): każdy stan poza `rest` i `line` jest wyższy o wysokość notcha, a jego treść zaczyna się pod nim (`top`); exclusive zone = wysokość notcha, w trybie `line` 0 tylko przy oknie pełnoekranowym.
-W trybie `line` exclusive zone = 0.
+W trybie `line` exclusive zone = 0 (wyjście bez notcha).
 
 ## 5. Ruch
 

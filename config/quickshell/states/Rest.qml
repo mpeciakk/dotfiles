@@ -19,7 +19,7 @@ Item {
     readonly property var dots: Niri.workspaces.filter(w => w.output === root.output).sort((a, b) => a.idx - b.idx)
 
     // Beside a notch (DESIGN W14) the island is as tall as it and the notch's width stays empty: the dots sit in the
-    // left side, clock + eq + badge in the right one, each centred in its side. Without one: today's single centred row.
+    // left side, clock + eq + badge in the right one, each centred in its side. Without one: the single centred row.
     readonly property var notch: Theme.notchFor(root.output)
     readonly property real side: root.notch ? (root.width - root.notch.w) / 2 : 0
 
