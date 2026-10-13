@@ -57,7 +57,7 @@ first task not marked done.
   not edit. Parallel dispatch is for read-only agents only.
 - **Facts get checked, not recalled.** A SHA, a branch's state, a test's
   output, an API's shape — look it up before you write it down.
-- **The living spec is context in and output out** (CLAUDE.md rule 6): the
+- **The living spec is context in and output out** (CLAUDE.md workflow rule 6): the
   decision row at the plan gate, the state sections after the last task,
   before the branch review.
 

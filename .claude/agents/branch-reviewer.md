@@ -70,6 +70,17 @@ Untracked artifacts from these runs are fine; changes to tracked files are not.
   data handling, migrations and deploy order if a contract or schema changed.
   Comments that record history or argue with a reviewer instead of explaining
   the code.
+- **Load.** Find the expected load in the repo (README, deploy config): one
+  person running a script, or many users and processes at once. Judge against
+  it: check-then-write races, the same work done by every process, state that
+  only grows, a query per item, per-process state that must be shared.
+- **Lean.** Code that should not exist or should be smaller: dead code,
+  unused options, speculative features; a helper the repo already has (name
+  the path); the standard library or platform already does it, or a new
+  dependency for a few lines; an abstraction with one implementation, config
+  nobody sets; near-copies that must change together. A comment
+  `shortcut: <limit>, <when to upgrade>` is a decision, not a finding, unless
+  the expected load already crosses the limit.
 
 ## Calibration
 
@@ -78,18 +89,23 @@ silently reversed decision. **Important** should be fixed before merge: fragile
 behaviour, a missed requirement, damage worth blocking over. Polish is
 **Minor**. Never invent issues to look thorough; a clean axis gets one line.
 
+Every issue, Minor included, names a concrete case: this input or situation
+leads to this wrong result, or this line costs this. Re-read the lines first —
+the caller exists, the value can really be empty, the code really is unused.
+No case, no issue: no "consider", no taste.
+
 ## Output
 
 Your final message IS the report. No preamble.
 
     ### Verification
-    [suite: command + result + the HEAD it ran on; scenario: what you ran + result, or what you could not run]
+    [suite: command + result + the HEAD it ran on; scenario: what you ran + result, or what you could not run; load: what you assumed and where it came from]
 
     ### Issues
     #### Critical
     #### Important
     #### Minor
-    For each: file:line, what is wrong, why it matters, how to fix if not obvious.
+    For each: file:line, what is wrong, the concrete case, how to fix if not obvious — the smallest fix, preferring one that deletes code.
 
     ### Implementer concerns, triaged
     [each: valid / not, with a reason]

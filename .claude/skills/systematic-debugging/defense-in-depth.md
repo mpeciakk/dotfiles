@@ -10,7 +10,7 @@ When you fix a bug caused by invalid data, adding validation at one place feels 
 gone through the check above it?** Another caller, a mock, a different platform, a
 future refactor that inlines the entry point. If yes, the check earns its place. If
 the layer above it structurally guarantees the value, the check is handling an
-impossible case, and CLAUDE.md's code discipline rules it out — it reads as a
+impossible case, and CLAUDE.md's Rules → Code rules it out — it reads as a
 real guard to the next person, so they leave it, and it protects nothing.
 
 That distinction is what the worked example below actually shows: each of its four

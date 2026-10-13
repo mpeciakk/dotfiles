@@ -26,9 +26,10 @@ Run state lives in `flow-state`, so "kontynuuj" in a fresh session resumes at
 the first task not done. Plans → `.flow/plans/`; `.flow/sdd/` is scratch.
 
 **Always-on discipline:** `test-driven-development`, `systematic-debugging`,
-`receiving-code-review`. Candor, code discipline (Karpathy-style) and response
-shape (adapted from [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd))
-live in `CLAUDE.md`.
+`receiving-code-review`. `CLAUDE.md` → "Rules" holds the code rules (from
+[karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills) and
+[ponytail](https://github.com/dietrichgebert/ponytail)), candor, and response
+shape (from [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)).
 
 **Outside the flow:** `writing-specs` establishes a project's living spec;
 `knowledge-transfer` packages handovers, reviewed by the `kt-cold-reader`
@@ -52,7 +53,7 @@ graph is used where grep is worse: `trace_path` for callers and blast radius
 2026-10-10, a targeted grep returns less text, faster, than `search_graph`, and
 the blanket "cbm first" rule was followed in under 3% of searches. Broad
 "where is X handled" questions go to the `explorer` agent (Haiku, returns
-file:line only). Rules live in `CLAUDE.md` rule 2. The graph indexes the main
+file:line only). Rules live in `CLAUDE.md` workflow rule 2. The graph indexes the main
 checkout, not worktrees, so `finishing` re-indexes after merge.
 
 ## How this differs from obra/superpowers
@@ -64,7 +65,6 @@ checkout, not worktrees, so `finishing` re-indexes after merge.
   the change's real verification and checks spec decisions.
 - **cbm for callers and blast radius**, **Haiku explorer**, **candor ruleset**,
   **red-team pre-mortem**.
-- **Localized** — `CLAUDE.md` and discipline notes in Polish.
 
 ## Testing
 

@@ -6,7 +6,7 @@ description: Use when receiving code review feedback, before implementing sugges
 # Receiving Code Review
 
 Review feedback is a set of claims to verify, not orders to follow. Tone is
-CLAUDE.md's candor section — no performative agreement, no thanks, disagreement
+CLAUDE.md's Rules → Candor — no performative agreement, no thanks, disagreement
 first. This skill covers what candor does not: how to process the findings.
 
 ## The pattern
@@ -44,7 +44,7 @@ wrong fix. "I understand 1, 2, 3, 6 — need clarification on 4 and 5."
 
 "Implement this properly" for a feature nothing calls → check actual usage
 (cbm `trace_path`). Unused: propose removing it (YAGNI). A reviewer's authority
-does not extend to scope — CLAUDE.md's "nic ponad to, o co proszono".
+does not extend to scope — CLAUDE.md's "Nothing beyond what was asked".
 
 ## Order of work
 
