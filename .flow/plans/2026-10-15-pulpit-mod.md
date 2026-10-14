@@ -147,3 +147,7 @@ intervention but no wait; cwd outside the worktree → nothing counted, panel hi
 reload (`$.state`); run cleared → panel gone.
 **Area:** `hooks/core.ts`, `hooks/register.tsx`, `types/index.d.ts`, tests.
 **Context:** D12; `.flow/specs/2026-10-10-lean-workflow-design.md` "Measuring it" (definitions only).
+
+## Rulings
+- Task 2: D9 gains a fifth row status `ended` (a running agent gone from `$.agent.list()` ≥2 s after spawn), dimmed with its duration — a real `claude -p` probe on 2.1.296 showed finished agents drop off the list instead of reading `completed`; `done`/`failed` stay for when the engine reports them — cost if wrong: a row says `ended` where `done` was knowable.
+- Task 2: the band's running-agents count (D5) moves to Task 3, beside the latest denial — Task 1 deferred it and Task 2's acceptance did not list it — cost if wrong: none, one owner.
