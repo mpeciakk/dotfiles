@@ -39,7 +39,7 @@ for p in "${IGNORES[@]}"; do ign_args+=("--ignore=$p"); done
 # HEAD, config i obiekty muszą się propagować (żeby obie maszyny dzieliły
 # jedno repo), index i reflogi nie muszą i to one kolidują za każdym razem,
 # gdy git chodzi po obu stronach naraz. Sprawdzone w izolowanym teście
-# 2026-09-28 (patrz Lekcje operacyjne → „Mutagen i synchronizacja").
+# 2026-09-28 (patrz Środowisko i synchronizacja → „Ignory bookkeepingu gita").
 GIT_IGNORES=(
   '**/.git/index' '**/.git/index.lock'
   '**/.git/*.lock' '**/.git/**/*.lock'
