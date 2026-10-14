@@ -288,3 +288,256 @@ describe('the band', () => {
     await ui.unmount()
   })
 })
+
+const spawnInput = (subagentType: string, description: string, extra: Record<string, unknown> = {}) =>
+  ({
+    tool_use_id: 'toolu_1',
+    prompt: 'do it',
+    description,
+    subagentType,
+    provider: { plugin: 'engine', tier: 'core' },
+    parentModel: 'claude-opus-5-5',
+    background: true,
+    fork: false,
+    ...extra,
+  }) as const
+
+const stepInput = (agentId: string | undefined, model: string, effort?: 'low' | 'high') => ({
+  turnId: 'turn-1',
+  index: 0,
+  model,
+  messageCount: 3,
+  ...(effort === undefined ? {} : { effort }),
+  ...(agentId === undefined ? {} : { agentId }),
+})
+
+// A streaming call is read to its end, as the engine reads a model request.
+async function step($: any, input: ReturnType<typeof stepInput>) {
+  const stream = $.turn.step(input)
+  while (!(await stream.next()).done);
+}
+
+const rolesOf = (shown: string) => shown.split('\n').filter(line => line.startsWith('implementer ·'))
+
+describe('Roles panel', () => {
+  test('a spawn adds a row whose clock follows the mocked clock, and the spawn result is passed on unchanged', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    const result = await $.agent.spawn(spawnInput('explorer', 'find the hooks'))
+    expect(result).toEqual({ model: 'claude-sonnet-5-5', agentId: 'agent-1' })
+    for (const surface of SURFACES) {
+      expect(await pane($, surface)).toContain('explorer · claude-sonnet-5-5 · find the hooks · 0s')
+    }
+    await w.clock.advance(3000)
+    expect(await pane($, 'terminal')).toContain('explorer · claude-sonnet-5-5 · find the hooks · 3s')
+    await w.clock.advance(60_000)
+    expect(await pane($, 'terminal')).toContain('find the hooks · 1m03s')
+  })
+
+  test('an open pane redraws as the clock moves', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('explorer', 'find the hooks'))
+    const ui = await $.ui.mount({ plugin: 'pulpit', surface: 'terminal', component: 'Pane', requestId: 'pulpit', props: PANE_PROPS })
+    expect(await ui.find({ type: 'Text', text: 'find the hooks · 0s' })).toBeDefined()
+    await w.clock.advance(5000)
+    expect(await ui.find({ type: 'Text', text: 'find the hooks · 5s' })).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('no agent, no Roles panel', async ($, on) => {
+    world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    expect(await pane($, 'terminal')).not.toContain('Roles')
+  })
+
+  test('completed shows done and the duration, the clock stops', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('explorer', 'find the hooks'))
+    await w.clock.advance(4000)
+    w.setAgentStatus('agent-1', 'completed')
+    await w.clock.advance(1000)
+    await w.clock.advance(30_000)
+    expect(await pane($, 'terminal')).toContain('find the hooks · done 5s')
+  })
+
+  test('an agent that leaves the list while running shows ended and its duration, not a clock that never stops', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'long job'))
+    await w.clock.advance(10_000)
+    w.dropAgent('agent-1')
+    await w.clock.advance(1000)
+    await w.clock.advance(30_000)
+    expect(await pane($, 'terminal')).toContain('long job · ended 11s')
+  })
+
+  test('an ended row is dimmed like a done one, not marked as an error', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'long job'))
+    await w.clock.advance(3000)
+    w.dropAgent('agent-1')
+    await w.clock.advance(1000)
+    const ui = await $.ui.mount({ plugin: 'pulpit', surface: 'terminal', component: 'Pane', requestId: 'pulpit', props: PANE_PROPS })
+    const row = await ui.find({ type: 'Text', text: 'long job · ended' })
+    expect(row?.props.dimColor).toBe(true)
+    expect(row?.props.color).toBeUndefined()
+    await ui.unmount()
+  })
+
+  test('an agent not on the list yet at the first tick is not taken for ended', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'slow to list'))
+    w.dropAgent('agent-1')
+    await w.clock.advance(1000)
+    expect(await pane($, 'terminal')).toContain('slow to list · 1s')
+  })
+
+  test('failed and killed both show failed with the duration', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('explorer', 'one'))
+    await $.agent.spawn(spawnInput('explorer', 'two'))
+    await w.clock.advance(2000)
+    w.setAgentStatus('agent-1', 'failed')
+    w.setAgentStatus('agent-2', 'killed')
+    await w.clock.advance(1000)
+    const shown = await pane($, 'terminal')
+    expect(shown).toContain('one · failed 3s')
+    expect(shown).toContain('two · failed 3s')
+  })
+
+  test('a failed row is highlighted, a done one dimmed', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('explorer', 'one'))
+    await $.agent.spawn(spawnInput('explorer', 'two'))
+    w.setAgentStatus('agent-1', 'failed')
+    w.setAgentStatus('agent-2', 'completed')
+    await w.clock.advance(1000)
+    const ui = await $.ui.mount({ plugin: 'pulpit', surface: 'terminal', component: 'Pane', requestId: 'pulpit', props: PANE_PROPS })
+    expect((await ui.find({ type: 'Text', text: 'one · failed' }))?.props.color).toBe('error')
+    expect((await ui.find({ type: 'Text', text: 'two · done' }))?.props.dimColor).toBe(true)
+    await ui.unmount()
+  })
+
+  test('model and effort come from the latest step of that agent, the spawn model alone before its first step', async ($, on) => {
+    world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'a', { model: 'sonnet' }))
+    await $.agent.spawn(spawnInput('explorer', 'b'))
+    expect(await pane($, 'terminal')).toContain('implementer · sonnet · a')
+    await step($, stepInput('agent-1', 'claude-opus-5-5', 'high'))
+    let shown = await pane($, 'terminal')
+    expect(shown).toContain('implementer · claude-opus-5-5 · high · a')
+    expect(shown).toContain('explorer · claude-sonnet-5-5 · b')
+    await step($, stepInput('agent-1', 'claude-haiku-5'))
+    shown = await pane($, 'terminal')
+    expect(shown).toContain('implementer · claude-haiku-5 · a')
+    expect(shown).not.toContain('high')
+  })
+
+  test('a step of the main loop changes no row', async ($, on) => {
+    world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('explorer', 'b'))
+    await step($, stepInput(undefined, 'claude-opus-5-5', 'high'))
+    expect(await pane($, 'terminal')).toContain('explorer · claude-sonnet-5-5 · b')
+  })
+
+  test('an implementer carries the task the run has started when it is spawned, even within one poll interval', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement', tasks: [{ n: '1', status: 'started' }] }) })
+    await $.session.start(START)
+    w.setFile(state({ stage: 'implement', tasks: [{ n: '1', status: 'done' }, { n: '2', status: 'started' }] }))
+    await $.agent.spawn(spawnInput('implementer', 'roles'))
+    expect(await pane($, 'terminal')).toContain('implementer · task 2 · claude-sonnet-5-5 · roles')
+  })
+
+  test('two implementers: both rows, each with its own task', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement', tasks: [{ n: '1', status: 'started' }] }) })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'first'))
+    w.setFile(state({ stage: 'implement', tasks: [{ n: '1', status: 'started' }, { n: '2', status: 'started' }] }))
+    await $.agent.spawn(spawnInput('implementer', 'second'))
+    const rows = rolesOf(await pane($, 'terminal'))
+    expect(rows).toEqual([
+      'implementer · task 1 · claude-sonnet-5-5 · first · 0s',
+      'implementer · task 2 · claude-sonnet-5-5 · second · 0s',
+    ])
+  })
+
+  test('only the last 6 finished rows stay, the oldest are dropped', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    for (let i = 1; i <= 8; i += 1) {
+      await $.agent.spawn(spawnInput('explorer', `n${i}`))
+      w.setAgentStatus(`agent-${i}`, 'completed')
+      await w.clock.advance(1000)
+    }
+    const shown = await pane($, 'terminal')
+    expect(shown).not.toMatch(/\bn1 ·|\bn2 ·/)
+    for (const kept of ['n3', 'n4', 'n5', 'n6', 'n7', 'n8']) expect(shown).toContain(`${kept} · done`)
+  })
+})
+
+describe('Writer', () => {
+  const writerIn = async ($: any) => (await pane($, 'terminal')).split('\n').find(line => line.startsWith('writes:'))
+
+  test('stays the controller while only a read-only type is in flight', async ($, on) => {
+    world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    for (const type of ['branch-reviewer', 'plan-red-team', 'explorer', 'Explore']) {
+      await $.agent.spawn(spawnInput(type, type))
+    }
+    expect(await writerIn($)).toBe('writes: controller')
+  })
+
+  test('another type is named by its type', async ($, on) => {
+    world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('general-purpose', 'x'))
+    expect(await writerIn($)).toBe('writes: general-purpose')
+  })
+
+  test('an implementer is named with the latest started task and the worktree name', async ($, on) => {
+    world($, on, {
+      file: state({ stage: 'implement', worktree: LINKED, tasks: [{ n: '1', status: 'done' }, { n: '2', status: 'started' }] }),
+    })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'x'))
+    expect(await writerIn($)).toBe('writes: implementer · task 2 · feat')
+  })
+
+  test('goes back to the controller when the agent finishes and names it again when it is resumed', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('general-purpose', 'x'))
+    w.setAgentStatus('agent-1', 'completed')
+    await w.clock.advance(1000)
+    expect(await writerIn($)).toBe('writes: controller')
+    w.setAgentStatus('agent-1', 'running') // SendMessage resumed it
+    await w.clock.advance(1000)
+    expect(await writerIn($)).toBe('writes: general-purpose')
+  })
+
+  test('two implementers in flight: the latest started task is named', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement', worktree: LINKED, tasks: [{ n: '1', status: 'started' }] }) })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'first'))
+    w.setFile(state({ stage: 'implement', worktree: LINKED, tasks: [{ n: '1', status: 'started' }, { n: '2', status: 'started' }] }))
+    await $.agent.spawn(spawnInput('implementer', 'second'))
+    await w.clock.advance(2000)
+    expect(await writerIn($)).toBe('writes: implementer · task 2 · feat')
+  })
+
+  test('the band shows the writer while the pane waits undrawn', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('general-purpose', 'x'))
+    w.setPanes([])
+    expect(await band($, 'terminal')).toEqual(['writes: general-purpose'])
+  })
+})

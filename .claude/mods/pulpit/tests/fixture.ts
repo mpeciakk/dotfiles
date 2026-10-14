@@ -23,6 +23,10 @@ export type World = {
   setRoot: (root: string) => void
   /** Ids of the panes the engine lists, placed or not. */
   setPanes: (panes: { id: string; isPlaced: boolean }[]) => void
+  /** The status `$.agent.list()` gives an agent from now on; the agent must have been spawned. */
+  setAgentStatus: (id: string, status: string) => void
+  /** The engine drops an agent from `$.agent.list()` when it ends. */
+  dropAgent: (id: string) => void
 }
 
 export function world($: Engine, on: On, init: { root?: string; file?: string; worktrees?: string[] } = {}): World {
@@ -35,6 +39,8 @@ export function world($: Engine, on: On, init: { root?: string; file?: string; w
   const calls = { read: 0, stat: 0, git: 0, open: 0, close: 0 }
   const gitCwds: string[] = []
   const statPaths: string[] = []
+  const agents = new Map<string, { type: string; description: string; status: string }>()
+  let spawned = 0
 
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
@@ -58,6 +64,18 @@ export function world($: Engine, on: On, init: { root?: string; file?: string; w
     calls.read += 1
     if (file === undefined || e.path !== STATE || !isReadable) return { deny: 'ENOENT' }
     return { value: file }
+  })
+  // Ids are agent-1, agent-2, ... in spawn order; a spawn joins the list as running, as the engine's does.
+  on('agent.spawn', (_$, e) => {
+    spawned += 1
+    const agentId = `agent-${spawned}`
+    agents.set(agentId, { type: e.subagentType, description: e.description, status: 'running' })
+    return { model: e.model ?? 'claude-sonnet-5-5', agentId }
+  })
+  on('agent.list', () => ({ value: [...agents].map(([id, agent]) => ({ id, ...agent })) }))
+  // A model request that answers at once; the hook under test sees the input on its way down.
+  on('turn.step', async function* (_$, e) {
+    return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn' as const, usage: null }
   })
   on('ui.open', (_$, e) => {
     calls.open += 1
@@ -90,6 +108,14 @@ export function world($: Engine, on: On, init: { root?: string; file?: string; w
     },
     setPanes: next => {
       panes = next
+    },
+    dropAgent: id => {
+      agents.delete(id)
+    },
+    setAgentStatus: (id, status) => {
+      const agent = agents.get(id)
+      if (agent === undefined) throw new Error(`no agent ${id} was spawned`)
+      agent.status = status
     },
   }
 }
