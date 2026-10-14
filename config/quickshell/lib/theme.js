@@ -30,6 +30,11 @@ function raiseAlpha(c, by) {
     return withAlpha(c, Math.min(1, parseInt(hex(c).slice(1, 3), 16) / 255 + by));
 }
 
+// The colour with its alpha at least `min` (0..1), at most opaque.
+function floorAlpha(c, min) {
+    return withAlpha(c, Math.min(1, Math.max(min, parseInt(hex(c).slice(1, 3), 16) / 255)));
+}
+
 function isObject(x) {
     return x !== null && typeof x === "object" && !Array.isArray(x);
 }
@@ -83,7 +88,8 @@ var defaults = {
     wallpaperDark: 0.5,             // ... below which it picks dark (hysteresis between)
     // Dark island over wallpaper brighter than `threshold`: alpha + `boost`. Light island over wallpaper darker than
     // `lightThreshold`: alpha + `lightBoost`. sampleSize: px the wallpaper is rescaled to for sampling.
-    legibility: { threshold: 0.7, boost: 0.2, lightThreshold: 0.25, lightBoost: 0.18, sampleSize: 64 },
+    // panelFloor: minimum alpha of every state but rest and line, which reach below the strut over unknown windows.
+    legibility: { threshold: 0.7, boost: 0.2, lightThreshold: 0.25, lightBoost: 0.18, sampleSize: 64, panelFloor: 0.8 },
     glass: true,
     glassLevel: "ciekłe",           // "subtelne" | "mocne" | "ciekłe"
     reducedMotion: false,

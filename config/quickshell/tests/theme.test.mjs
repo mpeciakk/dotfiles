@@ -27,6 +27,22 @@ test("raiseAlpha() adds to the alpha and stops at opaque", () => {
     assert.equal(T.raiseAlpha("#100e1a", 0.2), "#ff100e1a");
 });
 
+test("floorAlpha() raises the alpha to the floor and keeps a denser one", () => {
+    assert.equal(T.floorAlpha("#47161224", 0.8), "#cc161224");
+    assert.equal(T.floorAlpha("#e6100e1a", 0.8), "#e6100e1a");
+    assert.equal(T.floorAlpha("#100e1a", 0.8), "#ff100e1a");
+    assert.equal(T.floorAlpha("#47161224", 1.2), "#ff161224");
+});
+
+test("Island fills only rest inside the strut with islandBg, every other state with panelBg", () => {
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "Island.qml"), "utf8");
+    assert.match(src, /fillColor: root\.effState === "rest" && !root\.lineWanted \? Theme\.islandBg : Theme\.panelBg/);
+});
+
+test("defaults: panels below the strut keep at least 0.8 alpha", () => {
+    assert.equal(T.defaults.legibility.panelFloor, 0.8);
+});
+
 test("defaults: the legibility sampler rescales to 64", () => {
     assert.equal(T.defaults.legibility.sampleSize, 64);
 });

@@ -189,6 +189,8 @@ PanelWindow {
             h: root.geo.h
             r: root.geo.r
             ears: root.geo.ears
+            // Rest revealed from the line has no strut under it, only a window.
+            fillColor: root.effState === "rest" && !root.lineWanted ? Theme.islandBg : Theme.panelBg
             lineMode: root.effState === "line"
             // Hidden from the lock's way in (it fades out as the lock overlay's card grows out of it) until the card
             // docks again on the way back (Lock.qml).

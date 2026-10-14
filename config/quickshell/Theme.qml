@@ -54,11 +54,16 @@ Singleton {
     }
 
     // One animated colour per resolved colour key: a theme or level change crossfades.
-    // Over a wallpaper that fights its text the island gets denser (set by AutoTheme); the boost feeds the one mirror.
-    property color islandBg: root.legibilityBoost
+    // Over a wallpaper that fights its text the island gets denser (set by AutoTheme); the boost feeds both
+    // island fills (islandBg, panelBg).
+    readonly property string boostedBg: root.legibilityBoost
         ? T.raiseAlpha(root.c.islandBg, root.mode === "light" ? root.tokens.legibility.lightBoost : root.tokens.legibility.boost)
         : root.c.islandBg
+    property color islandBg: root.boostedBg
     Behavior on islandBg { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
+    // States below the strut cover windows the boost never samples (a white page under dark glass): a denser floor.
+    property color panelBg: T.floorAlpha(root.boostedBg, root.tokens.legibility.panelFloor)
+    Behavior on panelBg { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color ring: root.c.ring
     Behavior on ring { ColorAnimation { duration: root.motion.themeFadeMs; easing.type: Easing.InOutQuad } }
     property color shadowColor: root.c.shadowColor
