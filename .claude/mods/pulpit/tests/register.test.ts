@@ -334,6 +334,15 @@ describe('Roles panel', () => {
     expect(await pane($, 'terminal')).toContain('find the hooks · 1m03s')
   })
 
+  test('bookkeeping that fails leaves the spawn result as it was and adds no row', async ($, on) => {
+    world($, on)
+    on('state.set', { plugin: 'pulpit', key: 'agents' }, () => ({ deny: 'store refused' }))
+    await $.session.start(START)
+    const result = await $.agent.spawn(spawnInput('explorer', 'find the hooks'))
+    expect(result).toEqual({ model: 'claude-sonnet-5-5', agentId: 'agent-1' })
+    expect(await pane($, 'terminal')).not.toContain('find the hooks')
+  })
+
   test('an open pane redraws as the clock moves', async ($, on) => {
     const w = world($, on)
     await $.session.start(START)
