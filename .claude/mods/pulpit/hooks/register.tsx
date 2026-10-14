@@ -70,10 +70,13 @@ export const register: Register = on => {
     const isPlaced = (await $.ui.panes()).some(pane => pane.id === PANE_ID && pane.isPlaced)
     if (isPlaced) {
       await $.ui.close({ id: PANE_ID })
+      // the band reads isPlaced while drawing; nothing else redraws it after a close
+      $.ui.invalidate('ui.render')
 
       return { text: 'pulpit closed.' }
     }
     await $.ui.open({ id: PANE_ID, title: PANE_ID })
+    $.ui.invalidate('ui.render')
 
     return { text: 'pulpit opened.' }
   })
