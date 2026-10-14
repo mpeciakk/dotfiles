@@ -31,3 +31,5 @@ config/quickshell/.qmlls.ini
 .claude/remote-settings.json
 .claude/.last-cleanup
 .claude/worktrees/
+# Written by the engine into every mod folder it loads (the API's d.ts), regenerated at each load.
+.claude/mods/*/.claude-plugin/types/

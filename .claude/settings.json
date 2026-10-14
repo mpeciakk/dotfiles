@@ -3,6 +3,7 @@
   "env": {
     "CBM_ALLOWED_ROOT": "/home/m",
     "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_PLUGIN_DIRS": "~/dotfiles/.claude/mods/pulpit",
     "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
     "CLAUDE_CODE_FORK_SUBAGENT": "0",
     "CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS": "1"
