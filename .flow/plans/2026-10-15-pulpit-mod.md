@@ -153,3 +153,5 @@ reload (`$.state`); run cleared → panel gone.
 - Task 2: the band's running-agents count (D5) moves to Task 3, beside the latest denial — Task 1 deferred it and Task 2's acceptance did not list it — cost if wrong: none, one owner.
 - Task 3: D6's gating set includes `classic.PermissionDenied` (D10 hooks it; validate lists it) — cost if wrong: none, wording.
 - Task 3: the Advisor panel shows the latest 5 consults under `Advisor (N)` instead of every consult — keeps the panel bounded in a long session — cost if wrong: one constant.
+- Task 4: an `inline` run (no worktree recorded) counts as "inside" for D12 — an inline run works in place, so the main checkout is its tree — cost if wrong: one line in `isInside`.
+- Task 4: Metrics figures reset when the run's `task` changes, not when one read of the state file fails — a failed tick must not wipe them — cost if wrong: `clear` + `init` with the same slug keeps the old figures.

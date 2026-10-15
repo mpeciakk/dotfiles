@@ -56,6 +56,21 @@ the blanket "cbm first" rule was followed in under 3% of searches. Broad
 file:line only). Rules live in `CLAUDE.md` workflow rule 2. The graph indexes the main
 checkout, not worktrees, so `finishing` re-indexes after merge.
 
+## Pulpit (mod)
+
+`mods/pulpit/` is a Claude Code mod (function hooks, early-access API) that
+shows the flow beside the transcript: Run (stage, ✋ gate, ledger), Writer (who
+may edit the tree now), Roles (subagents with model · effort and a clock),
+Gate (permission verdicts, last denials incl. flow-guard), Advisor (consults,
+seen once a model step ends) and this session's run metrics. It opens at
+session start (from 144 columns), `/pulpit` toggles it, and a ≤2-row band above
+the prompt stands in when the pane is not placed. Loaded in every session
+through `CLAUDE_CODE_PLUGIN_DIRS` in `settings.json` `env`, straight from
+`~/dotfiles/.claude/mods/pulpit`, so an edit hot-reloads; it only observes —
+every hook passes its event through unchanged. Tests: `claude plugin test
+mods/pulpit`, `claude plugin validate mods/pulpit`. Decisions:
+`.flow/plans/2026-10-15-pulpit-mod.md`.
+
 ## How this differs from obra/superpowers
 
 - **Inline by default** — a run is opened deliberately, not for every change.
