@@ -24,8 +24,8 @@ record (design record lineage: `.flow/specs/2026-10-10-lean-workflow-design.md`,
   denial (tool + first 60 chars of reason). Otherwise `next(e)`.
 - D6 Pure observer: every hook calls `next(e)` with `e` as given and returns its result unchanged; no hook
   answers without `next`. `claude plugin validate` lists observed sites as gating by nature — its `gatingHooks`
-  must be exactly the sites the mod observes ({`tool.check`, `prompt.submit`, `agent.spawn`, `turn.step` if
-  listed}), each with a `.catch` that replays `next(e)`. No network call, no model call.
+  must be exactly the sites the mod observes ({`tool.check`, `prompt.submit`, `agent.spawn`,
+  `classic.PermissionDenied`, `turn.step` if listed}), each with a `.catch` that replays `next(e)`. No network call, no model call.
 - D7 **Run** source: `<main checkout>/.flow/run/state.json`, the main checkout resolved like `flow-state` does
   (`git worktree list --porcelain`, first entry) from `$.session.cwd()` — or `$.session.root()` if Task 1's
   probe shows `cwd()` follows a Bash `cd` — via `$.process.run`. Re-read on a 2 s
@@ -151,3 +151,5 @@ reload (`$.state`); run cleared → panel gone.
 ## Rulings
 - Task 2: D9 gains a fifth row status `ended` (a running agent gone from `$.agent.list()` ≥2 s after spawn), dimmed with its duration — a real `claude -p` probe on 2.1.296 showed finished agents drop off the list instead of reading `completed`; `done`/`failed` stay for when the engine reports them — cost if wrong: a row says `ended` where `done` was knowable.
 - Task 2: the band's running-agents count (D5) moves to Task 3, beside the latest denial — Task 1 deferred it and Task 2's acceptance did not list it — cost if wrong: none, one owner.
+- Task 3: D6's gating set includes `classic.PermissionDenied` (D10 hooks it; validate lists it) — cost if wrong: none, wording.
+- Task 3: the Advisor panel shows the latest 5 consults under `Advisor (N)` instead of every consult — keeps the panel bounded in a long session — cost if wrong: one constant.
