@@ -810,3 +810,224 @@ describe('Advisor panel', () => {
     expect((await pane($, 'terminal')).split('\n')).toContain('14:00:00 · 2s')
   })
 })
+
+const submit = ($: any, kind: string, extra: Record<string, unknown> = {}) =>
+  $.prompt.submit({ text: 'go on', wait: false, origin: { kind }, ...extra })
+
+const endTurn = ($: any, extra: Record<string, unknown> = {}) =>
+  $.turn.complete({ answer: '', durationMs: 1000, isAborted: false, turnId: 'turn-1', reason: 'answer', ...extra })
+
+// The three lines under the Metrics heading, or none when the panel is not drawn.
+const metricsOf = async ($: any, surface: (typeof SURFACES)[number] = 'terminal') => {
+  const lines = (await pane($, surface)).split('\n')
+  const at = lines.indexOf('Metrics')
+  return at < 0 ? [] : lines.slice(at + 1, at + 4)
+}
+
+describe('Metrics panel', () => {
+  const inRun = (fields: Record<string, unknown> = {}) => state({ stage: 'implement', worktree: MAIN, ...fields })
+
+  test('a plan seen going to isolate shows the time since go', async ($, on) => {
+    const w = world($, on, { file: inRun({ stage: 'plan', plan: '/tmp/p.md' }) })
+    await $.session.start(START)
+    await w.clock.advance(5000)
+    expect(await metricsOf($)).toEqual([])
+    w.setFile(inRun({ stage: 'isolate', plan: '/tmp/p.md' }))
+    await w.clock.advance(1000) // the poll at 6 s sees the go
+    await w.clock.advance(60_000)
+    for (const surface of SURFACES) expect((await metricsOf($, surface))[0]).toBe('since go 1m00s')
+  })
+
+  for (const stage of ['implement', 'inline']) {
+    test(`${stage} seen after plan is a go as well`, async ($, on) => {
+      const w = world($, on, { file: inRun({ stage: 'plan', plan: '/tmp/p.md' }) })
+      await $.session.start(START)
+      w.setFile(inRun({ stage, plan: '/tmp/p.md' }))
+      await w.clock.advance(2000)
+      expect((await metricsOf($))[0]).toMatch(/^since go /)
+    })
+  }
+
+  test('a run already past plan when the session joins shows the time since joined', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await w.clock.advance(65_000)
+    for (const surface of SURFACES) expect((await metricsOf($, surface))[0]).toBe('since joined 1m05s')
+  })
+
+  test('plan then design starts nothing, and a later implement is a join, not a go', async ($, on) => {
+    const w = world($, on, { file: inRun({ stage: 'plan', plan: '/tmp/p.md' }) })
+    await $.session.start(START)
+    w.setFile(inRun({ stage: 'design' }))
+    await w.clock.advance(2000)
+    expect(await metricsOf($)).toEqual([])
+    w.setFile(inRun({ stage: 'implement' }))
+    await w.clock.advance(2000)
+    expect((await metricsOf($))[0]).toMatch(/^since joined /)
+  })
+
+  test('a composer prompt after an idle gap adds the wait and an intervention', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await w.clock.advance(10_000)
+    await endTurn($)
+    await w.clock.advance(90_000)
+    await submit($, 'composer')
+    for (const surface of SURFACES) {
+      expect(await metricsOf($, surface)).toEqual(['since joined 1m40s', 'interventions 1', 'user wait 1m30s'])
+    }
+  })
+
+  test('a notification-origin turn adds neither an intervention nor a wait', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await endTurn($)
+    await w.clock.advance(30_000)
+    await submit($, 'task-notification')
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 0', 'user wait 0s'])
+  })
+
+  test('the wait ends where another turn began: a notification turn, then a prompt typed over it, waits for nothing', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await endTurn($)
+    await w.clock.advance(30_000)
+    await submit($, 'task-notification')
+    await w.clock.advance(30_000)
+    await submit($, 'composer', { turnId: 'turn-2' })
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 1', 'user wait 0s'])
+  })
+
+  test('a prompt typed while a turn runs is an intervention with no wait, whatever the last turn end was', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await endTurn($)
+    await w.clock.advance(30_000)
+    await submit($, 'composer', { turnId: 'turn-2' })
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 1', 'user wait 0s'])
+  })
+
+  test('the prompt that started a turn ends the gap: a second one with no turn end between waits for nothing', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await endTurn($)
+    await w.clock.advance(60_000)
+    await submit($, 'composer')
+    await w.clock.advance(60_000)
+    await submit($, 'composer')
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 2', 'user wait 1m00s'])
+  })
+
+  test('the end of a subagent turn is not the end of the main loop', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await endTurn($, { agentId: 'agent-1' })
+    await w.clock.advance(60_000)
+    await submit($, 'composer')
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 1', 'user wait 0s'])
+  })
+
+  test('a prompt while a subagent runs is an intervention but no wait; once it finished, waits count again', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'x'))
+    await endTurn($)
+    await w.clock.advance(30_000)
+    await submit($, 'composer')
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 1', 'user wait 0s'])
+    w.setAgentStatus('agent-1', 'completed')
+    await w.clock.advance(1000)
+    await endTurn($)
+    await w.clock.advance(20_000)
+    await submit($, 'composer')
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 2', 'user wait 20s'])
+  })
+
+  test('outside the run worktree nothing is counted and the panel is hidden; coming in shows it from zero', async ($, on) => {
+    const w = world($, on, { file: inRun({ worktree: LINKED }) }) // the session's root is MAIN
+    await $.session.start(START)
+    await endTurn($)
+    await w.clock.advance(30_000)
+    await submit($, 'composer')
+    expect(await metricsOf($)).toEqual([])
+    w.setRoot(`${LINKED}/src`)
+    await w.clock.advance(2000)
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 0', 'user wait 0s'])
+  })
+
+  test('before plan is past nothing is counted', async ($, on) => {
+    const w = world($, on, { file: inRun({ stage: 'plan', plan: '/tmp/p.md' }) })
+    await $.session.start(START)
+    await endTurn($)
+    await w.clock.advance(30_000)
+    await submit($, 'composer')
+    w.setFile(inRun({ stage: 'implement' }))
+    await w.clock.advance(2000)
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 0', 'user wait 0s'])
+  })
+
+  test('the figures live in $.state: a second session.start, as a module reload runs it, keeps them', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await endTurn($)
+    await w.clock.advance(30_000)
+    await submit($, 'composer')
+    const before = await metricsOf($)
+    expect(before.slice(1)).toEqual(['interventions 1', 'user wait 30s'])
+    await $.session.start(START)
+    expect(await metricsOf($)).toEqual(before)
+  })
+
+  test('the panel goes when the run is cleared; another run starts from zero', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    await endTurn($)
+    await w.clock.advance(30_000)
+    await submit($, 'composer')
+    w.setFile(undefined)
+    await w.clock.advance(2000)
+    expect(await metricsOf($)).toEqual([])
+    w.setFile(inRun({ task: 'another' }))
+    await w.clock.advance(2000)
+    expect((await metricsOf($)).slice(1)).toEqual(['interventions 0', 'user wait 0s'])
+  })
+
+  test('a run file unreadable for one tick costs neither the figures nor the go', async ($, on) => {
+    const w = world($, on, { file: inRun({ stage: 'plan', plan: '/tmp/p.md' }) })
+    await $.session.start(START)
+    w.setReadable(false)
+    w.setFile(inRun({ stage: 'isolate', plan: '/tmp/p.md' }))
+    await w.clock.advance(2000)
+    expect(await metricsOf($)).toEqual([])
+    w.setReadable(true)
+    await w.clock.advance(2000)
+    await w.clock.advance(10_000)
+    expect((await metricsOf($))[0]).toBe('since go 10s')
+  })
+
+  test('an open pane redraws as the clock moves', async ($, on) => {
+    const w = world($, on, { file: inRun() })
+    await $.session.start(START)
+    const ui = await $.ui.mount({ plugin: 'pulpit', surface: 'terminal', component: 'Pane', requestId: 'pulpit', props: PANE_PROPS })
+    expect(await ui.find({ type: 'Text', text: 'since joined 0s' })).toBeDefined()
+    await w.clock.advance(5000)
+    expect(await ui.find({ type: 'Text', text: 'since joined 5s' })).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('the prompt and the turn end are passed on as the chain gave them', async ($, on) => {
+    world($, on, { file: inRun() })
+    await $.session.start(START)
+    expect(await submit($, 'composer')).toEqual({ text: 'go on', origin: { kind: 'composer' } })
+    expect(await endTurn($)).toEqual({ text: '' })
+  })
+
+  test('bookkeeping that fails leaves the prompt and the turn end as they were', async ($, on) => {
+    world($, on, { file: inRun() })
+    on('state.set', { plugin: 'pulpit', key: 'idleSince' }, () => ({ deny: 'store refused' }))
+    on('state.set', { plugin: 'pulpit', key: 'metrics' }, () => ({ deny: 'store refused' }))
+    await $.session.start(START)
+    expect(await submit($, 'composer')).toEqual({ text: 'go on', origin: { kind: 'composer' } })
+    expect(await endTurn($)).toEqual({ text: '' })
+  })
+})

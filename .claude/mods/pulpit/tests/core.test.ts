@@ -4,27 +4,33 @@ import {
   addAgent,
   addConsults,
   addDenial,
+  addIntervention,
   agentLine,
   bandLines,
   consultLine,
   countVerdict,
   EMPTY_ADVISOR,
   EMPTY_GATE,
+  EMPTY_METRICS,
   formatClock,
   formatDuration,
   gateCounts,
   gateOf,
+  isInside,
   mainCheckout,
+  metricsLines,
   parseRun,
   shortSha,
   startedTask,
   stateFile,
   stepAgent,
   syncAgents,
+  userWait,
+  watchRun,
   writerLine,
   writerOf,
 } from '../hooks/core'
-import type { PulpitAgent, PulpitDenial } from '../types'
+import type { PulpitAgent, PulpitDenial, PulpitMetrics, PulpitRun } from '../types'
 
 // What `flow-state` writes (json.dump(sort_keys=True)), one run per stage.
 const run = (fields: Record<string, unknown>) => JSON.stringify({ task: 'x', tasks: [], ...fields })
@@ -501,5 +507,130 @@ describe('addConsults and consultLine', () => {
     for (let i = 0; i < 7; i++) got = addConsults(got, [advisor(t0 + i * 60_000, t0 + i * 60_000 + 1000)], 'plan')
     expect(got.count).toBe(7)
     expect(got.recent.map(consult => consultLine(consult).slice(0, 8))).toEqual(['14:02:00', '14:03:00', '14:04:00', '14:05:00', '14:06:00'])
+  })
+})
+
+describe('isInside', () => {
+  test('the worktree itself and anything beneath it; a sibling that shares the prefix is outside', () => {
+    expect(isInside('/w/feat', '/w/feat')).toBe(true)
+    expect(isInside('/w/feat/src/x', '/w/feat')).toBe(true)
+    expect(isInside('/w/feat-two', '/w/feat')).toBe(false)
+    expect(isInside('/home/m/proj', '/w/feat')).toBe(false)
+  })
+
+  test('a trailing slash on the worktree changes nothing', () => {
+    expect(isInside('/w/feat/src', '/w/feat/')).toBe(true)
+  })
+
+  test('no worktree recorded: inside wherever the run was found; no root: outside', () => {
+    expect(isInside('/home/m/proj', undefined)).toBe(true)
+    expect(isInside(undefined, '/w/feat')).toBe(false)
+    expect(isInside(undefined, undefined)).toBe(false)
+  })
+})
+
+describe('watchRun', () => {
+  const at = (stage: string, worktree?: string): PulpitRun => ({ task: 'x', stage, ledger: [], ...(worktree === undefined ? {} : { worktree }) })
+
+  test('plan then isolate, implement or inline is a go, stamped when seen', () => {
+    for (const stage of ['isolate', 'implement', 'inline']) {
+      const planned = watchRun(EMPTY_METRICS, at('plan'), '/w', 100)
+      expect(watchRun(planned, at(stage), '/w', 250).goAt).toBe(250)
+    }
+  })
+
+  test('plan then design, and design then implement, are no go', () => {
+    const planned = watchRun(EMPTY_METRICS, at('plan'), '/w', 100)
+    const designed = watchRun(planned, at('design'), '/w', 200)
+    expect(designed.goAt).toBeUndefined()
+    expect(watchRun(designed, at('implement'), '/w', 300).goAt).toBeUndefined()
+  })
+
+  test('a run first seen past plan has no go and is joined when it is first counted', () => {
+    const got = watchRun(EMPTY_METRICS, at('implement'), '/w', 100)
+    expect(got).toMatchObject({ run: 'x', stage: 'implement', isCounting: true, joinedAt: 100 })
+    expect(got.goAt).toBeUndefined()
+  })
+
+  test('counts from the stage after plan on, finish included; triage, design and plan do not', () => {
+    for (const stage of ['isolate', 'implement', 'inline', 'finish']) expect(watchRun(EMPTY_METRICS, at(stage), '/w', 1).isCounting).toBe(true)
+    for (const stage of ['triage', 'design', 'plan', '']) expect(watchRun(EMPTY_METRICS, at(stage), '/w', 1).isCounting).toBe(false)
+  })
+
+  test('outside the recorded worktree nothing counts and nobody has joined; coming in joins, later', () => {
+    const outside = watchRun(EMPTY_METRICS, at('implement', '/w/feat'), '/home/m/proj', 100)
+    expect(outside.isCounting).toBe(false)
+    expect(outside.joinedAt).toBeUndefined()
+    expect(watchRun(outside, at('implement', '/w/feat'), '/w/feat', 400)).toMatchObject({ isCounting: true, joinedAt: 400 })
+  })
+
+  test('a go seen before the worktree was entered survives the entering, and joinedAt stays the first join', () => {
+    let m = watchRun(EMPTY_METRICS, at('plan'), '/home/m/proj', 100)
+    m = watchRun(m, at('isolate', '/w/feat'), '/home/m/proj', 200)
+    expect(m).toMatchObject({ goAt: 200, isCounting: false })
+    m = watchRun(m, at('implement', '/w/feat'), '/w/feat', 300)
+    expect(m).toMatchObject({ goAt: 200, joinedAt: 300, isCounting: true })
+    expect(watchRun(m, at('implement', '/w/feat'), '/w/feat', 900).joinedAt).toBe(300)
+  })
+
+  test('a different run starts the figures again', () => {
+    const first: PulpitMetrics = { ...watchRun(EMPTY_METRICS, at('implement'), '/w', 100), interventions: 4, waitMs: 9000 }
+    const other = watchRun(first, { ...at('implement'), task: 'y' }, '/w', 500)
+    expect(other).toMatchObject({ run: 'y', interventions: 0, waitMs: 0, joinedAt: 500 })
+  })
+
+  test('no run stops the counting and keeps the figures, so a read that failed once costs nothing', () => {
+    const first: PulpitMetrics = { ...watchRun(EMPTY_METRICS, at('implement'), '/w', 100), interventions: 4, waitMs: 9000 }
+    const gone = watchRun(first, null, '/w', 200)
+    expect(gone).toMatchObject({ isCounting: false, interventions: 4, waitMs: 9000, joinedAt: 100 })
+    expect(watchRun(gone, at('implement'), '/w', 300)).toMatchObject({ isCounting: true, interventions: 4, joinedAt: 100 })
+  })
+
+  test('a go is still seen across a read that failed in between', () => {
+    const planned = watchRun(EMPTY_METRICS, at('plan'), '/w', 100)
+    const gone = watchRun(planned, null, '/w', 150)
+    expect(watchRun(gone, at('isolate'), '/w', 200).goAt).toBe(200)
+  })
+})
+
+describe('addIntervention and userWait', () => {
+  const counting: PulpitMetrics = { ...EMPTY_METRICS, run: 'x', isCounting: true }
+
+  test('adds one intervention and the wait while counting', () => {
+    const got = addIntervention(addIntervention(counting, 5000), 2000)
+    expect(got).toMatchObject({ interventions: 2, waitMs: 7000 })
+  })
+
+  test('adds nothing while not counting', () => {
+    expect(addIntervention(EMPTY_METRICS, 5000)).toBe(EMPTY_METRICS)
+  })
+
+  test('the wait is from the end of the turn to the prompt', () => {
+    expect(userWait(1000, 91_000, false)).toBe(90_000)
+  })
+
+  test('no wait without a turn end on record, or while a subagent runs', () => {
+    expect(userWait(null, 91_000, false)).toBe(0)
+    expect(userWait(1000, 91_000, true)).toBe(0)
+  })
+
+  test('a clock that went back is no negative wait', () => {
+    expect(userWait(5000, 1000, false)).toBe(0)
+  })
+})
+
+describe('metricsLines', () => {
+  const m: PulpitMetrics = { ...EMPTY_METRICS, run: 'x', isCounting: true, joinedAt: 1000, interventions: 3, waitMs: 125_000 }
+
+  test('since go when a go was seen, with interventions and the user wait', () => {
+    expect(metricsLines({ ...m, goAt: 500 }, 61_500)).toEqual(['since go 1m01s', 'interventions 3', 'user wait 2m05s'])
+  })
+
+  test('since joined when no go was seen', () => {
+    expect(metricsLines(m, 61_000)[0]).toBe('since joined 1m00s')
+  })
+
+  test('nothing while not counting', () => {
+    expect(metricsLines({ ...m, isCounting: false }, 61_000)).toEqual([])
   })
 })

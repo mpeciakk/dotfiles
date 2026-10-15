@@ -78,6 +78,23 @@ export type PulpitAdvisor = {
   recent: PulpitConsult[]
 }
 
+export type PulpitMetrics = {
+  /** The run these figures belong to (its `task`); empty before a run was seen. A different task starts them again. */
+  run: string
+  /** The run's stage at the last look: a go is a plan that is no longer plan. */
+  stage: string
+  /** `$.clock.now()` when this session saw the stage go from `plan` to `isolate`, `implement` or `inline`. */
+  goAt?: number
+  /** When this session first found itself inside the run's worktree past `plan`. */
+  joinedAt?: number
+  /** The session is inside the run's worktree and the stage is past `plan`: only then are figures kept and shown. */
+  isCounting: boolean
+  /** Prompts of the person's own (`origin.kind === 'composer'`) while counting. */
+  interventions: number
+  /** Milliseconds the session sat idle, from a main-loop turn's end to the person's next prompt, with no subagent running. */
+  waitMs: number
+}
+
 declare module 'claude-code' {
   interface PluginState {
     pulpit: {
@@ -93,6 +110,10 @@ declare module 'claude-code' {
       gate: PulpitGate
       /** The main loop's advisor consults this session. */
       advisor: PulpitAdvisor
+      /** This session's figures for the open run. */
+      metrics: PulpitMetrics
+      /** `$.clock.now()` at the end of the latest main-loop turn, while no turn has started since; null otherwise. */
+      idleSince: number | null
       /** True once the pane has been opened this session; a missing pane after that was closed by the person. */
       hasOpened: boolean
     }

@@ -83,6 +83,8 @@ export function world($: Engine, on: On, init: { root?: string; file?: string; w
   on('turn.step', async function* (_$, e) {
     return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], serverToolUses, stopReason: 'end_turn' as const, usage: null }
   })
+  on('prompt.submit', (_$, e) => ({ text: e.text, origin: e.origin }))
+  on('turn.complete', () => ({ text: '' }))
   on('tool.check', () => verdict)
   on('classic.PermissionDenied', () => ({}))
   on('ui.open', (_$, e) => {

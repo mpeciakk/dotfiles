@@ -5,10 +5,12 @@ import type { PulpitAgent, PulpitDenial, PulpitRun } from '../types'
 import {
   EMPTY_ADVISOR,
   EMPTY_GATE,
+  EMPTY_METRICS,
   PANE_ID,
   addAgent,
   addConsults,
   addDenial,
+  addIntervention,
   agentLine,
   bandLines,
   consultLine,
@@ -18,12 +20,15 @@ import {
   gateOf,
   isFinished,
   mainCheckout,
+  metricsLines,
   parseRun,
   shortSha,
   startedTask,
   stateFile,
   stepAgent,
   syncAgents,
+  userWait,
+  watchRun,
   writerLine,
   writerOf,
 } from './core'
@@ -35,6 +40,8 @@ const agents = atom({ plugin: 'pulpit', key: 'agents' } as const, [])
 const now = atom({ plugin: 'pulpit', key: 'now' } as const, 0)
 const gateChecks = atom({ plugin: 'pulpit', key: 'gate' } as const, EMPTY_GATE)
 const advisorConsults = atom({ plugin: 'pulpit', key: 'advisor' } as const, EMPTY_ADVISOR)
+const metrics = atom({ plugin: 'pulpit', key: 'metrics' } as const, EMPTY_METRICS)
+const idleSince = atom({ plugin: 'pulpit', key: 'idleSince' } as const, null)
 
 const POLL_MS = 2000
 const CLOCK_MS = 1000
@@ -51,8 +58,9 @@ async function stateFileOf($: EngineInterface, root: string): Promise<string | u
 // Any failure (git missing, no file, malformed JSON) hides the Run panel: never an error line.
 async function refresh($: EngineInterface, poll: Poll) {
   let found: PulpitRun | null = null
+  let root: string | undefined
   try {
-    const root = await $.session.root()
+    root = await $.session.root()
     if (root !== poll.root) {
       poll.path = await stateFileOf($, root)
       poll.root = root
@@ -69,6 +77,20 @@ async function refresh($: EngineInterface, poll: Poll) {
   }
   const current = await read($, run)
   if (JSON.stringify(current) !== JSON.stringify(found)) await update($, run, () => found)
+  await trackMetrics($, root, found)
+}
+
+// Runs when the run or the session's root changed (an unchanged file returns above). Failures stay here: the Run panel is drawn already.
+async function trackMetrics($: EngineInterface, root: string | undefined, found: PulpitRun | null) {
+  try {
+    const at = await $.clock.now()
+    const current = await read($, metrics)
+    if (JSON.stringify(watchRun(current, found, root, at)) !== JSON.stringify(current)) {
+      await update($, metrics, latest => watchRun(latest, found, root, at))
+    }
+  } catch {
+    // the figures miss one look
+  }
 }
 
 // The writer the agent rows imply; its own atom because the panel and the band read it without the rows.
@@ -84,7 +106,7 @@ async function syncAgentRows($: EngineInterface) {
     const at = await $.clock.now()
     const rows = await read($, agents)
     if (syncAgents(rows, listed, at) !== rows) await update($, agents, current => syncAgents(current, listed, at))
-    if ((await read($, agents)).some(row => !isFinished(row))) await update($, now, () => at)
+    if ((await read($, agents)).some(row => !isFinished(row)) || (await read($, metrics)).isCounting) await update($, now, () => at)
     await publishWriter($)
   } catch {
     // an agent list that fails leaves the rows as they were, never an error line
@@ -143,6 +165,32 @@ async function trackConsults($: EngineInterface, poll: Poll, uses: readonly { na
     await update($, advisorConsults, current => addConsults(current, uses, stage))
   } catch {
     // the consult goes uncounted; the step's result is untouched
+  }
+}
+
+// Called before `next`, which resolves only once the prompt's turn has started: the gap is read while it is still open. A prompt typed
+// over a running turn (`turnId`) starts none and waited for nothing; any other starts one, so it ends the idle gap, whoever sent it.
+// shortcut: the subagent check is made at the prompt, not over the gap, so one that finished mid-gap leaves the whole gap counted.
+async function trackPrompt($: EngineInterface, input: { origin: { kind: string }; turnId?: string }) {
+  try {
+    const at = await $.clock.now()
+    const idle = input.turnId === undefined ? await read($, idleSince) : null
+    if (idle !== null) await update($, idleSince, () => null)
+    if (input.origin.kind !== 'composer') return
+    const hasRunning = (await $.agent.list()).some(agent => agent.status === 'running')
+    await update($, metrics, current => addIntervention(current, userWait(idle, at, hasRunning)))
+  } catch {
+    // the figures miss one prompt; the prompt itself is untouched
+  }
+}
+
+// The end of a main-loop turn: the person is waited on from here.
+async function markIdle($: EngineInterface) {
+  try {
+    const at = await $.clock.now()
+    await update($, idleSince, () => at)
+  } catch {
+    // the next wait is not counted
   }
 }
 
@@ -218,6 +266,19 @@ export const register: Register = on => {
     return result
   }).catch(($, e, next) => next(e))
 
+  on('prompt.submit', async ($, e, next) => {
+    await trackPrompt($, e)
+
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    if (e.agentId === undefined) await markIdle($)
+
+    return result
+  }).catch(($, e, next) => next(e))
+
   on('command.run', { command: 'pulpit' }, async $ => {
     const isPlaced = (await $.ui.panes()).some(pane => pane.id === PANE_ID && pane.isPlaced)
     if (isPlaced) {
@@ -241,6 +302,7 @@ export const register: Register = on => {
     const clock = await read($, now)
     const checks = await read($, gateChecks)
     const consults = await read($, advisorConsults)
+    const figures = current === null ? [] : metricsLines(await read($, metrics), clock)
     const hasChecks = checks.byRule + checks.byMode + checks.asked + checks.denied > 0
     const gate = current === null ? undefined : gateOf(current)
 
@@ -305,6 +367,14 @@ export const register: Register = on => {
             <Text bold>Advisor ({consults.count})</Text>
             {consults.recent.map(consult => (
               <Text>{consultLine(consult)}</Text>
+            ))}
+          </Box>
+        )}
+        {figures.length > 0 && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text bold>Metrics</Text>
+            {figures.map(line => (
+              <Text>{line}</Text>
             ))}
           </Box>
         )}

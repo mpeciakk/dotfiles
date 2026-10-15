@@ -1,5 +1,14 @@
 // Pure parts of pulpit: no `$`, no drawing. Reducers and formatters the hooks in register.tsx lean on.
-import type { PulpitAdvisor, PulpitAgent, PulpitConsult, PulpitDenial, PulpitGate, PulpitLedgerEntry, PulpitRun } from '../types'
+import type {
+  PulpitAdvisor,
+  PulpitAgent,
+  PulpitConsult,
+  PulpitDenial,
+  PulpitGate,
+  PulpitLedgerEntry,
+  PulpitMetrics,
+  PulpitRun,
+} from '../types'
 
 export const PANE_ID = 'pulpit'
 
@@ -214,3 +223,50 @@ export const consultLine = (consult: PulpitConsult) =>
   [formatClock(consult.startedAt), consult.durationMs === undefined ? '?' : formatDuration(consult.durationMs), consult.stage]
     .filter(part => part !== '')
     .join(' · ')
+
+export const EMPTY_METRICS: PulpitMetrics = { run: '', stage: '', isCounting: false, interventions: 0, waitMs: 0 }
+const PAST_PLAN = new Set(['isolate', 'implement', 'inline', 'finish'])
+const GO_STAGES = new Set(['isolate', 'implement', 'inline'])
+
+// Paths are compared as written: no realpath. A run with no worktree recorded (inline) was found from this session's own repo, so the
+// session is inside it.
+export function isInside(root: string | undefined, worktree: string | undefined): boolean {
+  if (root === undefined) return false
+  if (worktree === undefined) return true
+  const base = worktree.replace(/\/+$/, '')
+  return root === base || root.startsWith(`${base}/`)
+}
+
+// What one look at the run (and where the session is) does to the figures. No run keeps them: the read may have failed for a tick, and
+// a go seen at that moment must not be lost; only a different task starts them again.
+export function watchRun(metrics: PulpitMetrics, run: PulpitRun | null, root: string | undefined, at: number): PulpitMetrics {
+  if (run === null) return metrics.isCounting ? { ...metrics, isCounting: false } : metrics
+  const own = metrics.run === run.task ? metrics : { ...EMPTY_METRICS, run: run.task }
+  const isCounting = PAST_PLAN.has(run.stage) && isInside(root, run.worktree)
+  return {
+    ...own,
+    stage: run.stage,
+    isCounting,
+    ...(own.stage === 'plan' && GO_STAGES.has(run.stage) ? { goAt: at } : {}),
+    ...(isCounting && own.joinedAt === undefined ? { joinedAt: at } : {}),
+  }
+}
+
+export function addIntervention(metrics: PulpitMetrics, waitMs: number): PulpitMetrics {
+  if (!metrics.isCounting) return metrics
+  return { ...metrics, interventions: metrics.interventions + 1, waitMs: metrics.waitMs + waitMs }
+}
+
+// The wait a prompt ends: nothing without a turn end on record, and nothing while a subagent works (the person is not what is waited on).
+export const userWait = (idleSince: number | null, at: number, hasRunning: boolean) =>
+  idleSince === null || hasRunning ? 0 : Math.max(0, at - idleSince)
+
+export function metricsLines(metrics: PulpitMetrics, now: number): string[] {
+  if (!metrics.isCounting) return []
+  const [label, since] = metrics.goAt === undefined ? ['since joined', metrics.joinedAt] : ['since go', metrics.goAt]
+  return [
+    `${label} ${formatDuration(now - (since ?? now))}`,
+    `interventions ${metrics.interventions}`,
+    `user wait ${formatDuration(metrics.waitMs)}`,
+  ]
+}
