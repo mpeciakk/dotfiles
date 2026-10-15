@@ -59,6 +59,8 @@ async function stateFileOf($: EngineInterface, root: string): Promise<string | u
 async function refresh($: EngineInterface, poll: Poll) {
   let found: PulpitRun | null = null
   let root: string | undefined
+  // recorded only once `run` holds the parse, so a spawn's refresh mid-parse re-reads instead of returning
+  let seen: number | undefined
   try {
     root = await $.session.root()
     if (root !== poll.root) {
@@ -69,14 +71,16 @@ async function refresh($: EngineInterface, poll: Poll) {
     if (poll.path !== undefined) {
       const { mtimeMs } = await $.fs.stat(poll.path)
       if (mtimeMs === poll.mtimeMs) return
-      poll.mtimeMs = mtimeMs
+      seen = mtimeMs
       found = parseRun(await $.fs.read(poll.path)) ?? null
     }
   } catch {
     poll.mtimeMs = undefined
+    seen = undefined
   }
   const current = await read($, run)
   if (JSON.stringify(current) !== JSON.stringify(found)) await update($, run, () => found)
+  if (seen !== undefined) poll.mtimeMs = seen
   await trackMetrics($, root, found)
 }
 
@@ -393,7 +397,7 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         {lines.map(line => (
-          <Text>{line}</Text>
+          <Text wrap="truncate-end">{line}</Text>
         ))}
       </Box>
     )

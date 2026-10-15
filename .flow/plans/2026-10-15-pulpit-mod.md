@@ -91,7 +91,8 @@ record (design record lineage: `.flow/specs/2026-10-10-lean-workflow-design.md`,
    the commands out): in a scratch git repo under `/tmp`, `flow-state init x; set stage=plan plan=/tmp/p.md`,
    then `claude --plugin-dir <worktree>/.claude/mods/pulpit` there, ≥144 columns. Check: the pane opens, Run
    shows `✋ go`; `flow-state set stage=isolate worktree=.` → within 2 s the gate is gone; ask the session to
-   dispatch one `explorer` agent → a Roles row with clock, then done; ask it to `Edit` `.flow/run/state.json`
+   dispatch one `explorer` agent → a Roles row with clock, then done or ended; stay idle ~30 s, then send a
+   prompt → Metrics shows interventions 1 and user wait ≈30 s; ask it to `Edit` `.flow/run/state.json`
    → flow-guard denies, Gate shows the reason and the band does when the terminal is narrowed below 110
    columns; an advisor call, if one happens, appears in Advisor. End with `flow-state clear` and `rm -rf` of
    the scratch repo.
@@ -155,3 +156,5 @@ reload (`$.state`); run cleared → panel gone.
 - Task 3: the Advisor panel shows the latest 5 consults under `Advisor (N)` instead of every consult — keeps the panel bounded in a long session — cost if wrong: one constant.
 - Task 4: an `inline` run (no worktree recorded) counts as "inside" for D12 — an inline run works in place, so the main checkout is its tree — cost if wrong: one line in `isInside`.
 - Task 4: Metrics figures reset when the run's `task` changes, not when one read of the state file fails — a failed tick must not wipe them — cost if wrong: `clear` + `init` with the same slug keeps the old figures.
+- Branch review: D12's "inside the run's worktree" uses `$.session.root()`, not `cwd()` — Task 1's probe: `EnterWorktree` moves `root()`, a Bash `cd` does not, and only `cwd()` follows a `cd` — cost if wrong: a session that enters the worktree by Bash `cd` alone counts nothing.
+- Branch review: D13's ignore also covers the engine-written `<mod>/tsconfig.json` (a watched load writes it at the mod root, extending the ignored types folder) — cost if wrong: none.

@@ -33,3 +33,4 @@ config/quickshell/.qmlls.ini
 .claude/worktrees/
 # Written by the engine into every mod folder it loads (the API's d.ts), regenerated at each load.
 .claude/mods/*/.claude-plugin/types/
+.claude/mods/*/tsconfig.json
