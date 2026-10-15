@@ -25,6 +25,10 @@ export type World = {
   setPanes: (panes: { id: string; isPlaced: boolean }[]) => void
   /** The status `$.agent.list()` gives an agent from now on; the agent must have been spawned. */
   setAgentStatus: (id: string, status: string) => void
+  /** What the engine's own `tool.check` decides from now on (the bottom of the chain). */
+  setVerdict: (result: { decision: 'allow' | 'ask' | 'deny'; reason?: string; rule?: string; hook?: string }) => void
+  /** The server tool calls the model's next responses carry. */
+  setServerToolUses: (uses: { id: string; name: string; input: unknown; startedAt: number; endedAt?: number }[]) => void
   /** The engine drops an agent from `$.agent.list()` when it ends. */
   dropAgent: (id: string) => void
 }
@@ -41,6 +45,8 @@ export function world($: Engine, on: On, init: { root?: string; file?: string; w
   const statPaths: string[] = []
   const agents = new Map<string, { type: string; description: string; status: string }>()
   let spawned = 0
+  let verdict: Parameters<World['setVerdict']>[0] = { decision: 'allow' }
+  let serverToolUses: Parameters<World['setServerToolUses']>[0] = []
 
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
@@ -75,8 +81,10 @@ export function world($: Engine, on: On, init: { root?: string; file?: string; w
   on('agent.list', () => ({ value: [...agents].map(([id, agent]) => ({ id, ...agent })) }))
   // A model request that answers at once; the hook under test sees the input on its way down.
   on('turn.step', async function* (_$, e) {
-    return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn' as const, usage: null }
+    return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], serverToolUses, stopReason: 'end_turn' as const, usage: null }
   })
+  on('tool.check', () => verdict)
+  on('classic.PermissionDenied', () => ({}))
   on('ui.open', (_$, e) => {
     calls.open += 1
     if (!panes.some(pane => pane.id === e.id)) panes = [...panes, { id: e.id, isPlaced: true }]
@@ -108,6 +116,12 @@ export function world($: Engine, on: On, init: { root?: string; file?: string; w
     },
     setPanes: next => {
       panes = next
+    },
+    setVerdict: next => {
+      verdict = next
+    },
+    setServerToolUses: next => {
+      serverToolUses = next
     },
     dropAgent: id => {
       agents.delete(id)

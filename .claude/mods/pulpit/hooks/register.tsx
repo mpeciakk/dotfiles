@@ -1,12 +1,20 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
-import type { PulpitAgent, PulpitRun } from '../types'
+import type { PulpitAgent, PulpitDenial, PulpitRun } from '../types'
 import {
+  EMPTY_ADVISOR,
+  EMPTY_GATE,
   PANE_ID,
   addAgent,
+  addConsults,
+  addDenial,
   agentLine,
   bandLines,
+  consultLine,
+  countVerdict,
+  denialLine,
+  gateCounts,
   gateOf,
   isFinished,
   mainCheckout,
@@ -25,6 +33,8 @@ const writer = atom({ plugin: 'pulpit', key: 'writer' } as const, null)
 const hasOpened = atom({ plugin: 'pulpit', key: 'hasOpened' } as const, false)
 const agents = atom({ plugin: 'pulpit', key: 'agents' } as const, [])
 const now = atom({ plugin: 'pulpit', key: 'now' } as const, 0)
+const gateChecks = atom({ plugin: 'pulpit', key: 'gate' } as const, EMPTY_GATE)
+const advisorConsults = atom({ plugin: 'pulpit', key: 'advisor' } as const, EMPTY_ADVISOR)
 
 const POLL_MS = 2000
 const CLOCK_MS = 1000
@@ -99,6 +109,43 @@ async function trackStep($: EngineInterface, agentId: string, model: string, eff
   if (stepAgent(rows, agentId, model, effort) !== rows) await update($, agents, current => stepAgent(current, agentId, model, effort))
 }
 
+// A verdict seen on its way up. A query (no tool_use_id) is no session check; a deny is a denial, counted once per call.
+// Bookkeeping failures stay here: a throw would send the `.catch` back down the chain for a second run of the check.
+async function trackCheck(
+  $: EngineInterface,
+  input: { tool: string; tool_use_id?: string; agentId?: string },
+  result: { decision: string; rule?: string; reason?: string },
+) {
+  try {
+    if (input.tool_use_id === undefined) return
+    if (result.decision !== 'deny') {
+      await update($, gateChecks, current => countVerdict(current, result))
+      return
+    }
+    const subagent = input.agentId === undefined ? undefined : (await read($, agents)).find(row => row.id === input.agentId)?.type ?? 'subagent'
+    await recordDenial($, { id: input.tool_use_id, tool: input.tool, reason: result.reason ?? '', ...(subagent === undefined ? {} : { agentType: subagent }) })
+  } catch {
+    // the counters miss one check; the call itself is untouched
+  }
+}
+
+async function recordDenial($: EngineInterface, denial: Omit<PulpitDenial, 'at'>) {
+  const at = await $.clock.now()
+  await update($, gateChecks, current => addDenial(current, { ...denial, at }))
+}
+
+// The stage is read when the step comes back: the advisor ran inside that response.
+async function trackConsults($: EngineInterface, poll: Poll, uses: readonly { name: string; startedAt: number; endedAt?: number }[]) {
+  try {
+    if (!uses.some(use => use.name === 'advisor')) return
+    await refresh($, poll)
+    const stage = (await read($, run))?.stage ?? ''
+    await update($, advisorConsults, current => addConsults(current, uses, stage))
+  } catch {
+    // the consult goes uncounted; the step's result is untouched
+  }
+}
+
 // The pane waits undrawn on a narrow terminal and is still listed, so listed means open.
 async function openUnlessClosed($: EngineInterface) {
   const isListed = (await $.ui.panes()).some(pane => pane.id === PANE_ID)
@@ -138,11 +185,38 @@ export const register: Register = on => {
 
   on('turn.step', async function* ($, e, next) {
     if (e.agentId !== undefined) await trackStep($, e.agentId, e.model, e.effort)
+    const result = yield* next(e)
+    // a subagent's consults are not counted
+    if (e.agentId === undefined) await trackConsults($, poll, result.serverToolUses ?? [])
 
-    return yield* next(e)
+    return result
   }).catch(async function* ($, e, next) {
     return yield* next(e)
   })
+
+  on('tool.check', async ($, e, next) => {
+    const result = await next(e)
+    await trackCheck($, e, result)
+
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // An ask the classifier or the person refused; the same call may already have been a tool.check deny.
+  on('classic.PermissionDenied', async ($, e, next) => {
+    const result = await next(e)
+    try {
+      await recordDenial($, {
+        id: e.tool_use_id,
+        tool: e.tool_name,
+        reason: e.reason,
+        ...(e.agent_id === undefined ? {} : { agentType: e.agent_type ?? 'subagent' }),
+      })
+    } catch {
+      // the counters miss one denial; the hook's result is untouched
+    }
+
+    return result
+  }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'pulpit' }, async $ => {
     const isPlaced = (await $.ui.panes()).some(pane => pane.id === PANE_ID && pane.isPlaced)
@@ -165,11 +239,14 @@ export const register: Register = on => {
     const who = await read($, writer)
     const rows = await read($, agents)
     const clock = await read($, now)
+    const checks = await read($, gateChecks)
+    const consults = await read($, advisorConsults)
+    const hasChecks = checks.byRule + checks.byMode + checks.asked + checks.denied > 0
     const gate = current === null ? undefined : gateOf(current)
 
     return (
       <Box flexDirection="column">
-        {current === null && who === null && rows.length === 0 && <Text dimColor>no active run</Text>}
+        {current === null && who === null && rows.length === 0 && !hasChecks && consults.count === 0 && <Text dimColor>no active run</Text>}
         {current !== null && (
           <Box flexDirection="column" marginBottom={1}>
             <Text bold>Run</Text>
@@ -214,6 +291,23 @@ export const register: Register = on => {
             ))}
           </Box>
         )}
+        {hasChecks && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text bold>Gate</Text>
+            <Text>{gateCounts(checks)}</Text>
+            {checks.denials.map(denial => (
+              <Text>{denialLine(denial)}</Text>
+            ))}
+          </Box>
+        )}
+        {consults.count > 0 && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text bold>Advisor ({consults.count})</Text>
+            {consults.recent.map(consult => (
+              <Text>{consultLine(consult)}</Text>
+            ))}
+          </Box>
+        )}
       </Box>
     )
   })
@@ -221,7 +315,8 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const isPlaced = (await $.ui.panes()).some(pane => pane.id === PANE_ID && pane.isPlaced)
     if (e.props.hasSurvey || isPlaced) return next(e)
-    const lines = bandLines(await read($, run), await read($, writer))
+    const running = (await read($, agents)).filter(row => !isFinished(row)).length
+    const lines = bandLines(await read($, run), await read($, writer), running, (await read($, gateChecks)).denials.at(-1) ?? null)
     if (lines.length === 0) return next(e)
     const { Box, Text } = $.ui.resolve(e)
 

@@ -1,5 +1,5 @@
 // Pure parts of pulpit: no `$`, no drawing. Reducers and formatters the hooks in register.tsx lean on.
-import type { PulpitAgent, PulpitLedgerEntry, PulpitRun } from '../types'
+import type { PulpitAdvisor, PulpitAgent, PulpitConsult, PulpitDenial, PulpitGate, PulpitLedgerEntry, PulpitRun } from '../types'
 
 export const PANE_ID = 'pulpit'
 
@@ -76,11 +76,20 @@ export function writerLine(writer: string | null, run: PulpitRun | null): string
   return ['writes: implementer', task && `task ${task}`, where].filter(Boolean).join(' · ')
 }
 
-// At most two rows: the gate, then the writer. Nothing without a run.
-export function bandLines(run: PulpitRun | null, writer: string | null): string[] {
-  if (run === null) return []
-  const gate = gateOf(run)
-  return [gate && `✋ ${gate}`, writerLine(writer, run)].filter((line): line is string => Boolean(line))
+const BAND_REASON_CHARS = 60
+
+const agentsRunning = (count: number) => `${count} ${count === 1 ? 'agent' : 'agents'} running`
+
+// At most two rows: the gate, the writer and the running count, then the latest denial. With all of them the gate shares the
+// writer's row. The writer is named when there is a run or a writer in flight: "controller" alone is no news without a run.
+export function bandLines(run: PulpitRun | null, writer: string | null, running = 0, denial: PulpitDenial | null = null): string[] {
+  const gate = run === null ? undefined : gateOf(run)
+  const who = run === null && writer === null ? undefined : writerLine(writer, run)
+  const state = [who, running > 0 ? agentsRunning(running) : undefined].filter(Boolean).join(' · ')
+  const reason = denial?.reason.replace(/\s+/g, ' ').trim().slice(0, BAND_REASON_CHARS)
+  const denied = denial && ['denied:', denial.tool, reason && `— ${reason}`].filter(Boolean).join(' ')
+  const lines = [gate && `✋ ${gate}`, state, denied].filter((line): line is string => Boolean(line))
+  return lines.length > 2 ? [`${lines[0]} · ${lines[1]}`, ...lines.slice(2)] : lines
 }
 
 // hooks/flow-context READ_ONLY_AGENTS: every other type counts as a writer, the same default.
@@ -154,3 +163,54 @@ export function agentLine(row: PulpitAgent, now: number): string {
     .filter(part => part !== undefined && part !== '')
     .join(' · ')
 }
+
+export const EMPTY_GATE: PulpitGate = { byRule: 0, byMode: 0, asked: 0, denied: 0, denials: [] }
+export const EMPTY_ADVISOR: PulpitAdvisor = { count: 0, recent: [] }
+const KEPT_DENIALS = 5
+const KEPT_CONSULTS = 5
+
+// Allow and ask only: a deny is addDenial's, because the same refusal may come again as a classic.PermissionDenied.
+export function countVerdict(gate: PulpitGate, result: { decision: string; rule?: string }): PulpitGate {
+  if (result.decision === 'ask') return { ...gate, asked: gate.asked + 1 }
+  if (result.decision !== 'allow') return gate
+  return result.rule === undefined ? { ...gate, byMode: gate.byMode + 1 } : { ...gate, byRule: gate.byRule + 1 }
+}
+
+// shortcut: dedup knows only the last 5 ids; a duplicate arriving after five newer denials counts again, never in practice.
+export function addDenial(gate: PulpitGate, denial: PulpitDenial): PulpitGate {
+  if (gate.denials.some(seen => seen.id === denial.id)) return gate
+  return { ...gate, denied: gate.denied + 1, denials: [...gate.denials, denial].slice(-KEPT_DENIALS) }
+}
+
+export const gateCounts = (gate: PulpitGate) =>
+  `allowed ${gate.byRule} by rule · ${gate.byMode} by mode · asked ${gate.asked} · denied ${gate.denied}`
+
+export function formatClock(ms: number): string {
+  const at = new Date(ms)
+  return [at.getHours(), at.getMinutes(), at.getSeconds()].map(n => String(n).padStart(2, '0')).join(':')
+}
+
+export const denialLine = (denial: PulpitDenial) =>
+  [formatClock(denial.at), denial.tool, denial.agentType, denial.reason].filter(part => part !== undefined && part !== '').join(' · ')
+
+// Only the advisor's: a step lists every tool the API ran itself.
+export function addConsults(
+  advisor: PulpitAdvisor,
+  uses: readonly { name: string; startedAt: number; endedAt?: number }[],
+  stage: string,
+): PulpitAdvisor {
+  const consults = uses
+    .filter(use => use.name === 'advisor')
+    .map((use): PulpitConsult => ({
+      startedAt: use.startedAt,
+      stage,
+      ...(use.endedAt === undefined ? {} : { durationMs: use.endedAt - use.startedAt }),
+    }))
+  if (consults.length === 0) return advisor
+  return { count: advisor.count + consults.length, recent: [...advisor.recent, ...consults].slice(-KEPT_CONSULTS) }
+}
+
+export const consultLine = (consult: PulpitConsult) =>
+  [formatClock(consult.startedAt), consult.durationMs === undefined ? '?' : formatDuration(consult.durationMs), consult.stage]
+    .filter(part => part !== '')
+    .join(' · ')

@@ -547,6 +547,266 @@ describe('Writer', () => {
     await $.session.start(START)
     await $.agent.spawn(spawnInput('general-purpose', 'x'))
     w.setPanes([])
-    expect(await band($, 'terminal')).toEqual(['writes: general-purpose'])
+    expect(await band($, 'terminal')).toEqual(['writes: general-purpose · 1 agent running'])
+  })
+})
+
+const check = (toolUseId: string | undefined, extra: Record<string, unknown> = {}) => ({
+  tool: 'Bash',
+  input: { command: 'ls' },
+  ...(toolUseId === undefined ? {} : { tool_use_id: toolUseId }),
+  ...extra,
+})
+
+const permissionDenied = (toolUseId: string, extra: Record<string, unknown> = {}) => ({
+  tool_name: 'Bash',
+  tool_input: { command: 'ls' },
+  tool_use_id: toolUseId,
+  reason: 'classifier said no',
+  ...extra,
+})
+
+const lineOf = (shown: string, start: string) => shown.split('\n').find(line => line.startsWith(start))
+const TIME = '\\d\\d:\\d\\d:\\d\\d'
+
+describe('Gate panel', () => {
+  test('each verdict lands in its counter: allowed by rule, by mode, asked, denied', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    w.setVerdict({ decision: 'allow', rule: 'Bash(ls:*)' })
+    await $.tool.check(check('t1'))
+    w.setVerdict({ decision: 'allow' })
+    await $.tool.check(check('t2'))
+    await $.tool.check(check('t3'))
+    w.setVerdict({ decision: 'ask', reason: 'dangerous' })
+    await $.tool.check(check('t4'))
+    w.setVerdict({ decision: 'deny', reason: 'no' })
+    await $.tool.check(check('t5'))
+    for (const surface of SURFACES) {
+      expect(lineOf(await pane($, surface), 'allowed')).toBe('allowed 1 by rule · 2 by mode · asked 1 · denied 1')
+    }
+  })
+
+  test('the verdict is passed on as the chain decided it', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    const verdicts = [
+      { decision: 'allow' as const, rule: 'Bash(ls:*)' },
+      { decision: 'ask' as const, reason: 'dangerous' },
+      { decision: 'deny' as const, reason: 'no', hook: 'PreToolUse' },
+    ]
+    for (const [i, verdict] of verdicts.entries()) {
+      w.setVerdict(verdict)
+      expect(await $.tool.check(check(`t${i}`))).toEqual(verdict)
+    }
+  })
+
+  test('a query without a tool_use_id is not a session check and counts nowhere', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    w.setVerdict({ decision: 'deny', reason: 'no' })
+    await $.tool.check(check(undefined))
+    expect(await pane($, 'terminal')).not.toContain('allowed')
+  })
+
+  test('a PreToolUse hook deny shows its reason', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    w.setVerdict({ decision: 'deny', hook: 'PreToolUse', reason: 'flow-guard: .flow/run/state.json is written by flow-state' })
+    await $.tool.check(check('t1', { tool: 'Edit', input: { file_path: '.flow/run/state.json' } }))
+    for (const surface of SURFACES) {
+      const shown = (await pane($, surface)).split('\n')
+      const pattern = new RegExp(`^${TIME} · Edit · flow-guard: \\.flow/run/state\\.json is written by flow-state$`)
+      expect(shown.some(line => pattern.test(line))).toBe(true)
+    }
+  })
+
+  test('a classic.PermissionDenied counts as one denial even after a tool.check deny with the same tool_use_id', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    w.setVerdict({ decision: 'deny', reason: 'no' })
+    await $.tool.check(check('toolu_7'))
+    await $.classic.PermissionDenied(permissionDenied('toolu_7'))
+    const shown = await pane($, 'terminal')
+    expect(lineOf(shown, 'allowed')).toContain('denied 1')
+    expect(shown.split('\n').filter(line => new RegExp(`^${TIME} · Bash`).test(line))).toHaveLength(1)
+  })
+
+  test('a classic.PermissionDenied alone is a denial', async ($, on) => {
+    world($, on)
+    await $.session.start(START)
+    await $.classic.PermissionDenied(permissionDenied('toolu_8'))
+    const shown = await pane($, 'terminal')
+    expect(lineOf(shown, 'allowed')).toContain('denied 1')
+    expect(shown).toContain('Bash · classifier said no')
+  })
+
+  test('the sixth denial evicts the oldest; the counter keeps all six', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    w.setVerdict({ decision: 'deny', reason: 'no' })
+    for (let i = 1; i <= 6; i++) await $.tool.check(check(`t${i}`, { tool: `Tool${i}` }))
+    const shown = await pane($, 'terminal')
+    expect(lineOf(shown, 'allowed')).toContain('denied 6')
+    expect(shown).not.toContain('Tool1 ')
+    for (const n of [2, 3, 4, 5, 6]) expect(shown).toContain(`Tool${n} · no`)
+  })
+
+  test('a subagent denial carries its type', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'x'))
+    w.setVerdict({ decision: 'deny', reason: 'no' })
+    await $.tool.check(check('t1', { agentId: 'agent-1' }))
+    await $.tool.check(check('t2'))
+    const lines = (await pane($, 'terminal')).split('\n')
+    expect(lines.some(line => new RegExp(`^${TIME} · Bash · implementer · no$`).test(line))).toBe(true)
+    expect(lines.some(line => new RegExp(`^${TIME} · Bash · no$`).test(line))).toBe(true)
+  })
+
+  test('a classic denial from a subagent carries its agent_type', async ($, on) => {
+    world($, on)
+    await $.session.start(START)
+    await $.classic.PermissionDenied(permissionDenied('t1', { agent_id: 'agent-1', agent_type: 'general-purpose' }))
+    expect(await pane($, 'terminal')).toContain('Bash · general-purpose · classifier said no')
+  })
+
+  test('no check seen, no panel', async ($, on) => {
+    world($, on)
+    await $.session.start(START)
+    const shown = await pane($, 'terminal')
+    expect(shown).not.toContain('Gate')
+    expect(shown).not.toContain('allowed')
+  })
+
+  test('the band shows the latest denial and the running agents while the pane waits undrawn', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('explorer', 'x'))
+    w.setVerdict({ decision: 'deny', reason: 'first' })
+    await $.tool.check(check('t1', { tool: 'Write' }))
+    w.setVerdict({ decision: 'deny', reason: 'r'.repeat(80) })
+    await $.tool.check(check('t2', { tool: 'Edit' }))
+    w.setPanes([])
+    for (const surface of SURFACES) {
+      expect(await band($, surface)).toEqual(['writes: controller · 1 agent running', `denied: Edit — ${'r'.repeat(60)}`])
+    }
+  })
+
+  test('the band is absent while the pane is placed, denials or not', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    w.setVerdict({ decision: 'deny', reason: 'no' })
+    await $.tool.check(check('t1'))
+    w.setPanes([{ id: 'pulpit', isPlaced: true }])
+    expect(await band($, 'terminal')).toEqual([])
+  })
+
+  test('the band stops counting an agent that finished', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('explorer', 'x'))
+    w.setAgentStatus('agent-1', 'completed')
+    await w.clock.advance(1000)
+    w.setPanes([])
+    expect(await band($, 'terminal')).toEqual(['writes: controller'])
+  })
+})
+
+const serverUse = (name: string, startedAt: number, endedAt?: number) => ({
+  id: `srv_${name}_${startedAt}`,
+  name,
+  input: {},
+  startedAt,
+  ...(endedAt === undefined ? {} : { endedAt }),
+})
+
+// A streaming call read to its end; what it returns is the step's result.
+async function stepResult($: any, input: ReturnType<typeof stepInput>) {
+  const stream = $.turn.step(input)
+  let next = await stream.next()
+  while (!next.done) next = await stream.next()
+  return next.value
+}
+
+describe('Advisor panel', () => {
+  const t0 = new Date(2026, 9, 15, 14, 0, 0).getTime()
+
+  test('a main-loop step with an advisor use adds a line with its duration and the stage then', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    w.setServerToolUses([serverUse('advisor', t0, t0 + 12_000)])
+    await stepResult($, stepInput(undefined, 'claude-opus-5-5'))
+    for (const surface of SURFACES) {
+      const shown = await pane($, surface)
+      expect(shown).toContain('Advisor (1)')
+      expect(shown).toContain('14:00:00 · 12s · implement')
+    }
+  })
+
+  test('the stage is the one at that moment, not the latest', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    w.setServerToolUses([serverUse('advisor', t0, t0 + 1000)])
+    await stepResult($, stepInput(undefined, 'claude-opus-5-5'))
+    w.setFile(state({ stage: 'review' }))
+    await w.clock.advance(2000)
+    w.setServerToolUses([serverUse('advisor', t0 + 60_000, t0 + 63_000)])
+    await stepResult($, stepInput(undefined, 'claude-opus-5-5'))
+    const shown = await pane($, 'terminal')
+    expect(shown).toContain('Advisor (2)')
+    expect(shown).toContain('14:00:00 · 1s · implement')
+    expect(shown).toContain('14:01:00 · 3s · review')
+  })
+
+  test('a use without endedAt shows ? as the duration', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    w.setServerToolUses([serverUse('advisor', t0)])
+    await stepResult($, stepInput(undefined, 'claude-opus-5-5'))
+    expect(await pane($, 'terminal')).toContain('14:00:00 · ? · implement')
+  })
+
+  test('a subagent advisor use adds nothing', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    await $.agent.spawn(spawnInput('implementer', 'x'))
+    w.setServerToolUses([serverUse('advisor', t0, t0 + 1000)])
+    await stepResult($, stepInput('agent-1', 'claude-opus-5-5'))
+    expect(await pane($, 'terminal')).not.toContain('Advisor')
+  })
+
+  test('no advisor use, no panel; another server tool is not a consult', async ($, on) => {
+    const w = world($, on, { file: state({ stage: 'implement' }) })
+    await $.session.start(START)
+    await stepResult($, stepInput(undefined, 'claude-opus-5-5'))
+    w.setServerToolUses([serverUse('web_search', t0, t0 + 1000)])
+    await stepResult($, stepInput(undefined, 'claude-opus-5-5'))
+    expect(await pane($, 'terminal')).not.toContain('Advisor')
+  })
+
+  test('the step result is passed on unchanged', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    const uses = [serverUse('advisor', t0, t0 + 1000)]
+    w.setServerToolUses(uses)
+    const result = await stepResult($, stepInput(undefined, 'claude-opus-5-5'))
+    expect(result).toEqual({
+      turnId: 'turn-1',
+      index: 0,
+      answer: '',
+      toolUses: [],
+      serverToolUses: uses,
+      stopReason: 'end_turn',
+      usage: null,
+    })
+  })
+
+  test('a consult without a run shows no stage', async ($, on) => {
+    const w = world($, on)
+    await $.session.start(START)
+    w.setServerToolUses([serverUse('advisor', t0, t0 + 2000)])
+    await stepResult($, stepInput(undefined, 'claude-opus-5-5'))
+    expect((await pane($, 'terminal')).split('\n')).toContain('14:00:00 · 2s')
   })
 })

@@ -39,6 +39,45 @@ export type PulpitAgent = {
   endedAt?: number
 }
 
+export type PulpitDenial = {
+  /** The `tool_use_id` of the refused call: the key that makes one denial of a `tool.check` deny and a `classic.PermissionDenied`. */
+  id: string
+  /** `$.clock.now()` when it was seen (ms). */
+  at: number
+  tool: string
+  /** The `agent_type` of the subagent whose call it was; absent for the main loop. */
+  agentType?: string
+  reason: string
+}
+
+export type PulpitGate = {
+  /** `tool.check` allowed by a settings rule (the result carries `rule`). */
+  byRule: number
+  /** `tool.check` allowed by the mode (no `rule`). */
+  byMode: number
+  /** `tool.check` said ask; who settled it is not known. */
+  asked: number
+  /** Every denial seen, one per `tool_use_id`. */
+  denied: number
+  /** The last 5 denials, oldest first. */
+  denials: PulpitDenial[]
+}
+
+export type PulpitConsult = {
+  startedAt: number
+  /** Absent when the response ended before the advisor's result. */
+  durationMs?: number
+  /** The run's stage when the step came back; empty without a run. */
+  stage: string
+}
+
+export type PulpitAdvisor = {
+  /** Main-loop consults this session. */
+  count: number
+  /** The latest 5, oldest first. */
+  recent: PulpitConsult[]
+}
+
 declare module 'claude-code' {
   interface PluginState {
     pulpit: {
@@ -50,6 +89,10 @@ declare module 'claude-code' {
       agents: PulpitAgent[]
       /** `$.clock.now()` as the 1 s tick last saw it while a subagent is in flight; the Roles clocks read it, so a write redraws them. */
       now: number
+      /** What `tool.check` and `classic.PermissionDenied` showed this session. */
+      gate: PulpitGate
+      /** The main loop's advisor consults this session. */
+      advisor: PulpitAdvisor
       /** True once the pane has been opened this session; a missing pane after that was closed by the person. */
       hasOpened: boolean
     }

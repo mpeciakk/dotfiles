@@ -2,9 +2,17 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import {
   addAgent,
+  addConsults,
+  addDenial,
   agentLine,
   bandLines,
+  consultLine,
+  countVerdict,
+  EMPTY_ADVISOR,
+  EMPTY_GATE,
+  formatClock,
   formatDuration,
+  gateCounts,
   gateOf,
   mainCheckout,
   parseRun,
@@ -16,7 +24,7 @@ import {
   writerLine,
   writerOf,
 } from '../hooks/core'
-import type { PulpitAgent } from '../types'
+import type { PulpitAgent, PulpitDenial } from '../types'
 
 // What `flow-state` writes (json.dump(sort_keys=True)), one run per stage.
 const run = (fields: Record<string, unknown>) => JSON.stringify({ task: 'x', tasks: [], ...fields })
@@ -196,6 +204,37 @@ describe('bandLines', () => {
     const lines = bandLines(at({ stage: 'plan', plan: '/p.md' }), 'implementer')
     expect(lines).toEqual(['✋ go', 'writes: implementer'])
   })
+
+  const denial = (fields: Partial<PulpitDenial> = {}): PulpitDenial => ({ id: 't1', at: 0, tool: 'Edit', reason: 'blocked by flow-guard', ...fields })
+
+  test('the running agents count joins the writer row', () => {
+    expect(bandLines(at({ stage: 'implement' }), null, 2)).toEqual(['writes: controller · 2 agents running'])
+    expect(bandLines(at({ stage: 'implement' }), null, 1)).toEqual(['writes: controller · 1 agent running'])
+  })
+
+  test('the latest denial is a row of its own: tool and the first 60 characters of the reason', () => {
+    const reason = 'x'.repeat(59) + 'yz-never-shown'
+    expect(bandLines(at({ stage: 'implement' }), null, 0, denial({ reason }))).toEqual([
+      'writes: controller',
+      `denied: Edit — ${'x'.repeat(59)}y`,
+    ])
+  })
+
+  test('a reason spanning lines is one row, and a missing reason leaves the tool alone', () => {
+    expect(bandLines(at({ stage: 'implement' }), null, 0, denial({ reason: 'a\n  b' }))[1]).toBe('denied: Edit — a b')
+    expect(bandLines(at({ stage: 'implement' }), null, 0, denial({ reason: '' }))[1]).toBe('denied: Edit')
+  })
+
+  test('gate, writer, count and denial fit two rows: the gate shares the writer row', () => {
+    const lines = bandLines(at({ stage: 'plan', plan: '/p.md' }), null, 3, denial())
+    expect(lines).toEqual(['✋ go · writes: controller · 3 agents running', 'denied: Edit — blocked by flow-guard'])
+  })
+
+  test('without a run the count and the denial still show, the writer only when one is in flight', () => {
+    expect(bandLines(null, null, 1, denial())).toEqual(['1 agent running', 'denied: Edit — blocked by flow-guard'])
+    expect(bandLines(null, null, 0, denial())).toEqual(['denied: Edit — blocked by flow-guard'])
+    expect(bandLines(null, 'implementer', 1)).toEqual(['writes: implementer · 1 agent running'])
+  })
 })
 
 const agent = (fields: Partial<PulpitAgent> & { id: string }): PulpitAgent => ({
@@ -369,5 +408,98 @@ describe('agentLine', () => {
       const row = agent({ id: 'a', type: 'x', status, startedAt: 0, endedAt: 3000 })
       expect(agentLine(row, 9999)).toBe('x · claude-sonnet-5-5 · do it · failed 3s')
     }
+  })
+})
+
+const entry = (fields: Partial<PulpitDenial> = {}): PulpitDenial => ({ id: 't1', at: 1000, tool: 'Bash', reason: 'no', ...fields })
+
+describe('countVerdict', () => {
+  test('an allow with a rule and an allow without one land in different counters', () => {
+    let gate = countVerdict(EMPTY_GATE, { decision: 'allow', rule: 'Bash(git status:*)' })
+    gate = countVerdict(gate, { decision: 'allow' })
+    gate = countVerdict(gate, { decision: 'allow' })
+    expect(gate).toMatchObject({ byRule: 1, byMode: 2, asked: 0, denied: 0 })
+  })
+
+  test('an ask counts as asked and changes nothing else', () => {
+    expect(countVerdict(EMPTY_GATE, { decision: 'ask' })).toEqual({ ...EMPTY_GATE, asked: 1 })
+  })
+
+  test('a deny is not counted here: addDenial owns it, so a deny is never counted twice', () => {
+    expect(countVerdict(EMPTY_GATE, { decision: 'deny', reason: 'x' })).toBe(EMPTY_GATE)
+  })
+})
+
+describe('addDenial', () => {
+  test('counts and keeps the denial with its reason', () => {
+    const gate = addDenial(EMPTY_GATE, entry({ reason: 'flow-guard: state.json is the run record' }))
+    expect(gate.denied).toBe(1)
+    expect(gate.denials).toEqual([entry({ reason: 'flow-guard: state.json is the run record' })])
+  })
+
+  test('the same tool_use_id is one denial, whichever source came second', () => {
+    const once = addDenial(EMPTY_GATE, entry({ id: 'toolu_9' }))
+    const twice = addDenial(once, entry({ id: 'toolu_9', reason: 'classifier' }))
+    expect(twice).toBe(once)
+    expect(twice.denied).toBe(1)
+  })
+
+  test('the sixth denial evicts the oldest; the counter keeps counting', () => {
+    let gate = EMPTY_GATE
+    for (let i = 1; i <= 6; i++) gate = addDenial(gate, entry({ id: `t${i}`, tool: `T${i}` }))
+    expect(gate.denied).toBe(6)
+    expect(gate.denials.map(denial => denial.tool)).toEqual(['T2', 'T3', 'T4', 'T5', 'T6'])
+  })
+
+  test('a subagent type is kept with the denial', () => {
+    const gate = addDenial(EMPTY_GATE, entry({ agentType: 'implementer' }))
+    expect(gate.denials[0]?.agentType).toBe('implementer')
+  })
+})
+
+describe('gateCounts', () => {
+  test('one line: allowed by rule and by mode, asked, denied', () => {
+    const gate = { ...EMPTY_GATE, byRule: 12, byMode: 3, asked: 1, denied: 2 }
+    expect(gateCounts(gate)).toBe('allowed 12 by rule · 3 by mode · asked 1 · denied 2')
+  })
+})
+
+describe('formatClock', () => {
+  test('is the local time of day, zero-padded', () => {
+    expect(formatClock(new Date(2026, 9, 15, 7, 5, 9).getTime())).toBe('07:05:09')
+  })
+})
+
+describe('addConsults and consultLine', () => {
+  const advisor = (startedAt: number, endedAt?: number) => ({
+    id: 'srv_1',
+    name: 'advisor',
+    input: {},
+    startedAt,
+    ...(endedAt === undefined ? {} : { endedAt }),
+  })
+  const t0 = new Date(2026, 9, 15, 14, 0, 0).getTime()
+
+  test('an advisor use adds a consult with duration and stage; another server tool adds nothing', () => {
+    const got = addConsults(EMPTY_ADVISOR, [{ ...advisor(t0), id: 'a', name: 'web_search' }, advisor(t0, t0 + 12_000)], 'implement')
+    expect(got.count).toBe(1)
+    expect(consultLine(got.recent[0]!)).toBe('14:00:00 · 12s · implement')
+  })
+
+  test('no endedAt shows ? as the duration; no stage leaves the stage out', () => {
+    const got = addConsults(EMPTY_ADVISOR, [advisor(t0)], '')
+    expect(consultLine(got.recent[0]!)).toBe('14:00:00 · ?')
+  })
+
+  test('no uses returns the state itself', () => {
+    expect(addConsults(EMPTY_ADVISOR, [], 'plan')).toBe(EMPTY_ADVISOR)
+    expect(addConsults(EMPTY_ADVISOR, [{ ...advisor(t0), name: 'web_search' }], 'plan')).toBe(EMPTY_ADVISOR)
+  })
+
+  test('the count is the total, the lines are the latest five', () => {
+    let got = EMPTY_ADVISOR
+    for (let i = 0; i < 7; i++) got = addConsults(got, [advisor(t0 + i * 60_000, t0 + i * 60_000 + 1000)], 'plan')
+    expect(got.count).toBe(7)
+    expect(got.recent.map(consult => consultLine(consult).slice(0, 8))).toEqual(['14:02:00', '14:03:00', '14:04:00', '14:05:00', '14:06:00'])
   })
 })
