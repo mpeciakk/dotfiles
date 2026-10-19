@@ -23,7 +23,7 @@ DRY=""
 IGNORES=(
   .idea/ .DS_Store '*.swp' '*.swo' '*~' '*.log' '*.tmp'
   .direnv/ .terraform/
-  node_modules/ .next/ .nuxt/ .svelte-kit/ .astro/ .turbo/ .vite/ .parcel-cache/
+  node_modules/ .next/ .nuxt/ .svelte-kit/ .astro/ .docusaurus/ .turbo/ .vite/ .parcel-cache/
   coverage/ .yarn/cache/
   .venv/ venv/ __pycache__/ '*.pyc' .pytest_cache/ .mypy_cache/ .ruff_cache/
   .tox/ '*.egg-info/' .ipynb_checkpoints/
