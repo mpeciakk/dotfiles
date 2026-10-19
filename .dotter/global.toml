@@ -34,6 +34,7 @@ depends = []
 "config/mimeapps.list" = "~/.config/mimeapps.list"
 "config/xdg-terminals.list" = "~/.config/xdg-terminals.list"
 "config/user-dirs.dirs" = "~/.config/user-dirs.dirs"
+"config/npm/npmrc" = "~/.config/npm/npmrc"
 
 "applications" = "~/.local/share/applications/"
 
