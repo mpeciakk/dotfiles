@@ -151,7 +151,8 @@
     "pyright-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "session-report@claude-plugins-official": true,
-    "cloudflare@cloudflare": true
+    "cloudflare@cloudflare": true,
+    "text-to-cad@earthtojake": true
   },
   "extraKnownMarketplaces": {
     "context7-marketplace": {
@@ -164,6 +165,13 @@
       "source": {
         "source": "github",
         "repo": "cloudflare/skills"
+      }
+    },
+    "earthtojake": {
+      "source": {
+        "source": "github",
+        "repo": "earthtojake/text-to-cad",
+        "ref": "latest"
       }
     }
   },
@@ -182,6 +190,7 @@
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
+  "switchModelsOnFlag": false,
   "crossSessionInbound": "accept",
   "agentPushNotifEnabled": false
 }
