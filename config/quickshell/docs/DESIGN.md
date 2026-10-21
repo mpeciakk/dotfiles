@@ -42,6 +42,7 @@ między którymi kształt płynnie morfuje. Brak klasycznego paska.
 | W17 | Pamięć GPU (2026-10-11): tapeta dekoduje się w rzeczywistej skali okna (1,5 na DP-2), nie w zaokrąglonej skali ekranu (2), a ukryta warstwa stanu nie trzyma warstwy rozmycia. Obrazy tapety (`Wallpaper.qml`, od W18 dwa: przednia i tylna, `LockOverlay.qml`, powierzchnia blokady w `Lock.qml`) mają ten sam `sourceSize`, więc cache dekoduje ją raz; pilnuje tego `tests/wallpaper.test.mjs`. Zmierzone na `pc`: −40…50 MiB GPU, −25 MiB RAM. |
 | W18 | Tapeta wg trybu (2026-10-11): `wallpaper` w `config.json` to jedna ścieżka albo para `{ "dark": …, "light": … }` (`lib/theme.js` `wallpaperFor`; brak połowy = druga połowa). Zmiana trybu przenika tapety przez `themeFadeMs` (600 ms; kolory ruszają od razu, tapeta po zdekodowaniu nowej), a stara zwalnia się po przenikaniu (W17). Zmiana w trakcie poprzedniej zostawia pod spodem to, co widać; błąd wczytania też (zostaje ostatnia dobra tapeta). Do wczytania `config.json` tapety nie ma, więc start nie pokazuje najpierw zapasowej `wp2.jpg`. Para „Świt” (jasna) / „Zmierzch” (ciemna) leży w `hosts/<host>/wallpaper-{light,dark}.png` w rozdzielczości maszyny (`pc` 3840×2160, `laptop` 2560×1664) i dotter linkuje ją pod tę samą nazwę w `~/.config/dotfiles/`, więc `config.json` zostaje wspólny. Z parą `modeSource: "wallpaper"` ocenia tapetę, którą sam wybrał, i ustala się na połowie potwierdzającej własny tryb: „Świt” ma średnią luminancję 0,41 (poniżej `wallpaperDark` 0,5), więc ta para zawsze kończy na ciemnym. Dla pary tryb idzie ręcznie albo wg słońca. Blokada i jej nakładka biorą tapetę bieżącego trybu bez przenikania. |
 | W19 | Notch (2026-10-12, `laptop`: MacBook Air M2, eDP-1). Wymiary notcha leżą we wspólnym configu hosta pod nazwą wyjścia: `notch: { "eDP-1": { "w": 205, "h": 43 } }` (px logiczne, zmierzone linijką: ukryte x 750–955 z 1706; 64 rzędy fizyczne przy skali 1.5). Wyjście bez wpisu wygląda jak dotąd. Na wyjściu z notchem spoczynek leży obok notcha: wysokość = wysokość notcha, szerokość = notch + 2 × `geom.notchSide` (124; z licznikiem każda strona szersza o połowę różnicy `restBadge`−`rest`), kropki po lewej, zegar, eq i licznik po prawej. Pozostałe stany są wyższe o wysokość notcha, a treść zaczyna się pod nim. Kreska zostaje pod notchem (niewidoczna; strefa hover działa). Exclusive zone = wysokość notcha; ukrycie (`hide`) jej nie oddaje (okna nie wjeżdżają pod notch), zeruje ją tylko okno pełnoekranowe. Warunek: eDP-1 w trybie `2560x1664@60` i parametr jądra `appledrm.show_notch=1`; przy 2560x1600 wpis `notch` trzeba usunąć. Odrzucone: notch wewnątrz wyższej wyspy (pas 79 px), wyspa zsunięta pod notch (uszy wiszą w tapecie), plik per host w `hosts/mac/`. |
+| W20 | Powiadomienia w panelu i klik w `media` (2026-10-21). Panel (`control`) ma pod spodem kompaktową sekcję: nagłówek „Powiadomienia · N” z „Wszystkie ›” i do 3 najnowszych powiadomień, po jednym wierszu (ikona aplikacji, tytuł, godzina `HH:mm`). Klik w sekcję otwiera `center`. Przy pustej historii sekcji nie ma. Panel ma wysokość swojej treści (`IslandState.controlHeight`, mierzy ją `Control.qml`), a nie stałe 440 px: na maszynie bez kafli Wi‑Fi/BT i suwaka jasności (`pc`) stała wysokość zostawiała nad sekcją ok. 200 px pustego miejsca. Sekcja nie zeruje licznika nieprzeczytanych, robi to tylko `center`. Klik w `media` poza przyciskami otwiera `control` jak w spoczynku: gdy coś gra, hover zamienia `rest` w `media`, więc wcześniej do panelu nie dało się dojść. |
 
 Otwarte: tray (może wróci na końcu).
 
@@ -110,9 +111,9 @@ Kotwica zawsze: górny środek aktywnego monitora, `top = 0`.
 | `line` (pełny ekran / ukryta) | 56×5 | 3 | okno fullscreen lub skrót; hover na górnej krawędzi (strefa 400×28) → `rest` |
 | `rest` | 200×36 (252×36 z licznikiem powiadomień); przy notchu 453×43 (505×43), W19 | 18 (przy notchu 21,5) | zawsze |
 | `osd` (głośność / jasność) | 300×44 | 22 | 1,6 s od ostatniej zmiany |
-| `media` | 380×56 | 28 | hover / ⊞M |
+| `media` | 380×56 | 28 | hover / ⊞M; klik poza przyciskami → `control` (W20) |
 | `toast` (powiadomienie) | 420×76 | 30 | 3,6 s; klik → `center` |
-| `control` (panel) | 520×440 | 30 | ⊞A, klik w wyspę; Esc / klik poza |
+| `control` (panel) | 520×wysokość treści (do ok. 600 z sekcją powiadomień; 440 przed pierwszym pomiarem), W20 | 30 | ⊞A, klik w wyspę; Esc / klik poza |
 | `launcher` | 680×356 | 30 | ⊞Spacja; Esc |
 | `power` | 540×180 | 30 | ⊞⇧E; Esc / klik poza |
 | `powerDone` | 340×56 | 28 | po akcji |
@@ -147,7 +148,7 @@ Behavior on implicitWidth {
 
 **Launcher** — pole wyszukiwania (pigułka 48 px), chipy trybów z prefiksami: `=` kalkulator, `>` polecenie, `/` pliki, `@` okna; lista wyników (ikona 40 px, nazwa z podświetlonym dopasowaniem w accent, opis), zaznaczony wiersz tło `#1E1D28` + kbd `↵`; skróty `^1–9`; stopka z podpowiedziami klawiszy.
 
-**Panel** — nagłówek: zegar 44 px + data; kafle Wi‑Fi i Bluetooth (okrągła ikona w accent); suwaki głośność i jasność; 4 okrągłe przełączniki (Skupienie/DND, Ciepłe światło, Nagrywanie, Zasilanie); mini odtwarzacz.
+**Panel** — nagłówek: zegar 44 px + data; kafle Wi‑Fi i Bluetooth (okrągła ikona w accent); suwaki głośność i jasność; 3 okrągłe przełączniki (Skupienie/DND, Motyw, Zasilanie; Ciepłe światło i Nagrywanie poza zakresem, W8); mini odtwarzacz; pod spodem do 3 najnowszych powiadomień, klik → `center` (W20).
 
 **OSD** — ikona, pasek (wypełnienie accent, przejście szerokości 260 ms), wartość mono.
 

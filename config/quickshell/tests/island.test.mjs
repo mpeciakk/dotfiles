@@ -104,6 +104,12 @@ test("geometry with a notch: center clamps its content, then adds the notch", ()
     assert.deepStrictEqual(plain(I.geometry("center", G, { notch: NOTCH, centerHeight: 100 })), { w: 440, h: 213, r: 30, ears: true, top: 43 });
 });
 
+test("geometry: control is as tall as its measured content (controlHeight), plus the notch", () => {
+    assert.deepStrictEqual(plain(I.geometry("control", G, { controlHeight: 380 })), { w: 520, h: 380, r: 30, ears: true, top: 0 });
+    assert.deepStrictEqual(plain(I.geometry("control", G, { notch: NOTCH, controlHeight: 380 })), { w: 520, h: 423, r: 30, ears: true, top: 43 });
+    assert.deepStrictEqual(plain(I.geometry("launcher", G, { controlHeight: 380 })), { w: 680, h: 356, r: 30, ears: true, top: 0 });
+});
+
 test("geometry with a notch: line is the same with and without it", () => {
     assert.deepStrictEqual(plain(I.geometry("line", G, { notch: NOTCH })), plain(I.geometry("line", G, {})));
 });

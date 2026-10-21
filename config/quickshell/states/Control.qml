@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Networking as QsNetworking
@@ -6,11 +7,14 @@ import ".."
 import "../services"
 import "../components" as Components
 import "../lib/slider.js" as S
+import "../lib/notifs.js" as N
 
 // The control panel (reference 3.7, R24): clock and date, Wi-Fi / Bluetooth tiles, volume and brightness
 // sliders, round toggles (Skupienie = DND, Motyw, Zasilanie) and a mini player. What the machine lacks is
 // left out and the content stays top-aligned: no NetworkManager hides the Wi-Fi tile, no BlueZ adapter the
 // Bluetooth tile (both gone: the row is gone), no backlight the brightness slider, no player the mini player.
+// Last, with any notification in the history, a compact section of the newest ones (DESIGN W20); a click on it
+// opens the notification centre. The island is as tall as all of that (IslandState.controlHeight).
 // In test mode (WYSPA_TEST=1) nothing real is ever changed: every action only logs what it would do.
 Item {
     id: root
@@ -286,8 +290,18 @@ Item {
         }
     }
 
-    // Top-aligned: a Column packs from the top and the island stays 440 tall whatever is hidden.
+    // Only the lit layer drives the island; the height stays at its last value while the layer leaves.
+    Binding {
+        target: IslandState
+        property: "controlHeight"
+        value: body.implicitHeight + 2 * root.spec.pad
+        when: root.active
+        restoreMode: Binding.RestoreNone
+    }
+
     Column {
+        id: body
+
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.leftMargin: root.spec.pad
@@ -448,6 +462,124 @@ Item {
             width: parent.width
             visible: Players.hasPlayer
             player: Players.active
+        }
+
+        Rectangle {
+            width: parent.width
+            height: notifs.implicitHeight + 2 * root.spec.notifPad
+            visible: Notifs.history.length > 0
+            radius: Theme.radii.tile
+            color: Theme.tile
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: root.active
+                onClicked: IslandState.request("center")
+            }
+
+            Column {
+                id: notifs
+
+                x: root.spec.notifPad
+                y: root.spec.notifPad
+                width: parent.width - 2 * root.spec.notifPad
+                spacing: root.spec.notifRowGap
+
+                Item {
+                    width: parent.width
+                    height: root.spec.notifHead
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: root.spec.notifPadX
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Powiadomienia · " + Notifs.history.length
+                        color: Theme.fgMuted
+                        font.family: Theme.fonts.ui
+                        font.pixelSize: root.spec.notifHeadFont
+                    }
+
+                    Text {
+                        anchors.right: parent.right
+                        anchors.rightMargin: root.spec.notifPadX
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Wszystkie ›"
+                        color: Theme.accent
+                        font.family: Theme.fonts.ui
+                        font.pixelSize: root.spec.notifHeadFont
+                    }
+                }
+
+                Repeater {
+                    model: Notifs.history.slice(0, root.spec.notifRows)
+
+                    RowLayout {
+                        id: row
+
+                        required property var modelData
+
+                        // Same picture as the centre's card: storedSource() drops only the dead image://qsimage/ URLs.
+                        readonly property string picture: N.storedSource({ image: row.modelData.image, appIcon: row.modelData.appIcon }, name => Quickshell.iconPath(name, true))
+                        readonly property bool pictured: row.picture !== "" && rowImage.status === Image.Ready
+
+                        width: parent.width
+                        height: root.spec.notifRow
+                        spacing: root.spec.notifGap
+
+                        Rectangle {
+                            Layout.leftMargin: root.spec.notifPadX
+                            Layout.preferredWidth: root.spec.notifIcon
+                            Layout.preferredHeight: root.spec.notifIcon
+                            radius: root.spec.notifIconRadius
+                            color: row.pictured ? Theme.chip : N.appColor(row.modelData.appName, Theme.appColors)
+
+                            Image {
+                                id: rowImage
+
+                                anchors.centerIn: parent
+                                width: root.spec.notifIconImage
+                                height: root.spec.notifIconImage
+                                sourceSize.width: root.spec.notifIconImage
+                                sourceSize.height: root.spec.notifIconImage
+                                source: row.picture
+                                cache: false
+                                fillMode: Image.PreserveAspectFit
+                                visible: row.pictured
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                visible: !row.pictured
+                                text: N.initial(row.modelData.appName)
+                                color: Theme.accentFg
+                                font.family: Theme.fonts.ui
+                                font.pixelSize: root.spec.notifIconLetter
+                                font.weight: Font.DemiBold
+                            }
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: row.modelData.summary
+                            textFormat: Text.PlainText
+                            elide: Text.ElideRight
+                            maximumLineCount: 1
+                            color: Theme.fg
+                            font.family: Theme.fonts.ui
+                            font.pixelSize: root.spec.notifTitleFont
+                            font.weight: Font.Medium
+                        }
+
+                        Text {
+                            Layout.rightMargin: root.spec.notifPadX
+                            text: Qt.formatTime(row.modelData.time, "HH:mm")
+                            color: Theme.fgDim
+                            font.family: Theme.fonts.mono
+                            font.pixelSize: root.spec.notifTimeFont
+                        }
+                    }
+                }
+            }
         }
     }
 }

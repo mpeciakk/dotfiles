@@ -107,7 +107,7 @@ var defaults = {
         osd: { w: 300, h: 44, r: 22 },
         media: { w: 380, h: 56, r: 28 },
         toast: { w: 420, h: 76, r: 30 },
-        control: { w: 520, h: 440, r: 30 },
+        control: { w: 520, h: 440, r: 30 },  // h: only until the panel has measured its content (DESIGN W20)
         launcher: { w: 680, h: 356, r: 30 },
         power: { w: 540, h: 180, r: 30 },
         powerDone: { w: 340, h: 56, r: 28 },
@@ -325,14 +325,18 @@ var defaults = {
         // pause between brightnessctl calls while dragging or scrolling the brightness slider; brightnessMin is
         // the lowest fraction the slider can set. The reference is silent on both: the throttle avoids a
         // process per mouse move, the floor (many panels switch the backlight off at 0%) is a safety choice
-        // the user can change.
+        // the user can change. notif* is the compact notification section under the panel (DESIGN W20): up to
+        // notifRows newest notifications, one line each; the reference has no such section, all sizes are own.
         control: {
             pad: 16, gap: 10,
             headPadX: 6, headPadTop: 2, headPadBottom: 4, clockFont: 44, clockLetterEm: -0.03, dateFont: 13, dateGap: 2,
             tilePad: 12, tileGap: 10, tileCircle: 38, tileIcon: 17, tileTitleFont: 14, tileSubFont: 12, tileTextGap: 1,
             cardPadX: 14, cardPadY: 16, cardGap: 16, sliderGap: 12, sliderIcon: 17, trackH: 6, trackRadius: 3,
             valueW: 28, valueFont: 12, hitH: 24, wheelStep: 0.05, percent: 100, brightnessThrottleMs: 50, brightnessMin: 0.05,
-            toggleCols: 4, togglePadY: 2, toggleGap: 6, toggle: 50, toggleIcon: 18, toggleLabelFont: 11
+            toggleCols: 4, togglePadY: 2, toggleGap: 6, toggle: 50, toggleIcon: 18, toggleLabelFont: 11,
+            notifRows: 3, notifPad: 10, notifPadX: 6, notifHead: 22, notifHeadFont: 12, notifRow: 32, notifRowGap: 2,
+            notifGap: 10, notifIcon: 24, notifIconRadius: 8, notifIconImage: 16, notifIconLetter: 11, notifTitleFont: 13,
+            notifTimeFont: 11
         },
         // Mini player (reference 3.7; prev/next sizes from 3.3), shared by the control panel and the lock screen.
         miniPlayer: {

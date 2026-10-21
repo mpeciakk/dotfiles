@@ -11,7 +11,9 @@ import "../services"
 // 60 px high, 40 px cover, 38 px play button, no equaliser) for the control panel; here the island is the
 // background and the sizes differ. Sizes they share are read from layout.miniPlayer, the rest from layout.media.
 // No player, or one without a track: a "Nic nie gra" placeholder instead. A paused track keeps its controls,
-// which is how it is resumed. In test mode (WYSPA_TEST=1) the buttons only log, never touch the player.
+// which is how it is resumed. A click outside the buttons opens the control panel, as it does at rest: hovering
+// the island while a player plays turns rest into media, so this is the only way to reach the panel then.
+// In test mode (WYSPA_TEST=1) the buttons only log, never touch the player.
 Item {
     id: root
 
@@ -32,6 +34,13 @@ Item {
             console.info("media (test mode): would " + what);
         else
             action();
+    }
+
+    // Below the buttons: their MouseAreas keep their clicks.
+    MouseArea {
+        anchors.fill: parent
+        enabled: root.active
+        onClicked: IslandState.request("control")
     }
 
     Text {
@@ -172,9 +181,12 @@ Item {
             MouseArea {
                 width: root.shared.skip
                 height: root.shared.skip
-                enabled: root.player?.canGoPrevious ?? false
-                opacity: enabled ? 1 : root.shared.disabledOpacity
-                onClicked: root.perform("go to the previous track", () => root.player.previous())
+                // Always enabled: a disabled MouseArea lets the click through to the background, which opens the panel.
+                opacity: root.player?.canGoPrevious ? 1 : root.shared.disabledOpacity
+                onClicked: {
+                    if (root.player?.canGoPrevious)
+                        root.perform("go to the previous track", () => root.player.previous());
+                }
 
                 Components.Icon {
                     anchors.centerIn: parent
@@ -191,8 +203,10 @@ Item {
 
                 MouseArea {
                     anchors.fill: parent
-                    enabled: root.player?.canTogglePlaying ?? false
-                    onClicked: root.perform("toggle playing", () => root.player.togglePlaying())
+                    onClicked: {
+                        if (root.player?.canTogglePlaying)
+                            root.perform("toggle playing", () => root.player.togglePlaying());
+                    }
                 }
 
                 Components.Icon {
@@ -206,9 +220,11 @@ Item {
             MouseArea {
                 width: root.shared.skip
                 height: root.shared.skip
-                enabled: root.player?.canGoNext ?? false
-                opacity: enabled ? 1 : root.shared.disabledOpacity
-                onClicked: root.perform("go to the next track", () => root.player.next())
+                opacity: root.player?.canGoNext ? 1 : root.shared.disabledOpacity
+                onClicked: {
+                    if (root.player?.canGoNext)
+                        root.perform("go to the next track", () => root.player.next());
+                }
 
                 Components.Icon {
                     anchors.centerIn: parent

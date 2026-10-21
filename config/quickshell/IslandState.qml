@@ -14,6 +14,8 @@ Singleton {
     property string output: ""
     property bool hidden: false
     property int centerHeight: Theme.geom.center.hMin
+    // The control panel's content height, reported by the lit states/Control.qml (geom.control.h until then).
+    property int controlHeight: Theme.geom.control.h
     property bool badge: Notifs.unread > 0
     property string osdKind: "volume"
     property real osdValue: 0
@@ -78,7 +80,7 @@ Singleton {
     })
 
     function geometryFor(s: string, output: string): var {
-        return L.geometry(s, Theme.geom, { centerHeight: root.centerHeight, badge: root.badge, notch: Theme.notchFor(output) });
+        return L.geometry(s, Theme.geom, { centerHeight: root.centerHeight, controlHeight: root.controlHeight, badge: root.badge, notch: Theme.notchFor(output) });
     }
 
     // The strip this output's Strut reserves (lib/island.js exclusiveZone).

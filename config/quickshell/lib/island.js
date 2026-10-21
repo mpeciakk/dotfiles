@@ -25,7 +25,8 @@ function radiusFor(h, cap) {
 }
 
 // `ctx.notch` ({ w, h } or null): the output has a notch. Rest sits beside it, as tall as it; every other state
-// except the line grows by its height and offsets its content (`top`) below it.
+// except the line grows by its height and offsets its content (`top`) below it. `ctx.controlHeight`: the height
+// of the control panel's content, measured by states/Control.qml.
 function geometry(state, geom, ctx) {
     var ears = state !== "line";
     var notch = state === "line" ? null : ctx.notch;
@@ -40,7 +41,8 @@ function geometry(state, geom, ctx) {
     var g = geom[state];
     if (notch && (state === "rest" || state === "restBadge"))
         return { w: notch.w + 2 * geom.notchSide + (g.w - geom.rest.w), h: notch.h, r: notch.h / 2, ears: ears, top: 0 };
-    return { w: g.w, h: g.h + top, r: g.r, ears: ears, top: top };
+    var h = state === "control" ? ctx.controlHeight : g.h;
+    return { w: g.w, h: h + top, r: g.r, ears: ears, top: top };
 }
 
 // The strip tiled windows leave at the top of an output: the notch height there (kept while hidden, given back
