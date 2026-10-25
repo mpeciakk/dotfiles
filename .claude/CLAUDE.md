@@ -15,12 +15,7 @@ Workflow rules:
 1. Process skills (development-workflow for a run, systematic-debugging, TDD)
    BEFORE domain skills.
 2. Navigate code with grep/find via Bash + Read; a file you are not editing is
-   read by range, not whole. cbm MCP only for: who-calls-what / blast radius →
-   `trace_path`, project structure while planning → `get_architecture`. Project
-   without an index → `index_repository` first; the cbm project name is the
-   main checkout path with dashes (`home-m-projects-harmonia`). cbm does not
-   see code new on a branch (worktree) — grep for it. A broad "where/how is X
-   in this repo" question needing a dozen searches → agent `explorer`.
+   read by range, not whole.
 3. Library/API → context7 (`/docs`). A fact a tool can check (SHA, branch
    state, command output, whether a symbol exists) — check it, don't state it
    from memory.

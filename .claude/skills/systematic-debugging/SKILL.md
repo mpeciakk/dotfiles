@@ -150,7 +150,7 @@ You MUST complete each phase before proceeding to the next.
    **Quick version:**
    - Where does bad value originate?
    - What called this with bad value?
-   - Keep tracing up until you find the source — use cbm `trace_path` to walk the call graph instead of grepping
+   - Keep tracing up until you find the source — grep the callers at each level
    - Fix at source, not at symptom
 
 ### Phase 2: Pattern Analysis

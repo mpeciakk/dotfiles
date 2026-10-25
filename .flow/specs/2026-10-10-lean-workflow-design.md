@@ -165,6 +165,14 @@ cheaper per call); the explorer for implementers (a dispatch costs tens of
 seconds against a 0.3 s grep, and branch-new code is not in the graph); the
 built-in `Explore` agent (ran on Sonnet here).
 
+**Reverted 2026-10-25.** Two weeks after the merge, transcripts showed no cbm
+graph query (0 `trace_path`, 0 `get_architecture` against 15 plans and 19 branch
+reviews) and two real `explorer` calls in 75 sessions
+(`2026-10-25-lean-workflow-measurement/report.md`). The graph also indexes main,
+not the branch under review. The MCP server, the explorer agent, the reindex in
+finishing and every cbm rule are removed. The branch reviewer greps the callers
+of a changed interface instead, re-exports and aliases included, and lists them.
+
 ## L11 — Picks from upstream (2026-10-11)
 
 The fork point was obra/superpowers v6.1.x (July); upstream is at v7.0.0.

@@ -29,9 +29,8 @@ uncommitted) and read the file it prints once. An exit 4 means there is nothing
 to review in that range, an exit 3 that BASE is not an ancestor of HEAD: report
 BLOCKED with its message. Use `git show <sha>:<path>` for other
 revisions. For every public function, interface or format the diff changes,
-find its callers outside the diff with cbm `trace_path` (the graph is the main
-checkout — callers there are exactly what the branch can break); grep for
-branch-new code. Never move HEAD, touch the index, or create a worktree.
+grep its callers outside the diff — by name, and through re-exports and
+aliases — and list them in the report. Never move HEAD, touch the index, or create a worktree.
 
 Do the whole review yourself: no subagent for part of the diff, no second
 reviewer. A large diff gets several passes by you, and the report says so.

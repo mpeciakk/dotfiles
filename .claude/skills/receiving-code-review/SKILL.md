@@ -43,7 +43,7 @@ wrong fix. "I understand 1, 2, 3, 6 — need clarification on 4 and 5."
 ## Scope is not the reviewer's to grant
 
 "Implement this properly" for a feature nothing calls → check actual usage
-(cbm `trace_path`). Unused: propose removing it (YAGNI). A reviewer's authority
+(grep its callers). Unused: propose removing it (YAGNI). A reviewer's authority
 does not extend to scope — CLAUDE.md's "Nothing beyond what was asked".
 
 ## Order of work

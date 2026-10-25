@@ -88,12 +88,9 @@ cd "$MAIN_ROOT"
 git checkout <base-branch> && git pull
 git merge <feature-branch>
 <test command>                     # only if the merge was not a fast-forward
-codebase-memory-mcp cli index_repository --repo-path "$MAIN_ROOT"
 ```
 
-The reindex matters because the worktree's changes were never indexed while
-isolated, so later work would query a stale graph. Then clean up the workspace
-(Step 6) — the branch is still checked out in the worktree until it is gone, so
+Then clean up the workspace (Step 6) — the branch is still checked out in the worktree until it is gone, so
 the order is merge, then remove the workspace, then deal with the branch.
 
 **2. Push and open a PR.** `git push -u origin <feature-branch>`, then open the

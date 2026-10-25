@@ -87,9 +87,8 @@ is fine, as long as the rationale survives.
 Do not open with a questionnaire. Fifteen questions in a vacuum produce "nie
 wiem" for half of them — including the ones the code already answers.
 
-1. **Build a strawman.** For existing code: read it first with codebase-memory
-   (`get_architecture`, then `search_graph`/`trace_path` for the parts that
-   matter), plus the README, the config, the dependency manifest, and the commit
+1. **Build a strawman.** For existing code: read it first (the directory
+   layout, then grep and Read for the parts that matter), plus the README, the config, the dependency manifest, and the commit
    history — intent is often clearer in commit messages than in code. For a
    greenfield project: the strawman comes from the user's opening description and
    from how their other projects are built.

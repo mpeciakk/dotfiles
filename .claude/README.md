@@ -2,7 +2,7 @@
 
 A personal, trimmed adaptation of [obra/superpowers](https://github.com/obra/superpowers):
 inline work by default, a planned run for changes that need one, always-on
-discipline (candor, verification) and a codebase-memory navigation layer.
+discipline (candor, verification).
 
 ## The flow
 
@@ -44,32 +44,11 @@ session runs on the model you start it with.
 Why it looks like this: `.flow/specs/2026-10-10-lean-workflow-design.md`
 (rollback tag `workflow-v1`).
 
-## codebase-memory (cbm)
+## Code navigation
 
-The [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
-graph is used where grep is worse: `trace_path` for callers and blast radius
-(planning, the branch reviewer's check of changed interfaces) and
-`get_architecture` when planning. Everything else is grep and Read — measured
-2026-10-10, a targeted grep returns less text, faster, than `search_graph`, and
-the blanket "cbm first" rule was followed in under 3% of searches. Broad
-"where is X handled" questions go to the `explorer` agent (Haiku, returns
-file:line only). Rules live in `CLAUDE.md` workflow rule 2. The graph indexes the main
-checkout, not worktrees, so `finishing` re-indexes after merge.
-
-## Pulpit (mod)
-
-`mods/pulpit/` is a Claude Code mod (function hooks, early-access API) that
-shows the flow beside the transcript: Run (stage, ✋ gate, ledger), Writer (who
-may edit the tree now), Roles (subagents with model · effort and a clock),
-Gate (permission verdicts, last denials incl. flow-guard), Advisor (consults,
-seen once a model step ends) and this session's run metrics. It opens at
-session start (from 144 columns), `/pulpit` toggles it, and a ≤2-row band above
-the prompt stands in when the pane is not placed. Loaded in every session
-through `CLAUDE_CODE_PLUGIN_DIRS` in `settings.json` `env`, straight from
-`~/dotfiles/.claude/mods/pulpit`, so an edit hot-reloads; it only observes —
-every hook passes its event through unchanged. Tests: `claude plugin test
-mods/pulpit`, `claude plugin validate mods/pulpit`. Decisions:
-`.flow/plans/2026-10-15-pulpit-mod.md`.
+Grep and Read by range. The codebase-memory graph and the Haiku `explorer` agent
+were removed on 2026-10-25: two weeks of transcripts showed no graph query and two
+explorer calls (`.flow/specs/2026-10-25-lean-workflow-measurement/report.md`).
 
 ## How this differs from obra/superpowers
 
@@ -78,7 +57,7 @@ mods/pulpit`, `claude plugin validate mods/pulpit`. Decisions:
   acceptance criteria, not pre-written code.
 - **No per-task review** — one stronger branch review that runs the tests and
   the change's real verification and checks spec decisions.
-- **cbm for callers and blast radius**, **Haiku explorer**, **candor ruleset**,
+- **Grep-based caller check in the branch review**, **candor ruleset**,
   **red-team pre-mortem**.
 
 ## Testing
