@@ -97,7 +97,10 @@ at finish time.
 
 Install what the project needs (`package.json` → `npm install`, `Cargo.toml` →
 `cargo build`, `pyproject.toml`/`requirements.txt` → poetry/pip, `go.mod` →
-`go mod download`), then run the test suite.
+`go mod download`), then run the test suite and the build. Tests alone can pass
+on a tree that does not build: Astro under `.claude/worktrees/` resolves the
+`tsconfig.json` `extends` from the main checkout, so `astro build` fails
+without `node_modules` there too while Vitest stays green.
 
 Tests must be green *before* your changes exist — otherwise you cannot tell
 your bugs from the ones you inherited. If they fail, report the failures and

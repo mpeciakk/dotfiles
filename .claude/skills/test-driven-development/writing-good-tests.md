@@ -168,6 +168,11 @@ should fail for each realistic mutation:
 A mutation nothing catches marks the behavior as unprotected — or the
 test as tautological.
 
+Running a mutation for real in Python: set `PYTHONDONTWRITEBYTECODE=1` and
+clear `__pycache__` between runs. CPython reuses bytecode when the source
+keeps its size and whole-second mtime, so a one-character mutation can run
+the old code and report the opposite of the truth.
+
 ## Quick Reference
 
 | When you... | Do |

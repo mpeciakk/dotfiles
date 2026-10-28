@@ -41,7 +41,10 @@ before the next dispatch; an implementer stops on changes it did not make.
 4. **Read the status:**
    - **DONE** — the reply names commits and a passing test run. Check the
      commits exist (`git log`), then record:
-     `flow-state task N done "<base7>..<head7>"`. Next task.
+     `flow-state task N done "<base7>..<head7>"`. After the run's first DONE,
+     if the repo has a remote, `git push -u origin <branch>`: a lost worktree
+     takes unpushed branch commits with it, and nothing can recover them.
+     Next task.
    - **DONE_WITH_CONCERNS** — read them. A correctness or scope concern gets
      resolved before the next task; an observation goes to the branch review.
    - **NEEDS_CONTEXT** — supply it, re-dispatch.
