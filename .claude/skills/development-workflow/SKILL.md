@@ -22,7 +22,7 @@ gets a `branch-reviewer` before it lands on main (requesting-code-review).
 |---|-------|-------|-------------|------|
 | 1 | Plan | writing-plans (red-team for 2+ tasks) | `stage=plan plan=<path>` | ✋ approve the plan ("go") |
 | 2 | Isolate | using-git-worktrees | `stage=isolate worktree= branch= base=` | — |
-| 3 | Implement | subagent-driven-development | `stage=implement`, one ledger entry per task | — |
+| 3 | Implement | executing-plans | `stage=implement`, one ledger entry per task | — |
 | 4 | Review | requesting-code-review (branch-reviewer) | `task branch-review done` | — |
 | 5 | Finish | finishing-a-development-branch | `stage=finish`, then `clear` | ✋ merge / PR / keep / discard |
 
@@ -44,30 +44,31 @@ The run lives in a file, not in your memory:
 ```
 
 One file per repository (`<main-checkout>/.flow/run/state.json`), shared by
-every worktree. On "kontynuuj" or after compaction: `flow-state show` and
+every worktree. On "kontynuuj", after `/clear` or after compaction: `flow-state show` and
 `git log` over recollection — re-enter the recorded worktree, resume at the
 first task not marked done.
 
 ## Rules
 
 - **Run continuously between gates.** The approved plan is the instruction.
-  Stop only at a gate, on a BLOCKED task you cannot resolve, or on ambiguity
-  the plan does not settle.
-- **One writer per working tree.** While an implementer is in flight, you do
-  not edit. Parallel dispatch is for read-only agents only.
+  Stop only at a gate, on a blocker you cannot resolve, on ambiguity the plan
+  does not settle, or when the context check after a task asks for `/clear` +
+  "kontynuuj".
+- **The session is the only writer.** Subagents are read-only: independent
+  work in parallel, verbose output, review.
 - **Facts get checked, not recalled.** A SHA, a branch's state, a test's
   output, an API's shape — look it up before you write it down.
 - **The living spec is context in and output out** (CLAUDE.md workflow rule 6): the
   decision row at the plan gate, the state sections after the last task,
   before the branch review.
 
+## `.flow/`
+
+Committed: `plans/`, `specs/`, `design/`, `probes/`, `reviews/`. Ignored:
+`run/` — the run state and review packages, in the main checkout only.
+
 ## Models
 
-| Role | Default |
-|---|---|
-| Session (plan, controller, debugging) | session model |
-| `implementer` | Sonnet 5.5 · high (agent definition) |
-| `branch-reviewer` | Opus 5.5 · high |
-| `plan-red-team` | Opus 5.5 · xhigh |
-
-A reviewer is at least as strong as what it reviews.
+The session model plans, implements and debugs. Each agent's model and effort
+live in its definition's frontmatter: `branch-reviewer` and `plan-red-team`
+run on Opus. A reviewer is at least as strong as what it reviews.

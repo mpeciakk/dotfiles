@@ -15,8 +15,6 @@ for `git worktree add` while that tool exists creates a workspace the harness
 cannot see — that is the mistake this skill exists to prevent. Invoking this
 skill *is* the project instruction `EnterWorktree` asks for.
 
-**Announce:** "Setting up an isolated workspace (using-git-worktrees)."
-
 ## Step 0 — already isolated?
 
 ```bash
@@ -29,8 +27,8 @@ Different git-dir and git-common-dir (and not a submodule) means you are
 already in a linked worktree. Do not create another — record it (Step 2) and
 go to Step 3.
 
-Otherwise you are in a normal checkout. CLAUDE.md's standing rule — pipeline
-implementation happens in a worktree — is the consent; do not stop to ask for it
+Otherwise you are in a normal checkout. CLAUDE.md workflow rule 5 — a run is
+implemented in a worktree — is the consent; do not stop to ask for it
 again. Ask only if the user has said otherwise in this session, and if they
 decline isolation, work in place: create a feature branch first if HEAD is on
 main/master, then record it with Step 2's block anyway — `worktree` pointing at
@@ -43,7 +41,7 @@ breaks resuming *and* blocks `stage=finish` later.
 branches from your current local HEAD (`worktree.baseRef: "head"` in
 settings.json — with the harness default `"fresh"` it would branch from
 `origin/<default>` and contain neither). Uncommitted, they are absent from the
-branch the implementers build on and from its history, and the spec is not there
+branch the run builds on and from its history, and the spec is not there
 for anyone reading the branch later.
 
 **Also before creating it, confirm the worktree directory is ignored** — in the
@@ -84,8 +82,8 @@ If that prints "no run state", nobody opened the run: `flow-state init
 session cannot find.
 
 Recording is what turns the workspace from something remembered into something
-the tooling can act on: from here on every subagent is told which tree and
-branch it owns (a SubagentStart hook injects it), a second workspace is refused,
+the tooling can act on: from here on every subagent is told which tree to read
+(a SubagentStart hook injects it), a second workspace is refused,
 and "kontynuuj" in a fresh session finds the tree again. `base` is the branch's
 starting commit, which the whole-branch review reads instead of guessing a merge
 base.
@@ -95,12 +93,10 @@ at finish time.
 
 ## Step 3 — setup and clean baseline
 
-Install what the project needs (`package.json` → `npm install`, `Cargo.toml` →
-`cargo build`, `pyproject.toml`/`requirements.txt` → poetry/pip, `go.mod` →
-`go mod download`), then run the test suite and the build. Tests alone can pass
-on a tree that does not build: Astro under `.claude/worktrees/` resolves the
-`tsconfig.json` `extends` from the main checkout, so `astro build` fails
-without `node_modules` there too while Vitest stays green.
+Install what the project needs with its own package manager, then run the test
+suite and the build. Tests alone can pass on a tree that does not build: a
+config that resolves from the main checkout (a `tsconfig.json` `extends`) needs
+the main checkout's dependencies installed too.
 
 Tests must be green *before* your changes exist — otherwise you cannot tell
 your bugs from the ones you inherited. If they fail, report the failures and
@@ -120,7 +116,7 @@ implement.
 ## Never
 
 - Create a worktree when Step 0 already found one — including any subagent
-  creating its own. Subagents work in the tree they are given.
+  creating its own. Subagents read the tree they are given.
 - Use `git worktree add` when `EnterWorktree` is available.
 - Start implementation on main/master without explicit consent.
 - Skip the baseline run, or proceed past failing baseline tests silently.

@@ -330,7 +330,6 @@ KNOWN = {"name","description","tools","disallowedTools","model","permissionMode"
 MODELS = {"sonnet","opus","haiku","fable","inherit"}
 EFFORT = {"low","medium","high","xhigh","max"}
 READ_ONLY = {"branch-reviewer","plan-red-team"}
-WRITERS = {"implementer"}
 d = sys.argv[1]
 seen, bad = {}, []
 for f in sorted(os.listdir(d)):
@@ -359,9 +358,7 @@ for f in sorted(os.listdir(d)):
     seen[name] = f
     if name in READ_ONLY and "Edit" not in fm.get("disallowedTools", ""):
         bad.append(f"{f}: {name} must withhold Edit — read-only is the point")
-    if name in WRITERS and "Edit" in fm.get("disallowedTools", ""):
-        bad.append(f"{f}: {name} writes code and must not withhold Edit")
-for missing in (READ_ONLY | WRITERS) - set(seen):
+for missing in READ_ONLY - set(seen):
     bad.append(f"missing definition: {missing}")
 print("\n".join(f"  {b}" for b in bad) if bad else f"  {len(seen)} definitions valid")
 sys.exit(1 if bad else 0)
@@ -374,16 +371,15 @@ python3 "$ROOT/validate-agents.py" "$(cd "$HERE/.." && pwd)/agents" \
 BAD=$ROOT/bad-agents; mkdir -p "$BAD"
 printf -- '---\nname: branch-reviewer\ndescription: broken on purpose\nmodel: sonnet\n---\nbody\n' \
   > "$BAD/branch-reviewer.md"
-for role in plan-red-team implementer; do
-  printf -- '---\nname: %s\ndescription: ok\ndisallowedTools: Edit, Write\n---\nbody\n' "$role" > "$BAD/$role.md"
-done
+printf -- '---\nname: plan-red-team\ndescription: ok\ndisallowedTools: Edit, Write\n---\nbody\n' \
+  > "$BAD/plan-red-team.md"
 python3 "$ROOT/validate-agents.py" "$BAD" >/dev/null 2>&1 \
   && report no "validator accepted a reviewer that can edit" \
   || report ok "validator rejects a read-only role that can edit"
 
 AG=$(cd "$HERE/../agents" && pwd)
 fm() { awk '/^---$/{n++; next} n==1' "$AG/$1.md"; }
-for a in implementer branch-reviewer plan-red-team; do
+for a in branch-reviewer plan-red-team; do
   d=$(fm "$a" | grep '^disallowedTools:')
   case "$d" in *Artifact*Skill*|*Skill*Artifact*) report ok "$a withholds Artifact and Skill";;
     *) report no "$a withholds Artifact and Skill" "$d";; esac
@@ -392,12 +388,9 @@ for a in branch-reviewer; do
   grep -q 'scripts/review-package' "$AG/$a.md" && grep -q 'exit 4' "$AG/$a.md" && grep -q 'BLOCKED' "$AG/$a.md" \
     && report ok "$a builds its own diff package; exit 4 is BLOCKED" || report no "$a review-package step"
 done
-for a in implementer; do
-  grep -q 'polszczyzna/SKILL.md' "$AG/$a.md" && grep -q 'systematic-debugging/SKILL.md' "$AG/$a.md" \
-    && report ok "$a knows the skill files it can no longer invoke" || report no "$a skill pointers"
-done
+[ ! -e "$AG/implementer.md" ] && report ok "implementer agent is gone" || report no "implementer.md still present"
 SK=$(cd "$HERE/../skills" && pwd)
-for f in subagent-driven-development/SKILL.md requesting-code-review/SKILL.md; do
+for f in executing-plans/SKILL.md requesting-code-review/SKILL.md; do
   grep -qE 'PKG=|generate the review package|without a diff file|\[review-package|Package it with' "$SK/$f" \
     && report no "$f still has the controller build the review package" || report ok "$f: reviewer builds the package"
 done
@@ -437,8 +430,8 @@ done
 wired PreToolUse Bash flow-guard && report ok "Bash wired to flow-guard" || report no "Bash wired to flow-guard"
 wired SubagentStart "" flow-context && report ok "SubagentStart wired to flow-context" || report no "SubagentStart wired to flow-context"
 wired SessionStart "" flow-context && report ok "SessionStart wired to flow-context" || report no "SessionStart wired to flow-context"
-setting 'len(cfg.get("permissions",{}).get("allow",[])) >= 4' \
-  && report ok "flow-state and the SDD scripts are permission-allowed" || report no "permissions allowlist"
+setting '{"Bash(~/.claude/hooks/flow-state:*)", "Bash(~/.claude/skills/requesting-code-review/scripts/review-package:*)"} <= set(cfg.get("permissions",{}).get("allow",[]))' \
+  && report ok "flow-state and review-package are permission-allowed" || report no "permissions allowlist"
 setting 'cfg.get("worktree",{}).get("baseRef") == "head"' \
   && report ok "worktree.baseRef = head" || report no "worktree.baseRef"
 setting 'str(cfg.get("statusLine",{}).get("command","")).endswith("statusline")' \
@@ -588,7 +581,7 @@ c=$(context_of "$(event_payload "$CTX" SessionStart)")
 case "$c" in *"using-git-worktrees, then"*) report no "handoff line leaks past stage=plan" "$c";;
   *) report ok "stage=implement: no go handoff line";; esac
 
-echo "=== literal values in flow-state and task-brief (E4) ==="
+echo "=== literal values in flow-state (E4) ==="
 LIT=$ROOT/literal; mkrepo "$LIT" >/dev/null || fixture_fail "literal repo"
 "$STATE" --cwd "$LIT" init lit >/dev/null
 "$STATE" --cwd "$LIT" set stage=isolate worktree=. branch=. base=HEAD >/dev/null 2>&1
@@ -610,25 +603,13 @@ out=$("$STATE" --cwd "$LIT" set worktree=relative/path 2>&1)
 case "$out" in *'worktree=.'*) report ok "relative-worktree error suggests worktree=.";;
   *) report no "relative-worktree hint" "$out";; esac
 case "$out" in *'$('*) report no "hint still recommends command substitution" "$out";; *) report ok "hint has no command substitution";; esac
-mkdir -p "$LIT/.flow/plans"
-printf '# P\n\n## Global Constraints\n\nNone.\n\n### Task 1: one\n\nbody-one\n' > "$LIT/.flow/plans/p.md"
-"$STATE" --cwd "$LIT" set plan="$LIT/.flow/plans/p.md" >/dev/null
-TB=$(cd "$HERE/../skills/subagent-driven-development/scripts" && pwd)/task-brief
-brief=$(cd "$LIT" && "$TB" 1 2>/dev/null)
-[ -n "$brief" ] && grep -q body-one "$brief" \
-  && report ok "task-brief N reads the plan from flow-state" || report no "task-brief N without a plan path" "$brief"
 SK=$(cd "$HERE/../skills" && pwd)
 grep -qE '\$\(' "$SK/using-git-worktrees/SKILL.md" "$SK/requesting-code-review/SKILL.md" \
   && report no "skills still prescribe \$(…) commands" || report ok "worktree/review skills prescribe literal commands"
-awk '/^## Per task/,/^## After the last task/' "$SK/subagent-driven-development/SKILL.md" | grep -q '\$(' \
-  && report no "SDD loop still uses \$(…)" || report ok "SDD loop is literal"
+awk '/^## Per task/,/^## After the last task/' "$SK/executing-plans/SKILL.md" | grep -q '\$(' \
+  && report no "executing-plans loop still uses \$(…)" || report ok "executing-plans loop is literal"
 
 echo "=== branch-review fixes ==="
-out=$(cd "$LIT" && "$TB" 1 "$ROOT/out-a.md" "$ROOT/out-b.md" 2>&1; echo "rc=$?")
-case "$out" in *usage:*rc=2*) report ok "task-brief N OUTFILE EXTRA is refused with the usage line";;
-  *) report no "task-brief silently drops a third user argument" "$out";; esac
-[ -e "$ROOT/out-a.md" ] && report no "refused task-brief still wrote OUTFILE" \
-  || report ok "refused task-brief wrote nothing"
 DET=$ROOT/detached; mkrepo "$DET" >/dev/null || fixture_fail "detached repo"
 git -C "$DET" checkout -q --detach || fixture_fail "detach"
 "$STATE" --cwd "$DET" init det >/dev/null
@@ -655,17 +636,17 @@ printf '%s' "$line" | grep -qE '→[0-9]{2}:[0-9]{2}' \
 
 grep -q 'archive sdd' "$SK/finishing-a-development-branch/SKILL.md" \
   && report no "finishing still archives .flow/sdd" || report ok "finishing does not archive .flow/sdd"
-awk '/^## Per task/,/^## After the last task/' "$SK/subagent-driven-development/SKILL.md" | grep -q 'run_in_background: true' \
-  && report ok "SDD implementer dispatch runs in the background" || report no "implementer dispatch lacks run_in_background"
+[ ! -e "$SK/subagent-driven-development" ] && [ ! -e "$SK/executing-plans/scripts" ] \
+  && report ok "subagent-driven-development and its scripts are gone" || report no "SDD skill or scripts still present"
 [ ! -e "$HERE/../agents/task-reviewer.md" ] && [ ! -e "$HERE/../agents/fixer.md" ] \
   && report ok "task-reviewer and fixer are gone" || report no "removed agents still present"
 
 
 # ------------------------------------------------- review-package --worktree
-SCR=$SK/subagent-driven-development/scripts
+SCR=$SK/requesting-code-review/scripts
 RP=$ROOT/rp; mkrepo "$RP" || fixture_fail "could not build $RP"
-printf '*.diff\n' > "$RP/.gitignore"; mkdir -p "$RP/.flow/sdd"; printf '*.diff\n' > "$RP/.flow/sdd/.gitignore"
-git -C "$RP" add -A && git -C "$RP" commit -q --no-gpg-sign -m "archiving-era ignore" || fixture_fail "rp commit"
+printf '*.diff\n' > "$RP/.gitignore"
+git -C "$RP" add -A && git -C "$RP" commit -q --no-gpg-sign -m "ignore diffs" || fixture_fail "rp commit"
 RB=$(git -C "$RP" rev-parse HEAD)
 (cd "$RP" && "$SCR/review-package" "$RB" --worktree >/dev/null 2>&1); rc=$?
 [ "$rc" -eq 4 ] && report ok "--worktree with no changes exits 4" || report no "--worktree empty exit" "rc=$rc"
@@ -692,18 +673,18 @@ SIDE=$(git -C "$RP" commit-tree -p "$RB" -m side "$(git -C "$RP" rev-parse "$RB^
 (cd "$RP" && "$SCR/review-package" "$SIDE" HEAD >/dev/null 2>&1); rc=$?
 [ "$rc" -eq 3 ] && report ok "BASE off HEAD's history exits 3" || report no "ancestry guard" "rc=$rc"
 
-# --------------------------------------------- sdd-workspace scratch ignore
-(cd "$RP" && "$SCR/sdd-workspace" >/dev/null && "$SCR/sdd-workspace" >/dev/null)
-[ "$(grep -cxF '/.flow/sdd/' "$RP/.git/info/exclude")" = 1 ] \
-  && report ok "sdd-workspace adds .flow/sdd to info/exclude once" || report no "info/exclude entry" "$(cat "$RP/.git/info/exclude")"
-[ "$(cat "$RP/.flow/sdd/.gitignore")" = '*.diff' ] \
-  && report ok "sdd-workspace leaves a tracked .gitignore alone" || report no "tracked .gitignore rewritten"
-echo brief > "$RP/.flow/sdd/task-1-brief.md"
-[ -z "$(git -C "$RP" status --porcelain)" ] \
-  && report ok "briefs in an archiving-era project are not untracked" || report no "scratch shows in git status" "$(git -C "$RP" status --porcelain)"
+# ------------------------------------- review-package from a linked worktree
+RPW=$ROOT/rp-wt
+git -C "$RP" worktree add -q "$RPW" -b rpwt || fixture_fail "rp worktree"
+pkg=$(cd "$RPW" && "$SCR/review-package" "$RB" HEAD 2>/dev/null)
+case "$pkg" in "$RP/.flow/run/"*) report ok "package lands in the main checkout's .flow/run";;
+  *) report no "package path" "$pkg";; esac
+[ -z "$(git -C "$RPW" status --porcelain)" ] && [ -z "$(git -C "$RP" status --porcelain)" ] \
+  && report ok "review-package leaves worktree and main checkout clean" \
+  || report no "review-package dirtied a tree" "$(git -C "$RPW" status --porcelain; git -C "$RP" status --porcelain)"
 grep -q 'Above ~1500' "$SK/requesting-code-review/SKILL.md" \
   && report no "requesting-code-review still splits reviewers by size" || report ok "one branch reviewer, no size split"
-awk '/^## After the last task/,/^## Never/' "$SK/subagent-driven-development/SKILL.md" | grep -q 'Spec state' \
+awk '/^## After the last task/,/^## Never/' "$SK/executing-plans/SKILL.md" | grep -q 'Spec state' \
   && report ok "spec state is updated before the branch review" || report no "spec state step missing before review"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

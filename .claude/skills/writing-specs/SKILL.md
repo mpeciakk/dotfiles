@@ -18,11 +18,11 @@ as usual.
 ## Two readers, and only one of them can ask
 
 The spec is a hybrid document. A person reads it weeks later, having forgotten;
-an implementer subagent reads it to build from, gets one shot, and **cannot ask a
-follow-up**. Mostly they want the same thing. Where they diverge, the agent's
-constraints decide — its failure mode is worse.
+an agent reads it to build from, often in a fresh session after `/clear`, and
+**fills a gap instead of asking**. Mostly they want the same thing. Where they
+diverge, the agent's constraints decide — its failure mode is worse.
 
-| | The person | The implementer |
+| | The person | The agent |
 |---|---|---|
 | reads it | selectively, to re-orient | in full, on every task, paying context per line |
 | meets a gap by | asking you, or using judgment | inventing an answer and committing it |
@@ -106,8 +106,8 @@ wiem" for half of them — including the ones the code already answers.
    **Push every answer to an exact value.** "Kilka sekund", "raczej szybko",
    "jakiś rozsądny limit" are not answers — ask for the number, the string, the
    name. If the user genuinely does not know yet, that is an open point with a
-   stated default, not something for you to round off: an implementer will turn
-   your rounding into a constant.
+   stated default, not something for you to round off: whoever builds from it
+   will turn your rounding into a constant.
 4. **Write assumptions down as assumptions.** Anything you could not confirm goes
    in its own numbered list, not smuggled into prose as fact. An auditable
    assumption gets corrected later; a buried one becomes folklore. The same
@@ -146,9 +146,9 @@ and an unmaintained spec is worse than none: it lies with authority.
 
 **When:** any spec file (`spec.md` or a topic file) over 40 KB by `wc -c`.
 
-**Why:** an implementer reads the spec in full on every task that touches it.
-harmonia's 302 KB spec ran spec-sync implementers at 330–342K context, 3–5×
-the cost of a code task.
+**Why:** the agent reads the spec in full on every task that touches it.
+harmonia's 302 KB spec ran spec-sync tasks at 330–342K context, 3–5× the cost
+of a code task.
 
 **Shape:** `spec.md` becomes the index.
 

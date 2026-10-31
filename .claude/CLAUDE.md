@@ -21,9 +21,9 @@ Workflow rules:
    from memory.
 4. Nothing is "done" without running it and showing proof.
 5. Implement a run in a worktree via `EnterWorktree`; keep run state (main
-   thread) in `~/.claude/hooks/flow-state`. Implementers write task code; you
-   edit only when no implementer is working — one writer per tree. Gates:
-   skill `development-workflow`.
+   thread) in `~/.claude/hooks/flow-state`. You write the task code yourself;
+   subagents only read — parallel work, verbose output, review. Gates: skill
+   `development-workflow`.
 6. Read the living `spec.md` (root or per component: what the project is,
    decisions in force, open points) BEFORE asking me questions. A decision
    enters the spec at the plan gate; update the sections describing state after

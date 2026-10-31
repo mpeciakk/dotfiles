@@ -50,8 +50,9 @@ nie źródło prawdy o stanie projektu — tym jest spec.
   planowania: decyzje, taski i sekcja `## Rulings` z rozstrzygnięciami podjętymi
   w trakcie pracy. Czytaj, gdy szukasz uzasadnienia zmiany. Może opisywać stan,
   którego już nie ma.
-- `.flow/specs/` — starsze zapisy projektowe i materiał dowodowy do decyzji.
-- `.flow/run/`, `.flow/sdd/` — lokalny stan narzędzi autora, poza gitem.
+- `.flow/specs/`, `.flow/design/`, `.flow/probes/`, `.flow/reviews/` — starsze
+  zapisy projektowe, próby i przeglądy: materiał dowodowy do decyzji.
+- `.flow/run/` — lokalny stan narzędzi autora, poza gitem.
 
 Nie edytuj tych plików. Własnych planów w `.flow/` tworzyć nie musisz.
 ```

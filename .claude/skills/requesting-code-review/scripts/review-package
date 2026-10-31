@@ -7,8 +7,10 @@
 #        review-package BASE --worktree [OUTFILE]
 # --worktree covers BASE to the working tree, uncommitted and untracked files
 # included — inline work that is not (all) committed yet.
-# Default OUTFILE: <repo-root>/.flow/sdd/review-<base7>..<head7>.diff
+# Default OUTFILE: <main-checkout>/.flow/run/review-<base7>..<head7>.diff
 # (named per range, so a re-review after fixes gets a distinct fresh file).
+# Beside the run state in the main checkout, where run/ is ignored: a file
+# written into a linked worktree would leave that tree dirty.
 set -euo pipefail
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
@@ -45,7 +47,9 @@ if [ $# -eq 3 ]; then
   caller_chose_path=1
 else
   caller_chose_path=0
-  dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")
+  dir=$(dirname "$("$(cd "$(dirname "$0")/../../../hooks" && pwd)/flow-state" path)")
+  mkdir -p "$dir"
+  [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore"
   out="$dir/review-$(git rev-parse --short "$base")..$label.diff"
 fi
 

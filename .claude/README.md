@@ -18,12 +18,13 @@ not a run (✋ = you decide):
 |---|-------|-------|------|
 | 1 | Plan — decisions + tasks in one document | `writing-plans` (+ red-team for 2+ tasks) | ✋ "go" |
 | 2 | Isolate | `using-git-worktrees` | — |
-| 3 | Implement — one implementer per task (a domain of the change), in the background | `subagent-driven-development` | — |
+| 3 | Implement — the session works each task (a domain of the change) in the worktree | `executing-plans` | — |
 | 4 | Review — spec state sections first, then the whole branch: tests, real verification, spec | `requesting-code-review` | — |
 | 5 | Finish — suite unless the review's run still holds, merge | `finishing-a-development-branch` | ✋ merge / PR / keep / discard |
 
 Run state lives in `flow-state`, so "kontynuuj" in a fresh session resumes at
-the first task not done. Plans → `.flow/plans/`; `.flow/sdd/` is scratch.
+the first task not done. `.flow/` commits `plans/`, `specs/`, `design/`,
+`probes/` and `reviews/`; `run/` (run state, review packages) is ignored.
 
 **Always-on discipline:** `test-driven-development`, `systematic-debugging`,
 `receiving-code-review`. `CLAUDE.md` → "Rules" holds the code rules (from
@@ -37,12 +38,13 @@ agent.
 
 ## Model & effort
 
-Roles carry their model in `agents/`: implementer **Sonnet 5.5 · high**,
-branch-reviewer **Opus 5.5 · high**, plan-red-team **Opus 5.5 · xhigh**. The
-session runs on the model you start it with.
+Roles carry their model in `agents/`: branch-reviewer **Opus 5.5 · high**,
+plan-red-team **Opus 5.5 · xhigh**. The session runs on the model you start it
+with and implements the tasks itself.
 
 Why it looks like this: `.flow/specs/2026-10-10-lean-workflow-design.md`
-(rollback tag `workflow-v1`).
+(rollback tag `workflow-v1`), then `.flow/plans/2026-10-31-lean-workflow-v2.md`
+(rollback tag `workflow-v2-pre`).
 
 ## Code navigation
 

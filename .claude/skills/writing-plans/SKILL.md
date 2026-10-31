@@ -38,7 +38,7 @@ recommendation. Where there is none, do not invent one.
 ## 3. The plan
 
 Save to `.flow/plans/YYYY-MM-DD-<slug>.md`. Target 100–250 lines. Past ~300,
-look at why before going on: usually the plan carries what an implementer can
+look at why before going on: usually the plan carries what implementation can
 decide — cut it; if the scope itself is too big for one run, propose a split
 to the user.
 
@@ -69,16 +69,16 @@ that matter.
 what earlier tasks produced that it builds on.
 ```
 
-Everything above the first `## Task` reaches every implementer: `task-brief`
-prepends it to each brief.
+Everything above the first `## Task` binds every task: executing-plans reads
+it with each one.
 
 **A task is one domain of this change** — "session core: status contract and
 events, session tests green", not "add a field to the model". It ends with a
 checkable result and leaves the tree in a state you could stop at and resume
 from. Most runs have 2–5 tasks.
 
-**What the plan fixes and what it leaves.** The implementer writes the tests
-and the code. The plan fixes only what the implementer cannot decide alone:
+**What the plan fixes and what it leaves.** Implementation writes the tests
+and the code. The plan fixes only what implementation cannot decide alone:
 names of a public API, formats, exact values the user chose, the shape of an
 external API. No code, no test code, no step lists.
 
@@ -137,6 +137,6 @@ worktree branches from HEAD and needs it. Say so.
 Present: the decisions, the tasks (one line each), the red-team verdict, the
 commit. Wait for "go".
 
-On "go": using-git-worktrees, then subagent-driven-development. If the user
-asks to run it inline instead, record `flow-state set stage=inline` and work
-the tasks yourself in the worktree.
+On "go": using-git-worktrees, then executing-plans. If the user asks to work
+on main without a worktree instead, record `flow-state set stage=inline` and
+work the tasks the same way in the main checkout.

@@ -145,3 +145,8 @@ Evidence: `.flow/reviews/2026-10-31-setup-review/report.md` (sections 1–4 and 
 - The README model/effort table matches the agent files.
 **Area:** the skills above, `.claude/README.md`.
 **Context:** `prompt-audit/slice-{a,b,c}.md`.
+
+## Rulings
+- Task 1: `hooks/flow-guard-test` checks of the moved or deleted skill files, scripts and agent (validator `WRITERS`, task-brief, sdd-workspace, SDD dispatch, permissions allowlist) are updated in task 1, and a linked-worktree `review-package` case is added (Verification 2). Hook behaviour (polling names, SubagentStart, flow-context text) stays in task 2 — deleting the files broke 19 checks, and a task must leave the suite green — cost if wrong: none, task 2 would make the same edits.
+- Task 1: `review-package` finds `flow-state` relative to itself (`../../../hooks/flow-state`), not via `$HOME` — the tests then run the branch's copy, and the live layout resolves to the same file — cost if wrong: one path to change.
+- Task 1: slice-A hunk dispositions — D-H2, D-M6, D-M7 applied; D-M9 re-derived without the `implementer` row; F-L7 applied (rule 5 wording in using-git-worktrees). No slice-A hunk touches CLAUDE.md rule 5 (D-M1/D-M2/D-M3 are task 3); rule 5 is rewritten for W1 directly — cost if wrong: none.

@@ -16,7 +16,7 @@ needs no suite. If anything fails, report the failures and stop: merging red
 code or opening a failing PR costs more than the delay.
 
 The living spec was brought up to date before the branch review
-(subagent-driven-development). If a fix after the review changed something the
+(executing-plans). If a fix after the review changed something the
 spec describes, update that section now and commit it.
 
 ## Step 2 — what kind of workspace is this?
@@ -75,10 +75,8 @@ the recorded `worktree` (`flow-state get worktree`). Still inside a worktree
 `EnterWorktree` created (Step 2's second row) → exit it before touching the
 main checkout: `ExitWorktree` with `action: "keep"`, not `"remove"` — the
 merge has not happened yet, and removing the branch now would make it
-unrecoverable. A real run hit this directly: Bash from inside that session is
-confined to the worktree, and a git operation aimed at the shared main
-checkout was refused until the session left ("the isolation guard blocks git
-operations on the shared checkout from inside the worktree — correctly"). A
+unrecoverable. From inside that session, git operations on the shared main
+checkout are refused until the session exits the worktree. A
 worktree the session only `cd`'d into (Step 2's third row) carries no such
 confinement — skip this if that's what you're in.
 
@@ -147,7 +145,7 @@ git worktree prune
 git branch -d <feature-branch>        # -D for a confirmed discard
 ```
 
-Ignored files (build output, caches, `.flow/sdd`) do not block removal. A
+Ignored files (build output, caches) do not block removal. A
 refusal means modified or untracked files that exist nowhere else — an
 uncommitted note, work left after a BLOCKED task. Never add `--force` on your
 own: list them with `git -C "$WORKTREE_PATH" status --porcelain -uall` and

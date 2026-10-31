@@ -9,9 +9,7 @@
   "permissions": {
     "allow": [
       "Bash(~/.claude/hooks/flow-state:*)",
-      "Bash(~/.claude/skills/subagent-driven-development/scripts/task-brief:*)",
-      "Bash(~/.claude/skills/subagent-driven-development/scripts/review-package:*)",
-      "Bash(~/.claude/skills/subagent-driven-development/scripts/sdd-workspace:*)"
+      "Bash(~/.claude/skills/requesting-code-review/scripts/review-package:*)"
     ],
     "deny": [
       "ReportFindings",

@@ -32,9 +32,9 @@ code only to check a specific claim, and report.
   A native feature, the stdlib, existing code, one call?
 - Unverifiable tasks: acceptance criteria no test could fail on, or a
   Verification section that does not actually exercise the change
-- Tasks that will not survive a fresh implementer: an outcome whose meaning
-  depends on context the plan does not carry, or a value the user decided that
-  the plan never states
+- Tasks that will not survive a `/clear`: an outcome whose meaning depends on
+  context the plan does not carry, or a value the user decided that the plan
+  never states — the session that resumes the run knows only the plan
 - An external assumption (API shape, tool behaviour, real data) built on before
   anything checks it
 
