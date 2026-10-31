@@ -42,19 +42,17 @@ branch split from main — correct?"
 
 If the plan's copy on the branch (`<worktree>/.flow/plans/<plan basename>`,
 read before Step 5 leaves the worktree) has a `## Rulings` section, list its
-lines first — decisions you
-made during the run that the user has not seen yet.
+lines first, in the reply — decisions you made during the run that the user
+has not seen yet.
 
-```
-Implementation complete. What would you like to do?
+Then ask with the `AskUserQuestion` tool, not as a question typed in the chat.
+One single-select question in the user's language, the branch name in it,
+these options in this order:
 
 1. Commit, merge into <base-branch> and push it (if origin exists)
 2. Commit, push the branch and open a Pull Request
 3. Keep the branch as-is (I'll handle it later)
 4. Discard this work
-
-Which option?
-```
 
 Detached HEAD drops option 1 and offers: push as a new branch and open a PR /
 keep as-is / discard. No remote (`git remote` prints nothing) drops option 2,
