@@ -33,8 +33,10 @@ wrong fix. "I understand 1, 2, 3, 6 — need clarification on 4 and 5."
 - **A reviewer subagent** (branch-reviewer) — its findings are
   claims about a diff it read, not about code it could not see. You hold the
   cross-task context it lacks; check each finding against it. A finding that
-  contradicts what the plan mandates is the user's call — show both, ask which
-  governs (subagent-driven-development).
+  contradicts the plan: reversible and inside the plan's scope → you rule on
+  it and log it under `## Rulings` in the plan's branch copy; a scope change,
+  a spec decision or anything irreversible → the user's call, with both sides
+  shown (executing-plans).
 - **External reviewers** — check: correct for this codebase? breaks existing
   behaviour? is there a reason for the current implementation? all
   platforms/versions? If you cannot verify, say what you would need: "I can't
@@ -52,10 +54,9 @@ does not extend to scope — CLAUDE.md's "Nothing beyond what was asked".
 2. Blocking issues (breakage, security) → simple fixes → complex fixes.
 3. Test each fix; check for regressions.
 
-"One at a time" is the order of work, not the number of dispatches: inside a
-plan run the whole Critical/Important list goes to ONE implementer dispatch,
-which works it in this order. A dispatch per finding rebuilds context and
-re-runs the suite each time.
+"One at a time" is the order of work, not the number of suite runs: work the
+whole Critical/Important list in this order, then run the suite once and
+commit.
 
 ## Push back when
 

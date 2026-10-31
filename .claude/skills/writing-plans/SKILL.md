@@ -62,8 +62,8 @@ that shows the change works for real, not only that tests pass.
 
 ## Task 1: <domain of the change>
 **Outcome:** what exists and works when this task is done.
-**Acceptance:** the behaviours its tests must show, including the edge cases
-that matter.
+**Acceptance:** the behaviours it must show, one line each, including the edge
+cases that matter. Each line gets one focused test.
 **Area:** modules and files it owns.
 **Context:** spec sections to read, the pattern to follow (path + symbol),
 what earlier tasks produced that it builds on.
@@ -106,7 +106,8 @@ writing-specs as a separate job.
 
 ## 5. Self-check
 
-- Every requirement has a task; every task has acceptance a test can fail on.
+- Every requirement has a task; every acceptance line is one behaviour a
+  single test can fail on.
 - No "handle errors appropriately", "add validation", "TBD": name the
   behaviour.
 - Names and interfaces agree across tasks.
@@ -122,12 +123,24 @@ take on each, and get resolved — by amending the plan or by the user accepting
 the risk — before "go". Minor objections only: apply them yourself and name
 them in one line at the gate.
 
+Log every objection once the plan is settled, in the project's
+`.flow/reviews/red-team-log.md` (create it if absent), one row each:
+
+```markdown
+| date | plan | finding | severity | changed D | behaviour |
+```
+
+"changed D": the Decision rows it added, removed or rewritten (or "no");
+"behaviour": yes when it was about how the result behaves, not wording or
+process. The log is how red-team earns its keep; commit it
+with the plan.
+
 ## 7. The gate
 
 Commit the plan and the spec change together, then record:
 
 ```bash
-git add .flow/plans/<file>.md <spec files> && git commit -m "plan: <change>"
+git add .flow/plans/<file>.md <red-team log, if red-team ran> <spec files> && git commit -m "plan: <change>"
 ~/.claude/hooks/flow-state set stage=plan plan="$(git rev-parse --show-toplevel)/.flow/plans/<file>.md" spec=<absolute spec path>
 ```
 

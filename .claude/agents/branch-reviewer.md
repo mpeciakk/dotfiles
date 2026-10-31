@@ -34,7 +34,9 @@ grep its callers outside the diff — by name, and through re-exports and
 aliases — and list them in the report. Never move HEAD, touch the index, or create a worktree.
 
 Do the whole review yourself: no subagent for part of the diff, no second
-reviewer. A large diff gets several passes by you, and the report says so.
+reviewer. A large diff gets several passes by you, and the report says so. Do
+not call the advisor: it re-reads your whole transcript at a higher rate, and
+the controller already verifies every finding.
 
 ## Run it
 
@@ -65,7 +67,8 @@ Untracked artifacts from these runs are fine; changes to tracked files are not.
 - **Tests.** Do they test behaviour rather than mocks, and could they fail? An
   expected value computed the way the code computes it passes by
   construction — it must come from somewhere independent (a literal, a worked
-  example, the spec).
+  example, the spec). Do not ask for tests of impossible cases or of what
+  another test already pins.
 - **Quality and safety.** Separation of concerns, error handling, security and
   data handling, migrations and deploy order if a contract or schema changed.
   Comments that record history or argue with a reviewer instead of explaining
@@ -87,12 +90,17 @@ Untracked artifacts from these runs are fine; changes to tracked files are not.
 **Critical** blocks the merge: wrong behaviour, data loss, a security hole, a
 silently reversed decision. **Important** should be fixed before merge: fragile
 behaviour, a missed requirement, damage worth blocking over. Polish is
-**Minor**. Never invent issues to look thorough; a clean axis gets one line.
+**Minor**. Style — naming, formatting, wording you would have chosen
+differently — is not an issue: skip it. Never invent issues to look thorough;
+a clean axis gets one line.
 
 Every issue, Minor included, names a concrete case: this input or situation
 leads to this wrong result, or this line costs this. Re-read the lines first —
 the caller exists, the value can really be empty, the code really is unused.
 No case, no issue: no "consider", no taste.
+An issue with a concrete case that you could not fully confirm still goes in,
+marked with its confidence — the controller verifies every finding
+(receiving-code-review) and drops what does not hold.
 
 ## Output
 
@@ -105,7 +113,7 @@ Your final message IS the report. No preamble.
     #### Critical
     #### Important
     #### Minor
-    For each: file:line, what is wrong, the concrete case, how to fix if not obvious — the smallest fix, preferring one that deletes code.
+    For each: file:line, what is wrong, the concrete case, your confidence (high / medium / low), how to fix if not obvious — the smallest fix, preferring one that deletes code.
 
     ### Declined to judge
     [each behaviour you considered and set aside as outside the plan or spec, one line with the reason — the controller rules on each; "none" if nothing]

@@ -1,35 +1,56 @@
 ---
 name: test-driven-development
-description: Use when implementing any feature or bugfix, before writing implementation code
+description: Use when implementing a feature or a bug fix — decides which behaviours get a test, when the test comes first, and what counts as verified.
 ---
 
-# Test-Driven Development (TDD)
+# Tests for behaviour
 
-Write the test first. Watch it fail. Write minimal code to pass.
+Tests exist to catch a behaviour breaking. Write the ones that do; skip the
+ones that only restate the code.
 
-**If you did not watch the test fail, you do not know that it tests the right
-thing.**
+## What gets a test
 
-## The Iron Law
+- **Each acceptance line** in the plan, or each behaviour the user stated:
+  one focused test.
+- **Each bug that escaped into a commit:** a regression test that fails
+  without the fix.
+- **Not:** impossible cases, private helpers already covered through the
+  behaviour that uses them, a second test for what a first one already pins.
 
-```
-NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
-```
+A timing-dependent test uses a fake clock, never the wall clock: a test that
+sleeps and races is a flaky test.
 
-Wrote the code before the test? Delete it and implement fresh from the test —
-not "kept as a reference", not adapted while the test is written. Tests-after
-answer *what does this do*; tests-first answer *what should this do*, and only
-the second can fail for the right reason.
+## When the test comes first
 
-Applies to features, bugfixes, refactors and behavior changes. Throwaway
-prototypes, generated code and config files are the exceptions — ask before
-treating anything else as one.
+Test-first is the default for a **bug fix** and for behaviour that is **easy
+to state as a test** (an input and its expected output, an error for a bad
+value). Write the test, run it, and see it fail for the reason you expect —
+not an error, not a typo. A test you never saw fail may not test what you
+think. Then the simplest code that passes.
 
-## The cycle
+A bug fix always starts there: the failing test proves the bug, then proves
+the fix.
 
-### RED — one failing test
+Elsewhere — wiring, UI layout, exploratory code, a refactor — write the code
+first and add the tests its behaviour needs. A refactor keeps the suite green
+before and after; it needs no new failing test.
 
-One behavior, a name that states it, real code rather than mocks.
+## Verified means run
+
+- The project's full test command (`pytest`, `npm test`, whatever the repo
+  uses), not the one file you touched. Name every failure it shows, including
+  one you did not cause.
+- Then the real thing: run the command, open the page, call the API — the
+  plan's Verification, or whatever shows the change working. A green suite
+  says the tests pass, not that the feature works.
+
+## Good tests
+
+| Quality | Good | Bad |
+|---------|------|-----|
+| **Minimal** | one behaviour; an "and" in the name means split it | `test('validates email and domain and whitespace')` |
+| **Clear** | the name states the behaviour | `test('test1')` |
+| **Real** | exercises the code, not a mock of it | asserts a mock was called 3 times |
 
 <Good>
 ```typescript
@@ -47,7 +68,6 @@ test('retries failed operations 3 times', async () => {
   expect(attempts).toBe(3);
 });
 ```
-Clear name, tests real behavior, one thing
 </Good>
 
 <Bad>
@@ -61,115 +81,13 @@ test('retry works', async () => {
   expect(mock).toHaveBeenCalledTimes(3);
 });
 ```
-Vague name, tests the mock rather than the code
+Vague name, tests the mock rather than the code.
 </Bad>
 
-### Verify RED — mandatory
-
-Run it. It must **fail**, not error, and fail because the feature is missing
-rather than because of a typo.
-
-- Passes already → you are testing existing behavior; fix the test.
-- Errors → fix the error and re-run until it fails correctly.
-
-### GREEN — the simplest code that passes
-
-<Good>
-```typescript
-async function retryOperation<T>(fn: () => Promise<T>): Promise<T> {
-  for (let i = 0; i < 3; i++) {
-    try {
-      return await fn();
-    } catch (e) {
-      if (i === 2) throw e;
-    }
-  }
-  throw new Error('unreachable');
-}
-```
-Just enough to pass
-</Good>
-
-<Bad>
-```typescript
-async function retryOperation<T>(
-  fn: () => Promise<T>,
-  options?: {
-    maxRetries?: number;
-    backoff?: 'linear' | 'exponential';
-    onRetry?: (attempt: number) => void;
-  }
-): Promise<T> {
-  // YAGNI
-}
-```
-Over-engineered
-</Bad>
-
-No extra features, no refactoring of neighbouring code, no improvements the
-test did not ask for.
-
-### Verify GREEN — mandatory
-
-The test passes, the other tests still pass, and the output is pristine — no
-stray errors or warnings. Test still failing → fix the code, never the test.
-Something else broke → fix it now.
-
-Green means the project's test command (bare `pytest`, `npm test`, whatever
-the repo uses), not the one file you touched — a narrow scope bounds the
-change, not the verification. Name every failure that run shows, including
-one you did not cause; a red test left unmentioned is a false "green".
-
-### REFACTOR — only on green
-
-Remove duplication, improve names, extract helpers. No new behavior, tests stay
-green. Then the next failing test.
-
-## Good tests
-
-| Quality | Good | Bad |
-|---------|------|-----|
-| **Minimal** | one thing; an "and" in the name means split it | `test('validates email and domain and whitespace')` |
-| **Clear** | the name describes the behavior | `test('test1')` |
-| **Shows intent** | demonstrates the API you want | obscures what the code should do |
-
-## When stuck
-
-| Problem | Solution |
-|---------|----------|
-| Don't know how to test it | write the wished-for API, assertion first; ask if still stuck |
-| Test too complicated | the design is too complicated — simplify the interface |
-| Must mock everything | the code is too coupled — inject dependencies |
-| Test setup huge | extract helpers; still complex means simplify the design |
-
-## Bugs
-
-Reproduce with a failing test first. The test proves the fix and prevents the
-regression. Never fix a bug without one.
-
-## Writing the tests
+Hard to test usually means hard to use: a test that must mock everything
+points at code that is too coupled.
 
 Before writing or changing tests, adding a mock or a test helper, read
 [writing-good-tests.md](writing-good-tests.md): every test names the break it
 catches, expected values are derived without the code under test, mocks stay
 at the slow or external level.
-
-## Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "Too simple to test" | Simple code breaks. The test takes 30 seconds. |
-| "I'll test after" | A test written after passes at once and proves nothing — you never saw it catch the bug. |
-| "Already tested it manually" | No record, no re-run, cases forgotten under pressure. |
-| "Deleting hours of work is wasteful" | Sunk cost. Keeping code you cannot trust is the waste. |
-| "Keep it as reference" | You will adapt it — that is testing after. Delete means delete. |
-| "Need to explore first" | Fine: explore, throw it away, start with a test. |
-| "Hard to test" | Hard to test is hard to use. Listen to the test. |
-| "This case is different" | That is the rationalization. Write the test. |
-
-## Final rule
-
-```
-Production code → a test exists and failed first
-Otherwise → not TDD
-```

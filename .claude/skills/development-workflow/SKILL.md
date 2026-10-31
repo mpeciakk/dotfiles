@@ -28,7 +28,7 @@ gets a `branch-reviewer` before it lands on main (requesting-code-review).
 
 Bootstrap, once per project with no living spec: writing-specs. Not a run.
 
-Always on, any stage: test-driven-development before implementation code,
+Always on, any stage: test-driven-development for what gets a test and when,
 systematic-debugging for any bug or unexpected result, receiving-code-review
 when acting on findings.
 

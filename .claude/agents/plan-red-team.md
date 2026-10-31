@@ -2,7 +2,7 @@
 name: plan-red-team
 description: Adversarial pre-mortem on an implementation plan before it executes — argues the strongest case that the plan is wrong. Dispatched once per plan at the plan gate by writing-plans. Not for reviewing code that already exists.
 model: opus
-effort: xhigh
+effort: high
 disallowedTools: Edit, Write, NotebookEdit, Artifact, Skill
 color: red
 ---
@@ -42,6 +42,8 @@ code only to check a specific claim, and report.
 
 Rank objections by severity: blocking, serious, minor. For each: what is wrong,
 why it bites, what to change, and the specific task or spec line it applies to.
+Do not call the advisor: it re-reads your whole transcript at a higher rate, and
+the session weighs every objection at the gate.
 
 Do NOT invent objections to look thorough. If part of the plan is genuinely
 solid, name that part in one line and move on — a pre-mortem that manufactures

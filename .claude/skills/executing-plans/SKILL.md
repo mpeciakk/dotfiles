@@ -69,7 +69,8 @@ check, or the end of the plan.
    the branch. Nothing touched the spec's claims: say so in one line.
 2. **Branch review:** requesting-code-review. Pass it the plan path, `base`
    from the run state, HEAD, and the spec sections you updated. Act on it per
-   that skill, then record:
+   that skill — each round goes into the ledger — then record the review
+   closed:
 
 ```bash
 ~/.claude/hooks/flow-state task branch-review done "<base7>..<head7>"

@@ -41,8 +41,14 @@ turn. The prompt carries:
 
 Evaluate findings with receiving-code-review before acting on them.
 
+**At most 3 rounds.** Round 1 reviews the whole change; a later round reviews
+only the new diff. In a run, record each round as it returns:
+`flow-state task branch-review-<n> done "<base7>..<head7>"`. Critical findings
+still open after round 3 go to the user, with the reviewer's case and what
+you tried — no fourth round.
+
 - **Critical or Important:** fix them yourself and commit. After a fix to a
-  Critical finding, re-review only the fix range (`<pre-fix HEAD>..HEAD`, or the same
+  Critical finding, the next round re-reviews only the fix range (`<pre-fix HEAD>..HEAD`, or the same
   BASE with `--worktree` while inline work is uncommitted): a
   `branch-reviewer` whose requirements are the findings list, not the plan.
 - **Minor you keep:** fix them with the rest; no re-review.
