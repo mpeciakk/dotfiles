@@ -48,8 +48,8 @@ made during the run that the user has not seen yet.
 ```
 Implementation complete. What would you like to do?
 
-1. Merge back to <base-branch> locally
-2. Push and create a Pull Request
+1. Commit, merge into <base-branch> and push it (if origin exists)
+2. Commit, push the branch and open a Pull Request
 3. Keep the branch as-is (I'll handle it later)
 4. Discard this work
 
@@ -57,7 +57,11 @@ Which option?
 ```
 
 Detached HEAD drops option 1 and offers: push as a new branch and open a PR /
-keep as-is / discard.
+keep as-is / discard. No remote (`git remote` prints nothing) drops option 2,
+and option 1 stops after the local merge.
+
+"Commit" in options 1 and 2 means anything still uncommitted on the branch
+goes into a commit first, after the suite in Step 1 ran on it.
 
 ## Step 5 — execute
 
@@ -67,7 +71,7 @@ Record the stage now:
 ~/.claude/hooks/flow-state set stage=finish
 ```
 
-**1. Merge locally.** Merge before removing anything — a failed merge with the
+**1. Merge and push.** Merge before removing anything — a failed merge with the
 worktree already gone is unrecoverable work.
 
 Check where you actually are first: `git rev-parse --show-toplevel` against
@@ -83,9 +87,10 @@ confinement — skip this if that's what you're in.
 ```bash
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
 cd "$MAIN_ROOT"
-git checkout <base-branch> && git pull
+git checkout <base-branch> && git pull   # skip the pull with no remote
 git merge <feature-branch>
 <test command>                     # only if the merge was not a fast-forward
+git push origin <base-branch>      # only if a remote exists
 ```
 
 Then clean up the workspace (Step 6) — the branch is still checked out in the worktree until it is gone, so

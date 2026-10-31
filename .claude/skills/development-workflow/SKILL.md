@@ -24,7 +24,7 @@ gets a `branch-reviewer` before it lands on main (requesting-code-review).
 | 2 | Isolate | using-git-worktrees | `stage=isolate worktree= branch= base=` | — |
 | 3 | Implement | executing-plans | `stage=implement`, one ledger entry per task | — |
 | 4 | Review | requesting-code-review (branch-reviewer) | `task branch-review done` | — |
-| 5 | Finish | finishing-a-development-branch | `stage=finish`, then `clear` | ✋ merge / PR / keep / discard |
+| 5 | Finish | finishing-a-development-branch | `stage=finish`, then `clear` | ✋ merge + push / PR / keep / discard |
 
 Bootstrap, once per project with no living spec: writing-specs. Not a run.
 

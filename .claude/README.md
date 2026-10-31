@@ -20,7 +20,7 @@ not a run (✋ = you decide):
 | 2 | Isolate | `using-git-worktrees` | — |
 | 3 | Implement — the session works each task (a domain of the change) in the worktree | `executing-plans` | — |
 | 4 | Review — spec state sections first, then the whole branch: tests, real verification, spec | `requesting-code-review` | — |
-| 5 | Finish — suite unless the review's run still holds, merge | `finishing-a-development-branch` | ✋ merge / PR / keep / discard |
+| 5 | Finish — suite unless the review's run still holds, merge | `finishing-a-development-branch` | ✋ merge + push / PR / keep / discard |
 
 Run state lives in `flow-state`, so "kontynuuj" in a fresh session resumes at
 the first task not done. `.flow/` commits `plans/`, `specs/`, `design/`,
