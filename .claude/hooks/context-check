@@ -18,7 +18,8 @@ import sys
 THRESHOLD = 300_000
 # The last usage record sits near the end; a tail this size holds many turns.
 TAIL_BYTES = 2 * 1024 * 1024
-TASK_DONE = re.compile(r"flow-state\b.*\btask\s+\S+\s+(done|complete)\b")
+# Numbered plan tasks only: a review round is not a safe point to /clear.
+TASK_DONE = re.compile(r"flow-state\b.*\btask\s+\d+\s+(done|complete)\b")
 
 
 def last_context_tokens(path):

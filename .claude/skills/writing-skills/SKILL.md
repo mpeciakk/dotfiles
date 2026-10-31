@@ -369,7 +369,7 @@ pptx/
 ```
 When: Reference material too large for inline
 
-## The Iron Law (Same as TDD)
+## The Iron Law
 
 ```
 NO SKILL WITHOUT A FAILING TEST FIRST
@@ -659,7 +659,7 @@ How future agents find your skill:
 
 **Creating skills IS TDD for process documentation.**
 
-Same Iron Law: No skill without failing test first.
+The Iron Law: no skill without a failing test first.
 Same cycle: RED (baseline) → GREEN (write skill) → REFACTOR (close loopholes).
 Same benefits: Better quality, fewer surprises, bulletproof results.
 

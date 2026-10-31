@@ -181,7 +181,7 @@ The 33% → 72% figure above is compliance in a lab, on a single request. Measur
 here, across 2030 session transcripts, the three most emphatically worded rules in
 this whole setup were the ones broken most:
 
-| The rule, verbatim | Where it lives | Times broken |
+| The rule, verbatim | Where it lived | Times broken |
 |---|---|---|
 | "**Do NOT** schedule a short-interval wakeup to poll for background work you started" | the `ScheduleWakeup` tool description | 110 |
 | "**Never** … skip the re-review after a fix" | subagent-driven-development | 8 in a row on one task |

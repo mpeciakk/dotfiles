@@ -724,6 +724,8 @@ transcript "$ROOT/t-side.jsonl" 200000 400000 || fixture_fail "transcript fixtur
   && report ok "context check ignores a subagent's usage" || report no "sidechain usage counted"
 [ -z "$(cc_out "$(cc_payload "$ROOT/t-high.jsonl" '~/.claude/hooks/flow-state task 3 started')")" ] \
   && report ok "context check silent on task started" || report no "context check fired on started"
+[ -z "$(cc_out "$(cc_payload "$ROOT/t-high.jsonl" '~/.claude/hooks/flow-state task branch-review-1 done "a..b"')")" ] \
+  && report ok "context check silent on a review round" || report no "context check fired mid-review"
 [ -z "$(cc_out "$(cc_payload "$ROOT/missing.jsonl" "$DONE_CMD")")" ] \
   && report ok "context check fails open on a missing transcript" || report no "missing transcript output"
 FAKEHOME=$ROOT/home; mkdir -p "$FAKEHOME/.claude"

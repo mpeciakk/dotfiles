@@ -42,8 +42,9 @@ turn. The prompt carries:
 Evaluate findings with receiving-code-review before acting on them.
 
 **At most 3 rounds.** Round 1 reviews the whole change; a later round reviews
-only the new diff. In a run, record each round as it returns:
-`flow-state task branch-review-<n> done "<base7>..<head7>"`. Critical findings
+only the new diff. In a run, record each round once its fixes are committed —
+a round marked done with findings still open is lost on `/clear`:
+`flow-state task branch-review-<n> done "<fix range>"`. Critical findings
 still open after round 3 go to the user, with the reviewer's case and what
 you tried — no fourth round.
 

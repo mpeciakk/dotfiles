@@ -10,7 +10,7 @@ You run scenarios without the skill (RED - watch agent fail), write skill addres
 
 **Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill prevents the right failures.
 
-**REQUIRED BACKGROUND:** test-driven-development - it defines the RED-GREEN-REFACTOR cycle; this file adds skill-specific test formats (pressure scenarios, rationalization tables).
+**Background:** writing-skills applies the test-first cycle (RED-GREEN-REFACTOR) to skills; this file adds skill-specific test formats (pressure scenarios, rationalization tables).
 
 **Campaign sketch:** examples/CLAUDE_MD_TESTING.md lays out scenarios and documentation variants for testing CLAUDE.md wording; it records predictions, not results.
 
@@ -303,7 +303,7 @@ Before deploying skill, verify you followed RED-GREEN-REFACTOR:
 - [ ] Meta-tested to verify clarity
 - [ ] Agent follows rule under maximum pressure
 
-## Common Mistakes (Same as TDD)
+## Common Mistakes
 
 **❌ Writing skill before testing (skipping RED)**
 Reveals what YOU think needs preventing, not what ACTUALLY needs preventing.
