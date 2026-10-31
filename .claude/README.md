@@ -64,6 +64,5 @@ explorer calls (`.flow/specs/2026-10-25-lean-workflow-measurement/report.md`).
 
 ## Testing
 
-Discipline skills are pressure-tested per
-`skills/writing-skills/testing-skills-with-subagents.md` (baseline vs treatment,
-manual read). The flow is smoke-tested end-to-end mechanically before use.
+Discipline skills are pressure-tested per `skills/writing-skills/SKILL.md`
+"Testing a discipline skill" (baseline vs treatment, manual read). The flow is smoke-tested end-to-end mechanically before use.
