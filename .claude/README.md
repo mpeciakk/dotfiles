@@ -39,8 +39,8 @@ agent.
 ## Model & effort
 
 Roles carry their model in `agents/`: branch-reviewer **Opus 5.5 · high**,
-plan-red-team **Opus 5.5 · xhigh**. The session runs on the model you start it
-with and implements the tasks itself.
+plan-red-team **Opus 5.5 · high**, kt-cold-reader **Sonnet 5.5 · medium**. The
+session runs on the model you start it with and implements the tasks itself.
 
 Why it looks like this: `.flow/specs/2026-10-10-lean-workflow-design.md`
 (rollback tag `workflow-v1`), then `.flow/plans/2026-10-31-lean-workflow-v2.md`

@@ -15,7 +15,7 @@ Build prompts one at a time, ready to paste.
 
 ---
 
-**Hard rules — NEVER violate these**
+**Hard rules**
 
 - Do not output a prompt without first confirming the target tool — ask if ambiguous
 - Prefer simpler techniques (role assignment, few-shot, grounding anchors, chain of thought) over complex meta-reasoning frameworks in single-prompt contexts. The following techniques carry higher fabrication risk when used in a single prompt and should only be applied when the user explicitly requests them and the target tool supports them:
@@ -24,7 +24,7 @@ Build prompts one at a time, ready to paste.
   - **Graph of Thought** -- requires an external graph engine not present in most tools
   - **Universal Self-Consistency** -- requires independent sampling passes
   - **Prompt chaining as a layered technique** -- compounds fabrication risk across longer chains
-- Do not add Chain of Thought to reasoning-native models (Claude Opus 5.5 / Sonnet 5 / Fable 5.1 with extended thinking or an effort level, o3, o4-mini, DeepSeek-R1, Qwen3 thinking mode) — they think internally, CoT degrades output
+- Do not add Chain of Thought to reasoning-native models (current Claude models, o3, o4-mini, DeepSeek-R1, Qwen3 thinking mode) — they think internally, CoT degrades output; on current Claude a request to show the reasoning can also be refused
 - Do not ask more than 3 clarifying questions before producing a prompt
 - Do not pad output with explanations the user did not request
 
@@ -67,27 +67,17 @@ Identify the tool and route accordingly. Read full templates from [references/te
 
 ---
 
-**Claude (claude.ai, Claude API, Claude 5.x / 4.x)**
+**Claude (claude.ai, Claude API)**
 
-Current models: **Opus 5.5**, **Sonnet 5**, **Fable 5.1**, **Haiku 4.5**. The version notes below were written for the 4.x generation; the durable ones still apply, but assume a current model unless the user names an older version.
-
-*Durable across Claude 4.x (4.6 / 4.7 / 4.8):*
-- Be explicit and specific — Claude 4.x follows instructions literally. It does exactly what you say, nothing more. Missing context = narrow literal output, not a smart guess.
-- Claude Opus 4.x over-engineers by default — add "Only make changes directly requested. Do not add features or refactor beyond what was asked."
+Current Claude models think internally: depth is set by the API's `effort` parameter or by the harness, not by prompt wording.
+- Be explicit and specific — Claude follows instructions literally. It does exactly what you say, nothing more. Missing context = narrow literal output, not a smart guess.
+- When the user wants a minimal change, say so: "Only make changes directly requested. Do not add features or refactor beyond what was asked."
 - XML tags help for complex multi-section prompts: `<context>`, `<task>`, `<constraints>`, `<output_format>`
 - Provide context and reasoning WHY, not just WHAT — Claude generalizes better from explanations
 - Always specify output format and length explicitly
 - For complex or multi-step tasks: front-load everything in one turn — intent, constraints, acceptance criteria, relevant files. Every extra back-and-forth turn adds reasoning overhead and token cost.
-- Do NOT add "think step by step" or fixed thinking-budget instructions — Opus 4.x uses adaptive thinking and calibrates depth automatically. To influence depth: "Think carefully before responding" (more) or "Prioritize responding quickly" (less).
+- Do not add "think step by step", thinking-depth wording ("think carefully", "prioritize responding quickly") or a visible reasoning section (`<thinking>` tags, a `reasoning` field) — redundant on current Claude, and a request to reproduce reasoning can be refused.
 - Use Template M for agentic or multi-step tasks.
-
-*Opus 4.8 (previous generation):*
-- Shares 4.7's literalism and adaptive thinking — the same front-loading discipline applies. Treat the first turn as the only turn for complex work: intent, scope, constraints, acceptance criteria up front.
-- 1M-token context window — large multi-file context can go in a single prompt, but keep it relevant; padding still dilutes attention.
-- Effort/thinking depth is calibrated automatically — do not specify an effort level or thinking budget.
-
-*Opus 4.7 (older):*
-- More literal than 4.6 — vague first turns produce narrower results. Front-load intent, file scope, constraints, and acceptance criteria.
 
 ---
 
@@ -173,11 +163,10 @@ Current models: **Opus 5.5**, **Sonnet 5**, **Fable 5.1**, **Haiku 4.5**. The ve
 - Agentic — runs tools, edits files, executes commands autonomously
 - Starting state + target state + allowed actions + forbidden actions + stop conditions + checkpoints
 - Stop conditions are MANDATORY — runaway loops are the biggest credit killer
-- Current models are Opus 5.5 / Sonnet 5 / Fable 5.1 / Haiku 4.5. Effort and thinking depth are managed by the Claude Code harness on current models — do NOT hardcode an effort level or thinking budget in prompts.
-- Opus 4.7 and 4.8 are more literal than 4.6 — vague first turns produce narrower results. Front-load everything: intent, file scope, constraints, acceptance criteria, session strategy.
-- Opus 4.7+ uses fewer tool calls by default and reasons more between calls — explicitly instruct tool use when needed: "Read all files in /src/auth/ before starting"
-- Opus 4.7+ spawns fewer subagents by default — explicitly request when needed: "Use a subagent to investigate X so it stays out of main context"
-- Claude Opus 4.x over-engineers — add "Only make changes directly requested. Do not add extra files, abstractions, or features."
+- Effort and thinking depth are set by the Claude Code harness — leave effort levels, thinking budgets and thinking-depth wording out of the prompt.
+- Claude reads prompts literally — vague first turns produce narrower results. Front-load everything: intent, file scope, constraints, acceptance criteria, session strategy.
+- When a specific investigation matters, name it: "Read all files in /src/auth/ before starting", "Use a subagent to investigate X so it stays out of main context"
+- When the user wants a minimal change, say so: "Only make changes directly requested. Do not add extra files, abstractions, or features."
 - Always scope to specific files and directories — never give a global instruction without a path anchor
 - Human review triggers required: "Stop and ask before deleting any file, adding any dependency, or affecting the database schema"
 - Session hygiene matters: new task = new session. Use /rewind instead of correcting mid-conversation. /compact at ~50% context, not 90%.
@@ -358,7 +347,7 @@ Then build using the closest matching category.
 
 ### Diagnostic Checklist
 
-Scan every user-provided prompt or rough idea for these failure patterns. Fix silently — flag only if the fix changes the user's intent.
+Scan every user-provided prompt or rough idea for these failure patterns and fix them in the prompt. Name in the 💡 line any assumption a fix introduced (derived success criteria, format, length, scope) so the user can correct it.
 
 **Task failures**
 - Vague task verb → replace with a precise operation
@@ -384,8 +373,8 @@ Scan every user-provided prompt or rough idea for these failure patterns. Fix si
 - Entire codebase pasted as context → scope to the relevant file and function only
 
 **Reasoning failures**
-- Logic or analysis task with no step-by-step → add "Think through this carefully before answering"
-- CoT added to o3/o4-mini/R1/Qwen3-thinking → REMOVE IT
+- Logic or analysis task with no step-by-step, on a model without built-in reasoning → add "Think through this carefully before answering"
+- CoT or thinking-depth wording added to a reasoning-native model (current Claude, o3/o4-mini/R1/Qwen3-thinking) → remove it
 - New prompt contradicts prior session decisions → flag, resolve, include memory block
 
 **Agentic failures**
@@ -422,7 +411,7 @@ When the user's request references prior work, decisions, or session history —
 **Grounding anchors** — for any factual or citation task:
 "Use only information you are highly confident is accurate. If uncertain, write [uncertain] next to the claim. Do not fabricate citations or statistics."
 
-**Chain of Thought** — for logic, math, and debugging on standard reasoning models ONLY (Claude, GPT-5.x, Gemini, Qwen2.5, Llama). Never on o3/o4-mini/R1/Qwen3-thinking.
+**Chain of Thought** — for logic, math, and debugging on standard models ONLY (GPT-5.x, Gemini, Qwen2.5, Llama). Never on current Claude models or o3/o4-mini/R1/Qwen3-thinking — they reason internally (see Hard rules).
 "Think through this step by step before answering."
 
 ---
@@ -441,7 +430,7 @@ For prompts targeting agentic tools (Claude Code, Devin, Cursor, Windsurf, Cline
 
 1. Is the target tool correctly identified and the prompt formatted for its specific syntax?
 2. Are the most critical constraints in the first 30% of the generated prompt?
-3. Does every instruction use the strongest signal word? MUST over should. NEVER over avoid.
+3. Is every requirement stated plainly as a requirement ("Include X", not "try to include X"), with its reason where it isn't obvious? Reserve caps emphasis (MUST, NEVER) for a constraint the target model is known to underweight — on current Claude models it causes over-triggering.
 4. Has every fabricated technique been removed?
 5. Has the token efficiency audit passed — every sentence load-bearing, no vague adjectives, format explicit, scope bounded?
 6. Would this prompt produce the right output on the first attempt?
@@ -457,4 +446,4 @@ Read only when the task requires it. Do not load both at once.
 | File | Read When |
 |------|-----------|
 | [references/templates.md](references/templates.md) | You need the full template structure for any tool category |
-| [references/patterns.md](references/patterns.md) | User pastes a bad prompt to fix, or you need the complete 35-pattern reference |
+| [references/patterns.md](references/patterns.md) | User pastes a bad prompt to fix, or you need the complete 37-pattern reference |

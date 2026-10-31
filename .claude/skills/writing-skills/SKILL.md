@@ -15,7 +15,7 @@ You write test cases (pressure scenarios with subagents), watch them fail (basel
 
 **Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.
 
-**REQUIRED BACKGROUND:** You MUST understand test-driven-development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.
+**Background:** this skill applies the test-first cycle — watch the test fail, then make it pass — to documentation. test-driven-development holds the code version; for a skill, test-first stays mandatory, because a skill nobody saw fail under pressure is untested.
 
 **Official guidance:** For Anthropic's official skill authoring best practices, see anthropic-best-practices.md. This document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
 
@@ -210,14 +210,13 @@ Use words an agent would search for:
 - ✅ `creating-skills` not `skill-creation`
 - ✅ `condition-based-waiting` not `async-test-helpers`
 
-### 4. Token Efficiency (Critical)
+### 4. Token Efficiency
 
-**Problem:** getting-started and frequently-referenced skills load into EVERY conversation. Every token counts.
+**Cost model:** every skill's `name` and `description` sit in the system prompt of every session; the SKILL.md body loads only when the skill is used, and reference files only when read. Description words are paid in every session, body words on every use.
 
-**Target word counts:**
-- getting-started workflows: <150 words each
-- Frequently-loaded skills: <200 words total
-- Other skills: <500 words (still be concise)
+**Targets:**
+- Description: the triggering conditions, in as few words as do the job
+- SKILL.md body: under 500 lines (anthropic-best-practices.md); heavy reference goes to separate files
 
 **Techniques:**
 
@@ -260,9 +259,8 @@ You: Searching...
 
 **Verification:**
 ```bash
-wc -w skills/path/SKILL.md
-# getting-started workflows: aim for <150 each
-# Other frequently-loaded: aim for <200 total
+wc -l skills/path/SKILL.md
+# body: under 500 lines
 ```
 
 **Name by what you DO or core insight:**
@@ -281,7 +279,7 @@ wc -w skills/path/SKILL.md
 
 Use skill name only, with explicit requirement markers:
 - ✅ Good: `**REQUIRED SUB-SKILL:** Use test-driven-development`
-- ✅ Good: `**REQUIRED BACKGROUND:** You MUST understand systematic-debugging`
+- ✅ Good: `**REQUIRED BACKGROUND:** systematic-debugging`
 - ❌ Bad: `See skills/testing/test-driven-development` (unclear if required)
 - ❌ Bad: `@skills/testing/test-driven-development/SKILL.md` (force-loads, burns context)
 
@@ -503,16 +501,6 @@ Write code before test? Delete it. Start over.
 ```
 </Good>
 
-### Address "Spirit vs Letter" Arguments
-
-Add foundational principle early:
-
-```markdown
-**Violating the letter of the rules is violating the spirit of the rules.**
-```
-
-This cuts off entire class of "I'm following the spirit" rationalizations.
-
 ### Build Rationalization Table
 
 Capture rationalizations from baseline testing (see Testing section below). Every excuse agents make goes in the table:
@@ -611,22 +599,11 @@ step2 [label="read file"];
 helper1, helper2, step3, pattern4
 **Why bad:** Labels should have semantic meaning
 
-## STOP: Before Moving to Next Skill
+## One Skill at a Time
 
-**After writing ANY skill, you MUST STOP and complete the deployment process.**
-
-**Do NOT:**
-- Create multiple skills in batch without testing each
-- Move to next skill before current one is verified
-- Skip testing because "batching is more efficient"
-
-**The deployment checklist below is MANDATORY for EACH skill.**
-
-Deploying untested skills = deploying untested code. It's a violation of quality standards.
+Finish the checklist below for each skill before starting the next. Batched untested skills hide which one caused a failure, and deploying an untested skill is deploying untested code.
 
 ## Skill Creation Checklist (TDD Adapted)
-
-**IMPORTANT: Create a todo for EACH checklist item below.**
 
 **RED Phase - Write Failing Test:**
 - [ ] Create pressure scenarios (3+ combined pressures for discipline skills)
@@ -670,7 +647,7 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 How future agents find your skill:
 
 1. **Encounters problem** ("tests are flaky")
-2. **Searches skills** (greps descriptions, browses categories)
+2. **Matches the task against skill descriptions** (all of them are in the system prompt from session start)
 3. **Finds SKILL** (description matches)
 4. **Scans overview** (is this relevant?)
 5. **Reads patterns** (quick reference table)

@@ -12,9 +12,9 @@ LLMs respond to the same persuasion principles as humans. Understanding this psy
 **What it is:** Deference to expertise, credentials, or official sources.
 
 **How it works in skills:**
-- Imperative language: "YOU MUST", "Never", "Always"
-- Non-negotiable framing: "No exceptions"
-- Eliminates decision fatigue and rationalization
+- A bright-line rule stated once, at normal volume, with its reason beside it
+- Non-negotiable content: "No exceptions" where there genuinely are none
+- Capitals and stacked imperatives add no compliance here (see the counter-evidence section below) and make current models over-apply the rule
 
 **When to use:**
 - Discipline-enforcing skills (TDD, verification requirements)
@@ -31,7 +31,7 @@ LLMs respond to the same persuasion principles as humans. Understanding this psy
 **What it is:** Consistency with prior actions, statements, or public declarations.
 
 **How it works in skills:**
-- Require announcements: "Announce skill usage"
+- Require a stated checkpoint: "name the command that goes red before fixing"
 - Force explicit choices: "Choose A, B, or C"
 - Use tracking: todos for checklists
 
@@ -42,8 +42,8 @@ LLMs respond to the same persuasion principles as humans. Understanding this psy
 
 **Example:**
 ```markdown
-✅ When you find a skill, you MUST announce: "I'm using [Skill Name]"
-❌ Consider letting your partner know which skill you're using.
+✅ Phase 1 is not done until you can name one command you have already run that goes red on this bug.
+❌ Try to reproduce the bug first if you can.
 ```
 
 ### 3. Scarcity
@@ -135,8 +135,7 @@ LLMs respond to the same persuasion principles as humans. Understanding this psy
 ## Why This Works: The Psychology
 
 **Bright-line rules reduce rationalization:**
-- "YOU MUST" removes decision fatigue
-- Absolute language eliminates "is this an exception?" questions
+- A rule with no exceptions removes "is this an exception?" questions; the absoluteness lives in the content, not in capitals
 - Explicit anti-rationalization counters close specific loopholes
 
 **Implementation intentions create automatic behavior:**

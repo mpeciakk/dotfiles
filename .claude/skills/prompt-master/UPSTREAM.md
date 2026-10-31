@@ -8,9 +8,12 @@ submodule cannot hold those edits. To take an upstream update: clone it fresh,
 `diff -r` against this directory, and port what you want.
 
 Local changes since that commit:
-- SKILL.md, hard rules: the reasoning-native model list names Claude Opus 5.5 / Fable 5.1 /
-  Sonnet 5 (extended thinking or an effort level) alongside o3, o4-mini,
-  DeepSeek-R1 and Qwen3.
-- SKILL.md, Claude routing and Claude Code sections: the current model line names
-  Opus 5.5 / Sonnet 5 / Fable 5.1 / Haiku 4.5 instead of "Opus 4.8 (current
-  default)"; the 4.x notes stay, labeled as the previous generation.
+- SKILL.md, hard rules and CoT guidance (hard rules, diagnostic checklist, Safe
+  Techniques; templates.md Template E; patterns.md #26): current Claude models are
+  reasoning-native — no CoT, thinking-depth wording or visible reasoning sections.
+- SKILL.md, Claude routing and Claude Code sections: no model roster and no 4.x
+  version notes; behaviour stated for current Claude models.
+- templates.md Template M is the "Claude Task Brief" (was "Opus 4.7 / 4.8"); no
+  thinking-depth lines; a final report instead of per-step progress lines.
+- patterns.md #36 is model-neutral; SKILL.md names the 37-pattern reference.
+- SKILL.md: plain-emphasis verification item; assumptions named in the 💡 line.

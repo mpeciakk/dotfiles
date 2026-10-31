@@ -7,7 +7,7 @@ stay completely quiet when nothing is actually open.
 
 ## The rule
 
-Before you propose approaches, scan your current understanding for **open
+Before you write the plan's decisions, scan your current understanding for **open
 decision points**. An open decision point is any one of:
 
 - an **assumption** you would otherwise make that the user has not stated, and
@@ -22,7 +22,7 @@ decision points**. An open decision point is any one of:
 Then branch:
 
 - **Zero open decision points → skip the grill entirely.** Ask nothing, proceed
-  straight to approaches, and don't announce the skip — silence is the correct
+  straight to the plan's decisions, and don't announce the skip — silence is the correct
   output when everything is clear. Skip only when the request pins down purpose,
   solution shape, success criteria, and obvious edge-case behavior, such that any
   competent implementer would build materially the same thing ("rename this env
@@ -34,7 +34,7 @@ Then branch:
 
 ## The grill loop (only when triggered)
 
-Interview relentlessly until every open decision point is closed. Walk down each
+Ask until every open decision point is closed. Walk down each
 branch of the decision tree, resolving dependencies **first** (a decision that
 gates other decisions comes before them).
 
@@ -49,7 +49,7 @@ gates other decisions comes before them).
 - **Re-scan after each answer.** An answer can open new points or close several
   at once. Continue until the scan returns zero.
 
-Do not proceed to approaches until the scan is clean.
+Do not write the plan's decisions until the scan is clean.
 
 ## Recording decisions
 
@@ -66,4 +66,4 @@ implementation is not open: pick one, record it the same way, and move on.
 - **Grilling to look thorough.** If the scan is genuinely empty, asking anyway is
   noise. Don't manufacture questions.
 - **Silent assumption.** The failure this gate exists to prevent: picking a side
-  on a real fork without telling the user. When in doubt, it's a decision — ask.
+  on a real fork without telling the user.

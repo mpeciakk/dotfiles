@@ -18,7 +18,7 @@ Full template library for Prompt Master. Read the relevant template when the use
 | [J — Reference Image Editing](#template-j--reference-image-editing) | Editing an existing image with a reference |
 | [K — ComfyUI](#template-k--comfyui) | ComfyUI node-based image workflows |
 | [L — Prompt Decompiler](#template-l--prompt-decompiler) | Breaking down, adapting, or splitting existing prompts |
-| [M — Opus 4.7 / 4.8 Task Brief](#template-m--opus-4.7--4.8-task-brief) | Complex, multi-step, or agentic task on Claude Opus 4.7 or 4.8 |
+| [M — Claude Task Brief](#template-m--claude-task-brief) | Complex, multi-step, or agentic task on Claude |
 
 ---
 
@@ -125,7 +125,7 @@ Experiment: Give 3 variants ranging from minimal to bold.
 
 *Use for logic-heavy tasks, math, debugging, and multi-factor analysis where the AI needs to reason carefully before committing to an answer.*
 
-**Important:** Only use CoT for standard reasoning models (Claude, GPT-4o, Gemini). Do NOT add CoT instructions to o1, o3, or Claude extended thinking — they reason internally and CoT instructions degrade their output.
+Only use CoT for standard models (GPT-4o, Gemini). Do not use it for current Claude models, o1 or o3 — they reason internally and CoT instructions degrade their output; on current Claude the `<thinking>` section below also asks the model to reproduce its reasoning, which can be refused.
 
 ```
 [Task statement]
@@ -396,9 +396,9 @@ Run these in order. Each output feeds the next.
 ```
 ---
 
-## Template M — Opus 4.7 / 4.8 Task Brief
+## Template M — Claude Task Brief
 
-*Use for any complex, multi-step, or agentic task on Claude Opus 4.7 or 4.8 (current default) — claude.ai, API, or Claude Code. Both read prompts literally and produce narrow output when context is missing. This template front-loads everything so the first turn is the only turn.*
+*Use for any complex, multi-step, or agentic task on Claude — claude.ai, API, or Claude Code. Claude reads prompts literally and produces narrow output when context is missing. This template front-loads everything so the first turn is the only turn.*
 
 ```
 ## Objective
@@ -430,14 +430,11 @@ Stop and ask before:
 - Modifying database schema or migrations
 - Touching anything outside Scope
 
-## Progress
-After each completed step: ✅ [what was done] — [file(s) affected]
+## Final Report
+When done: every file changed, and how each acceptance criterion was checked.
 ```
 
-**Thinking depth** — add only when needed, delete otherwise:
-- Hard multi-step task: `"Think carefully and step-by-step before starting."`
-- Simple targeted change: `"Prioritize responding quickly. This is a scoped change."`
-- Default: say nothing — adaptive thinking calibrates itself.
+**Thinking depth** — leave it out of the prompt: current Claude sets it from `effort` (API) or the harness (Claude Code).
 
 **Claude Code only — add Session Strategy block when relevant:**
 ```
@@ -449,4 +446,4 @@ After each completed step: ✅ [what was done] — [file(s) affected]
 - Compact first — run /compact [focus on X] then begin
 ```
 
-**When to use:** Opus 4.7 or 4.8 on any surface — claude.ai, API, Claude Code — when the task is complex, multi-file, ambiguous, or agentic. Not needed for simple one-shot tasks.
+**When to use:** Claude on any surface — claude.ai, API, Claude Code — when the task is complex, multi-file, ambiguous, or agentic. Not needed for simple one-shot tasks.

@@ -358,12 +358,6 @@ step needs its answers):
 
 ## Common mistakes
 
-The quoted rows come from three runs: the skill-less baseline run
-(`.flow/specs/2026-10-08-knowledge-transfer-evidence/baseline.md`), the first
-real KT run (edge-vibecoding, D31) and the second real KT run (edge-vibecoding,
-D32). The unquoted generic rows describe failures seen in the D32 fixture runs
-(`.flow/specs/2026-10-08-knowledge-transfer-evidence/d32.md`).
-
 | Mistake | Counter |
 |---|---|
 | Wrote the whole package first, asked nothing: "przed wyjazdem sam musisz uzupełnić jego sekcję 7 (sześć punktów, które trzeba wpisać)" | The inventory gate and the interview come before the first Write. A gap is yours to ask about, with a hypothesis; the user's closing task list is not a deliverable. |
