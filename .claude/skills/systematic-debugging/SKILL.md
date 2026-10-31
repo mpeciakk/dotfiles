@@ -42,8 +42,8 @@ investigate them together.
    add stress, narrow the timing window. Once red, shrink the scenario until
    every remaining element is needed.
 
-   Phase 1 is done when you can name a command you have run that goes red on
-   this bug. Cannot build one: say so, list what you tried, and ask for
+   Phase 1 is not done until you can name a command you have run that goes
+   red on this bug. Cannot build one: say so, list what you tried, and ask for
    access, a captured artifact or permission to instrument.
 3. **Check recent changes:** the diff, recent commits, dependencies, config,
    environment.

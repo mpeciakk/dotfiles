@@ -56,7 +56,8 @@ external or PR reviewer alike.
   something nothing calls → grep its callers; unused, propose removing it.
 - **Push back** with the code or test that proves it when the suggestion
   breaks existing behaviour, adds an unused feature, is wrong for this stack,
-  or conflicts with a decision the user made.
+  or conflicts with a decision the user made. An architectural or scope
+  change goes to the user, with both sides.
 - **Order of work:** unclear items, then blockers (breakage, security), then
   simple fixes, then complex ones. Work the whole list, then run the suite
   once and commit.

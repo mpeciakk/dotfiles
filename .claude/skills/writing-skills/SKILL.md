@@ -59,9 +59,10 @@ description: Use when executing an approved plan task by task, or resuming a run
 - SKILL.md opens with the core idea in one or two sentences, then what to do.
   A table or short list for anything scanned rather than read. One good
   example in the most relevant language, not five mediocre ones.
-- Separate files only for heavy reference (100+ lines) or a reusable tool
-  (script, template). Link them by relative path with a "read this when…"
-  line; never `@`-link a file, which loads it into context immediately.
+- A separate file for content read only in a specific situation (a method
+  for one kind of bug, a long reference) or for a reusable tool (script,
+  template). Link it by relative path with a "read this when…" line; never
+  `@`-link a file, which loads it into context immediately.
 - Point to another skill by name ("per systematic-debugging"); do not copy
   its content.
 - No flowchart for linear steps or reference; numbered steps or a table read
@@ -131,8 +132,10 @@ edits to any skill, follow CLAUDE.md "Code": a checkable goal and a real run.
    the Skill tool and told not to invoke skills, with the skill text inlined
    in its prompt. Otherwise it loads the deployed copy, not your draft.
 3. **Baseline:** run the scenarios with no skill. A scenario the baseline
-   passes measures nothing; replace it or drop it. If none fails, record that
-   the test cannot discriminate and stop — there is nothing to fix.
+   passes measures nothing; replace it or drop it. If none fails: for a new
+   skill there is nothing to fix — stop; for a rewrite, the scenarios are too
+   weak to catch a regression — harden them, or record that the test cannot
+   discriminate and let the review be the check.
 4. **Treatment:** run the scenarios that failed with the skill, 3+ runs each
    (single samples lie). Against an existing version, run old and new; the
    new one must pass at least as often.

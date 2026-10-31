@@ -55,8 +55,9 @@ async function waitFor<T>(
 
 ## When a fixed delay is right
 
-Only after waiting for the triggering condition, and only for a known
-duration, with a comment saying why:
+Only for timing you cannot fake — a real process or tool on the wall clock —
+after waiting for the triggering condition, for a known duration, with a
+comment saying why:
 
 ```typescript
 await waitFor(() => events.find(e => e.type === 'TOOL_STARTED'), 'tool start');
