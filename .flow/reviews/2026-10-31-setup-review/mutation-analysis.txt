@@ -1,0 +1,114 @@
+TOTAL mutants 3017 {
+  Killed: 2533,
+  Survived: 370,
+  NoCoverage: 30,
+  Timeout: 20,
+  CompileError: 0,
+  RuntimeError: 0,
+  Ignored: 64
+} score 86.5 covered-score 87.3
+
+TOP 10 FILES BY LINES
+src/curator.ts	631 lines	941 mutants	K800 S103 NC8 T14	score 88.0
+src/tmdb.ts	291 lines	316 mutants	K234 S70 NC6 T0	score 75.5
+src/batch.ts	276 lines	150 mutants	K135 S2 NC0 T1	score 98.6
+src/index.ts	275 lines	308 mutants	K266 S34 NC4 T0	score 87.5
+src/profile/build.ts	244 lines	169 mutants	K145 S22 NC0 T1	score 86.9
+src/catalog/declaration-pool.ts	238 lines	339 mutants	K288 S39 NC0 T1	score 88.1
+src/feedback.ts	211 lines	237 mutants	K193 S36 NC0 T0	score 84.3
+src/profile/answer.ts	192 lines	306 mutants	K251 S39 NC12 T0	score 83.1
+src/profile/read.ts	182 lines	251 mutants	K221 S25 NC0 T3	score 90.0
+
+TESTS in report 1169
+killedBy size on Killed mutants: median 6 max 385 single-killer mutants 521 empty killedBy 0
+
+ZERO-KILL tests (kill no mutant): 366
+  test/tag.test.ts	51/70
+  test/show-pattern.test.ts	37/37
+  test/trakt-adapter.test.ts	28/28
+  test/tendencies.test.ts	27/27
+  test/features-file.test.ts	26/26
+  test/catalog-text.test.ts	21/21
+  test/wikipedia.test.ts	19/19
+  test/migration-0008.test.ts	18/18
+  test/history.test.ts	18/20
+  test/trakt-auth.test.ts	16/16
+  test/llm.test.ts	16/16
+  test/candidates.test.ts	12/26
+  test/purge.test.ts	12/12
+  test/profile-vectors.test.ts	10/10
+  test/questions.test.ts	7/22
+  test/migration-0011.test.ts	7/7
+  test/log.test.ts	6/6
+  test/migration-0007.test.ts	5/5
+  test/migration-0004.test.ts	5/5
+  test/resolver.test.ts	4/24
+  test/migration-0002.test.ts	4/4
+  test/fake-vectorize.test.ts	4/4
+  test/declaration-read.test.ts	3/11
+  test/migration-0006.test.ts	3/3
+  test/migration-0009.test.ts	3/3
+  test/migration-0010.test.ts	2/2
+  test/features-step.test.ts	1/20
+  test/access-config.test.ts	1/1
+  of which cover no mutant at all: 363
+
+NO-UNIQUE-KILL tests (kill >=1 mutant, every one also killed by another test): 641
+  test/curator.test.ts	131/188
+  test/profile.test.ts	74/105
+  test/feedback-routes.test.ts	50/61
+  test/tag-routes.test.ts	39/41
+  test/tmdb-title.test.ts	33/37
+  test/feedback-evening.test.ts	28/34
+  test/declaration-pool.test.ts	26/40
+  test/profile-view.test.ts	23/34
+  test/tag.test.ts	19/70
+  test/features-step.test.ts	19/20
+  test/embedding-step.test.ts	18/18
+  test/trakt-routes.test.ts	17/24
+  test/tmdb-discovery.test.ts	17/18
+  test/resolver.test.ts	16/24
+  test/declaration-routes.test.ts	15/16
+  test/questions.test.ts	15/22
+  test/declaration-pool-routes.test.ts	14/15
+  test/candidates.test.ts	14/26
+  test/thin-and-split-text.test.ts	13/13
+  test/access.test.ts	12/14
+  test/catalog-refresh.test.ts	10/10
+  test/tmdb-credits.test.ts	9/10
+  test/declaration-read.test.ts	8/11
+  test/tmdb-declaration.test.ts	7/7
+  test/profile-routes.test.ts	5/8
+  test/csrf.test.ts	5/6
+  test/recommend-routes.test.ts	2/7
+  test/history.test.ts	2/20
+
+Tests with >=1 unique kill: 162
+GREEDY COVER: tests needed to kill all 2533 killed mutants: 246
+  per file (cover/total): curator.test.ts 78/188, profile.test.ts 39/105, tag.test.ts 1/70, feedback-routes.test.ts 23/61, tag-routes.test.ts 10/41, declaration-pool.test.ts 17/40, tmdb-title.test.ts 10/37, show-pattern.test.ts 0/37, profile-view.test.ts 16/34, feedback-evening.test.ts 12/34, trakt-adapter.test.ts 0/28, tendencies.test.ts 0/27, candidates.test.ts 2/26, features-file.test.ts 0/26, trakt-routes.test.ts 10/24, resolver.test.ts 4/24, questions.test.ts 0/22, catalog-text.test.ts 0/21, features-step.test.ts 0/20, history.test.ts 0/20, wikipedia.test.ts 0/19, migration-0008.test.ts 0/18, embedding-step.test.ts 0/18, tmdb-discovery.test.ts 1/18, declaration-routes.test.ts 2/16, trakt-auth.test.ts 0/16, llm.test.ts 0/16, declaration-pool-routes.test.ts 7/15, access.test.ts 3/14, thin-and-split-text.test.ts 0/13, purge.test.ts 0/12, declaration-read.test.ts 0/11, catalog-refresh.test.ts 0/10, profile-vectors.test.ts 0/10, tmdb-credits.test.ts 2/10, profile-routes.test.ts 3/8, recommend-routes.test.ts 5/7, migration-0011.test.ts 0/7, tmdb-declaration.test.ts 0/7, csrf.test.ts 1/6, log.test.ts 0/6, migration-0007.test.ts 0/5, migration-0004.test.ts 0/5, migration-0002.test.ts 0/4, fake-vectorize.test.ts 0/4, migration-0006.test.ts 0/3, migration-0009.test.ts 0/3, migration-0010.test.ts 0/2, access-config.test.ts 0/1
+
+SURVIVED by mutator
+  StringLiteral	152
+  ConditionalExpression	91
+  ArrayDeclaration	27
+  EqualityOperator	25
+  MethodExpression	20
+  LogicalOperator	11
+  OptionalChaining	10
+  ArithmeticOperator	10
+  ObjectLiteral	10
+  Regex	5
+  ArrowFunction	4
+  BlockStatement	4
+  UpdateOperator	1
+
+SURVIVED by file
+  src/curator.ts	103
+  src/tmdb.ts	70
+  src/profile/answer.ts	39
+  src/catalog/declaration-pool.ts	39
+  src/feedback.ts	36
+  src/index.ts	34
+  src/profile/read.ts	25
+  src/profile/build.ts	22
+  src/batch.ts	2
