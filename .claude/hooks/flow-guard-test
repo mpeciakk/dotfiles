@@ -740,5 +740,13 @@ setting 'any(h.get("if") == "Bash(*flow-state task *)" and h["command"].endswith
 setting 'any(h["command"].endswith("compact-log") and "if" not in h for e in cfg["hooks"]["PostCompact"] for h in e["hooks"])' \
   && report ok "compact-log wired on PostCompact, no if (it would never run)" || report no "compact-log wiring"
 
+echo "=== CLAUDE.md and plugins ==="
+CMD=$(cd "$HERE/.." && pwd)/CLAUDE.md
+[ "$(wc -l < "$CMD")" -lt 200 ] && report ok "CLAUDE.md under 200 lines" "$(wc -l < "$CMD")" || report no "CLAUDE.md length" "$(wc -l < "$CMD")"
+grep -qx '# Compact instructions' "$CMD" && awk '/^# Compact instructions$/,0' "$CMD" | grep -q 'flow-state' \
+  && report ok "CLAUDE.md has compact instructions keeping flow-state" || report no "compact instructions missing"
+setting 'cfg["enabledPlugins"].get("cloudflare@cloudflare") is False and cfg["enabledPlugins"].get("text-to-cad@earthtojake") is False' \
+  && report ok "cloudflare and text-to-cad plugins off globally" || report no "plugins still enabled"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

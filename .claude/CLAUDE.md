@@ -162,3 +162,10 @@ the definition in `agents/`.
   ("perhaps", „chyba") and figurative phrases (replace with the literal
   action). Test: from the first and last line alone I know what happened and
   what I do next.
+
+# Compact instructions
+
+Keep: the `flow-state` path and the run's stage, plan path and current task;
+the uncommitted diff (files and what changed); errors not yet resolved, with
+their message; decisions made this session and why. Drop exploration output —
+file reads, search results, command output already acted on.

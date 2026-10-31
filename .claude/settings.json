@@ -171,8 +171,8 @@
     "pyright-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "session-report@claude-plugins-official": true,
-    "cloudflare@cloudflare": true,
-    "text-to-cad@earthtojake": true,
+    "cloudflare@cloudflare": false,
+    "text-to-cad@earthtojake": false,
     "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
