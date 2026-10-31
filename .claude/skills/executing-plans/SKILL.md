@@ -30,7 +30,8 @@ the gist of, and review. None of them writes in this tree.
 2. **Read** the task — Outcome, Acceptance, Area, Context — and everything
    above the first task in the plan: its Decisions and Constraints bind every
    task. Then the Area's code, by range.
-3. **Build** it in the task's Area. Tests per test-driven-development;
+3. **Build** it in the task's Area. Tests per CLAUDE.md "Before writing" and
+   [writing-good-tests.md](writing-good-tests.md);
    anything unexpected per systematic-debugging.
 4. **Verify:** the task's tests and the project suite, run, output shown.
 5. **Commit** on the branch, then record the range from `git log`:

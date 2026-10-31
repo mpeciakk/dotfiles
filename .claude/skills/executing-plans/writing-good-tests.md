@@ -1,7 +1,37 @@
 # Writing Good Tests
 
-**Load this reference when:** writing or changing tests, adding mocks, or
-adding cleanup/helper methods for tests.
+**Read this when:** writing or changing tests, adding mocks, or adding
+cleanup/helper methods for tests.
+
+## Which tests, and when
+
+- **Each acceptance line** in the plan, or each behaviour the user stated:
+  one focused test. **Each bug that escaped into a commit:** a regression
+  test that fails without the fix.
+- **No test for** impossible cases, private helpers already covered through
+  the behaviour that uses them, or a second test for what a first one
+  already pins.
+- **Test-first** is the default for a bug fix and for behaviour easy to
+  state as a test (an input and its expected output, an error for a bad
+  value). Run it and see it fail for the reason you expect — not an error,
+  not a typo; a test you never saw fail may not test what you think. Wiring,
+  UI layout, exploratory code and refactors are code-first; a refactor keeps
+  the suite green before and after.
+- **Timing:** a timing-dependent test uses a fake clock, never the wall
+  clock. A test that sleeps and races is a flaky test.
+- **Verified means run:** the project's full test command, not the one file
+  you touched — name every failure it shows, including one you did not
+  cause. Then the real thing: the plan's Verification, or whatever shows the
+  change working.
+
+| Quality | Good | Bad |
+|---------|------|-----|
+| **Minimal** | one behaviour; an "and" in the name means split it | `test('validates email and domain and whitespace')` |
+| **Clear** | the name states the behaviour | `test('test1')` |
+| **Real** | exercises the code, not a mock of it | asserts a mock was called 3 times |
+
+Hard to test usually means hard to use: a test that must mock everything
+points at code that is too coupled.
 
 ## Overview
 
@@ -13,9 +43,9 @@ here:
 2. Every test exercises the real thing
 ```
 
-Strict TDD produces both naturally: a test written first and watched
-failing against real code has already proven it can fail, and only earns
-a mock when the real dependency proves slow or external.
+A test written first and watched failing against real code has already
+proven it can fail, and only earns a mock when the real dependency proves
+slow or external.
 
 ## Principle 1: Name the Break
 
@@ -148,8 +178,8 @@ BEFORE adding a mock or test helper:
 
 ## Tests Ship With the Implementation
 
-The TDD cycle — failing test, minimal implementation, refactor — is what
-"complete" means. Ship the tests the behavior needs and only those:
+A change is complete when its tests ship with it. Ship the tests the
+behavior needs and only those:
 trivial code is covered through the first consumer-visible behavior that
 depends on it, human prose earns no test, and a test written to satisfy
 process costs maintenance forever.

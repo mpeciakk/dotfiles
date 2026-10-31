@@ -8,11 +8,11 @@ for a run — ask it and keep working inline. An inline change that alters
 behaviour across modules or touches a spec decision: note the `HEAD` SHA before
 the first edit, and send it to `branch-reviewer` (skill
 `requesting-code-review`) before it lands on main. "kontynuuj" with a run open
-= resume from `flow-state`. When the trigger fits, use test-driven-development,
-systematic-debugging, requesting-code-review (acting on review feedback).
+= resume from `flow-state`. When the trigger fits, use systematic-debugging,
+requesting-code-review (acting on review feedback).
 
 Workflow rules:
-1. Process skills (development-workflow for a run, systematic-debugging, TDD)
+1. Process skills (development-workflow for a run, systematic-debugging)
    BEFORE domain skills.
 2. Navigate code with grep/find via Bash + Read; a file you are not editing is
    read by range, not whole.
@@ -67,6 +67,10 @@ Before writing:
   stated behaviour → one focused test; "fix the bug" → a test that reproduces
   it, failing before the fix; "refactor" → tests green before and after.
   Then run the real thing, not only the suite.
+- Test-first is the default for a bug fix and for behaviour easy to state as
+  a test; wiring, UI, exploration and refactors are code-first. Before
+  writing or changing tests, read
+  `~/.claude/skills/executing-plans/writing-good-tests.md`.
 - List every place the change must reach: callers, tests, fixtures, config,
   exports. Check what it can break: data it would destroy or expose, callers
   that stop working.

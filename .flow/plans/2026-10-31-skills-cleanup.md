@@ -243,3 +243,6 @@ follows D1.
 - The "Not for…" exclusions stay where they keep triggers apart.
 **Area:** the frontmatter of `skills/*/SKILL.md`.
 **Context:** D1 and D2; the description section written in task 3.
+
+## Rulings
+- Task 2: two framing sentences in writing-good-tests.md ("Strict TDD produces both naturally", "The TDD cycle … is what 'complete' means") reworded to match W3 — they made test-first mandatory, which W3 dropped — cost if wrong: two sentences to revert.
