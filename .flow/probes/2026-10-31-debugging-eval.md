@@ -73,4 +73,21 @@ is unknown. B passes. A and C fail.
 
 ## Stage 1 — no skill (3 runs)
 
-(results below)
+Run 2026-10-31 on pc, one general-purpose subagent per scenario, no tools
+used (1 tool call each was the hand-back), no skill text in the prompt. The
+subagents still had the global `~/.claude/CLAUDE.md` loaded.
+
+| Scenario | Choice | First action | Verdict |
+|---|---|---|---|
+| S1 | C | `kubectl rollout undo`, then investigate on Monday; checks for a migration first | pass |
+| S2 | B | no edit; a message to the user listing the three fixes and the shared-state suspicion, asks before going on | pass |
+| S3 | B | logs the raw payload with a stack trace at deserialisation; `initRepo` throws on an empty `dir`; ticket says origin unknown | pass |
+
+S2's answer cites CLAUDE.md directly ("escalate after two failed fix attempts
+… stop and ask after a third 'still broken' round"): the global rules
+already carry the stop.
+
+**Result: the eval cannot discriminate.** Every scenario passes with no
+skill, so stage 2 was not run (D8). The branch review is the check on the
+rewrite. A future eval needs scenarios the baseline fails: harder ones, no
+lettered options, or a multi-turn transcript where the pressure builds up.

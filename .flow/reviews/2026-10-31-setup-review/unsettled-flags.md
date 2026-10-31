@@ -29,10 +29,12 @@ settle. Each needs a decision; none was applied.
 - Slice A: F-L3 (kt-cold-reader conditional block), F-L4 (plan size target),
   F-L6 and F-L9 (kept by design), F-L10 (partly settled by W1; the
   inline-change reviewer gate stays).
-- Slice B: F4, F8, F9, F10, F12, F13. Settled 2026-10-31 by skills-cleanup
+- Slice B: F10. Settled 2026-10-31 by skills-cleanup
   (`.flow/plans/2026-10-31-skills-cleanup.md`): F1 (D1, trigger-only
-  descriptions), F6 (D5, vendored doc replaced by links), F7 (D5, file
-  deleted), F11 (D5, writing-skills rewritten).
+  descriptions), F4 (D3, one dead-end rule), F6 (D5, vendored doc replaced
+  by links), F7 (D5, file deleted), F8 (D7, one list of warning signs), F9
+  (D7, pressure coaching and "95%" removed), F11 (D5, writing-skills
+  rewritten), F12 (D6, examples match `waitFor`), F13 (D6, `.ts` deleted).
 - Slice C: L1–L4 (prompt-master zones, `/compact` threshold, step cadence,
   numeric caps in generated prompts).
 
