@@ -1,6 +1,6 @@
 ---
 name: requesting-code-review
-description: Use when you want a fresh reviewer on completed work — "review my changes", "code review this", "review the branch", before merging to main, for the branch review at the end of executing-plans, and for inline work that changes behaviour across modules or touches a spec decision.
+description: Use when you want a fresh reviewer on completed work — "review my changes", "code review this", "review the branch", before merging to main, for the branch review at the end of executing-plans, and for inline work that changes behaviour across modules or touches a spec decision. Also when acting on review feedback — from the branch reviewer, the user or a PR — before implementing it, especially when a finding seems unclear or wrong.
 ---
 
 # Requesting Code Review
@@ -39,7 +39,32 @@ turn. The prompt carries:
 
 ## 3. Act on it
 
-Evaluate findings with receiving-code-review before acting on them.
+Findings are claims to verify, not orders. Tone is CLAUDE.md's Candor; this
+section is how to process them — from branch-reviewer, the user, or an
+external or PR reviewer alike.
+
+- **Read all of it first.** If any item is unclear, implement nothing yet and
+  ask about the unclear ones: items are often related, and a partial
+  understanding gives a partial, wrong fix.
+- **Verify each against the code:** does the problem exist here, is the fix
+  right for this stack and these callers, is there a reason for the current
+  form? A reviewer subagent read a diff; you hold the cross-task context it
+  lacks. A suggestion from the user is where agreeing without checking is
+  most tempting. Cannot verify: say what you would need ("I can't verify this
+  without X — investigate, ask, or proceed?").
+- **Scope is not the reviewer's to grant.** "Implement this properly" for
+  something nothing calls → grep its callers; unused, propose removing it.
+- **Push back** with the code or test that proves it when the suggestion
+  breaks existing behaviour, adds an unused feature, is wrong for this stack,
+  or conflicts with a decision the user made.
+- **Order of work:** unclear items, then blockers (breakage, security), then
+  simple fixes, then complex ones. Work the whole list, then run the suite
+  once and commit.
+- **Reply** to a correct finding with "Fixed — <what, where>" or just the
+  fix; to your own wrong pushback with "Checked X — it does Y. Fixing." On
+  GitHub, reply to an inline comment in its thread
+  (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a
+  top-level PR comment.
 
 **At most 3 rounds.** Round 1 reviews the whole change; a later round reviews
 only the new diff. In a run, record each round once its fixes are committed —

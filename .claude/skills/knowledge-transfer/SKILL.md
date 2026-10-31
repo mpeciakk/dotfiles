@@ -1,6 +1,6 @@
 ---
 name: knowledge-transfer
-description: Use when another Animativ employee — or the user, months later — is taking over a company project and needs a handover document. Triggers on "przekazanie projektu", "knowledge transfer", "KT", "ktoś przejmuje", "dokument przekazania", "dokument onboardingowy dla". Not for agent session continuity (handoff) or for describing what a project is (writing-specs).
+description: Use when another Animativ employee — or the user, months later — is taking over a company project and needs a handover document. Triggers on "przekazanie projektu", "knowledge transfer", "KT", "ktoś przejmuje", "dokument przekazania", "dokument onboardingowy dla". Not for agent session continuity or for describing what a project is (writing-specs).
 ---
 
 # Knowledge Transfer
@@ -29,7 +29,6 @@ filling its headings with facts is not enough.
 |---|---|
 | spec (writing-specs) | what the project **is** |
 | design records | **why** decisions were made |
-| `handoff` | an agent session's continuity |
 | KT package | how the project works and its current state, at one commit, readable by anyone in the company |
 
 - The skill **reads** the spec and never edits it. A contradiction between spec

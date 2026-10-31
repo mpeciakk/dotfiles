@@ -9,7 +9,7 @@ behaviour across modules or touches a spec decision: note the `HEAD` SHA before
 the first edit, and send it to `branch-reviewer` (skill
 `requesting-code-review`) before it lands on main. "kontynuuj" with a run open
 = resume from `flow-state`. When the trigger fits, use test-driven-development,
-systematic-debugging, receiving-code-review.
+systematic-debugging, requesting-code-review (acting on review feedback).
 
 Workflow rules:
 1. Process skills (development-workflow for a run, systematic-debugging, TDD)

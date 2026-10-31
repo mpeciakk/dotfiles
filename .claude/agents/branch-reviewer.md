@@ -100,7 +100,7 @@ the caller exists, the value can really be empty, the code really is unused.
 No case, no issue: no "consider", no taste.
 An issue with a concrete case that you could not fully confirm still goes in,
 marked with its confidence — the controller verifies every finding
-(receiving-code-review) and drops what does not hold.
+(requesting-code-review §3) and drops what does not hold.
 
 ## Output
 

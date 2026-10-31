@@ -27,8 +27,8 @@ the first task not done. `.flow/` commits `plans/`, `specs/`, `design/`,
 `probes/` and `reviews/`; `run/` (run state, review packages) is ignored.
 
 **Always-on discipline:** `test-driven-development`, `systematic-debugging`,
-`receiving-code-review`. `CLAUDE.md` → "Rules" holds the code rules (from
-[karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills) and
+`requesting-code-review` §3 (acting on findings). `CLAUDE.md` → "Rules" holds
+the code rules (from [karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills) and
 [ponytail](https://github.com/dietrichgebert/ponytail)), candor, and response
 shape (from [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)).
 
