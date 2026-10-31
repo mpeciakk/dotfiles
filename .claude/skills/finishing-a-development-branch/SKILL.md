@@ -1,6 +1,6 @@
 ---
 name: finishing-a-development-branch
-description: Use when implementation is done and you need to wrap up a branch or worktree — merge, open a PR, keep it, or discard. Also when the final suite has not been run yet.
+description: Use when implementation is done and a branch or worktree needs wrapping up — the user asks to merge, open a PR, keep or discard the branch — or when the final suite has not been run yet.
 ---
 
 # Finishing a Development Branch

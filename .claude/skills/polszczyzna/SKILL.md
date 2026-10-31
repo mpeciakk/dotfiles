@@ -1,6 +1,6 @@
 ---
 name: polszczyzna
-description: Pisanie i redagowanie polskiego tekstu przeznaczonego dla ludzi — dokumentacja, spec.md, README, komunikaty błędów i UI, maile, opisy commitów i PR-ów, raporty, oferty. Łączy normę (ortografia RJP od 2026, interpunkcja, fleksja, składnia) ze standardem prostego języka (BLUF, krótkie zdania, strona czynna) i wycinaniem fraz zdradzających tekst generowany. Nie używaj do kodu, cytatów, tekstów literackich ani do zwykłej rozmowy w czacie.
+description: Używaj, gdy piszesz lub redagujesz polski tekst dla ludzi — dokumentację, spec.md, README, komunikaty błędów i UI, maile, opisy commitów i PR-ów, raporty, oferty. Nie używaj do kodu, cytatów, tekstów literackich ani do zwykłej rozmowy w czacie.
 ---
 
 # Polszczyzna

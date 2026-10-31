@@ -1,6 +1,6 @@
 ---
 name: executing-plans
-description: Use when executing an approved plan task by task — the session implements each task itself in the run's worktree, then one whole-branch review. Triggers on "go", "execute the plan", "next task", "kontynuuj", and on resuming a run after /clear or compaction.
+description: Use when executing an approved plan task by task, or resuming a run ("go", "execute the plan", "next task", "kontynuuj", after /clear or compaction).
 ---
 
 # Executing Plans

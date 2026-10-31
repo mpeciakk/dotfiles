@@ -1,6 +1,6 @@
 ---
 name: writing-plans
-description: Use when opening a planned run — turns a request, an idea or a provided spec into one plan with the change's decisions and its tasks, before any code. The first stage of development-workflow.
+description: Use when opening a planned run, before any code — from a request, an idea or a provided spec. The first stage of development-workflow.
 ---
 
 # Writing Plans

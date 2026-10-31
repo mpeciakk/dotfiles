@@ -49,7 +49,7 @@ skill.
 # Wrong: summarises the process
 description: Use when executing plans - dispatches subagent per task with code review between tasks
 # Right: triggers only
-description: Use when executing an approved plan task by task, or resuming one ("go", "next task", "kontynuuj").
+description: Use when executing an approved plan task by task, or resuming a run ("go", "execute the plan", "next task", "kontynuuj", after /clear or compaction).
 ```
 
 ## Name and structure
