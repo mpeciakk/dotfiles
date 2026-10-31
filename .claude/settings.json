@@ -150,7 +150,8 @@
     "typescript-lsp@claude-plugins-official": true,
     "session-report@claude-plugins-official": true,
     "cloudflare@cloudflare": true,
-    "text-to-cad@earthtojake": true
+    "text-to-cad@earthtojake": true,
+    "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
     "context7-marketplace": {
@@ -170,6 +171,18 @@
         "source": "github",
         "repo": "earthtojake/text-to-cad",
         "ref": "latest"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "agricidaniel-claude-seo": {
+      "source": {
+        "source": "github",
+        "repo": "AgriciDaniel/claude-seo"
       }
     }
   },
