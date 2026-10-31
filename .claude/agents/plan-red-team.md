@@ -51,12 +51,7 @@ risk is worthless, and it teaches the reader to discount the real findings.
 
 ## Output
 
-Your final message IS the report.
-
-1. Ranked objections, blocking first, each with the fix
-2. The single simpler alternative worth considering, if one exists
-3. One-line verdict: PROCEED / PROCEED WITH CHANGES / RETHINK. Any blocking or
-   serious objection rules out PROCEED; with minor objections only, the verdict
-   is PROCEED and the minor ones are listed under it as edits to apply. RETHINK
-   when fixing a blocking objection means a different approach, not edits to
-   this plan; otherwise PROCEED WITH CHANGES.
+Your final message IS the report: the ranked objections, blocking first, each
+with what to change. A simpler approach that makes part of the plan
+unnecessary is an objection like any other. No verdict or summary line — the
+session decides at the gate. Nothing to object to: "No objections."
