@@ -1,0 +1,118 @@
+#!/usr/bin/env nu
+# Picker hostów z ~/.ssh/config, odpalany jako popup herdra.
+# Akcje: shell w nowej zakładce, lazydocker przez `docker system dial-stdio`,
+# superfile na sshfs; wariant root montuje przez sudo z hasłem podanym w popupie.
+
+def hosts [] {
+    open ~/.ssh/config | lines
+    | parse --regex '^\s*Host\s+(?<names>.+)$'
+    | get names | each { split row ' ' } | flatten
+    | where {|h| $h != '' and not ($h =~ '[*?!]') }
+}
+
+def fail [msg: string] {
+    print $"(ansi red)($msg)(ansi reset)"
+    input "Enter zamyka popup "
+    exit 1
+}
+
+def open-shell [host: string] {
+    # Popup nie dostaje HERDR_PANE_ID, tylko HERDR_ACTIVE_PANE_ID panelu pod spodem.
+    let pane = herdr pane get $env.HERDR_ACTIVE_PANE_ID | from json | get result.pane
+    let tab = herdr tab create --workspace $pane.workspace_id --label $host --focus | from json
+    herdr pane run $tab.result.root_pane.pane_id $"ssh ($host)" | ignore
+}
+
+# lazydocker przy DOCKER_HOST=ssh:// stawia własny `ssh -L` na docker.sock, a sshd
+# na Alpine (vega, sirius) odrzuca forward socketu. `dial-stdio` przechodzi zawsze,
+# więc socat wystawia lokalny socket, który na każde połączenie odpala ssh;
+# ControlMaster oszczędza handshake przy kolejnych zapytaniach.
+def docker-tunnel [host: string, body: closure] {
+    let run = $env.XDG_RUNTIME_DIR? | default '/tmp'
+    let sock = $"($run)/herdr-docker-($host).sock"
+    rm -f $sock
+    let ssh = $"ssh -o BatchMode=yes -o ControlMaster=auto -o ControlPath=($run)/herdr-ssh-%C -o ControlPersist=60 ($host) docker system dial-stdio"
+    let id = job spawn { ^socat $"UNIX-LISTEN:($sock),fork" $"EXEC:($ssh)" }
+    for _ in 1..20 { if ($sock | path exists) { break }; sleep 100ms }
+    try { with-env { DOCKER_HOST: $"unix://($sock)" } { do $body } }
+    job kill $id
+    rm -f $sock
+}
+
+# Hasło idzie przez stdin ssh do pliku 0600 na hoście, nigdy w linii komend.
+# Katalog to pierwszy, w którym askpass da się uruchomić: tmpfs bywa `noexec`
+# (na vega `/dev/shm`), a sudo wtedy nie odpali askpassa.
+# Zwraca katalog z plikiem i askpassem oraz ścieżkę sftp-server.
+def stash-sudo-password [host: string, pw: string] {
+    let script = [
+        'umask 077'
+        'd='
+        'for base in /dev/shm "${XDG_RUNTIME_DIR:-}" /tmp "$HOME"; do'
+        '  [ -n "$base" ] && [ -d "$base" ] && [ -w "$base" ] || continue'
+        '  d=$(mktemp -d "$base/herdr.XXXXXX") || { d=; continue; }'
+        r##'  printf '#!/bin/sh\necho ok\n' > "$d/ask"; chmod 700 "$d/ask"'##
+        '  [ "$("$d/ask" 2>/dev/null)" = ok ] && break'
+        '  rm -rf "$d"; d='
+        'done'
+        '[ -n "$d" ] || exit 1'
+        `cat > "$d/pw" <<'HERDR_PW_EOF'`
+        $pw
+        'HERDR_PW_EOF'
+        r##'printf '#!/bin/sh\ncat "%s/pw"\n' "$d" > "$d/ask"'##
+        'chmod 700 "$d/ask"'
+        'echo "$d"'
+        'for p in /usr/lib/openssh/sftp-server /usr/libexec/openssh/sftp-server /usr/lib/ssh/sftp-server; do [ -x "$p" ] && echo "$p" && break; done'
+    ] | str join "\n"
+    # Przez `sh` na stdin, bo login shell hosta nie musi być POSIX (na `laptop` to nu).
+    let out = $script | ssh $host sh | complete | get stdout | lines
+    match ($out | length) {
+        0 => { fail $"($host): brak katalogu, w którym da się uruchomić askpass" }
+        1 => {
+            $"rm -rf '($out.0)'" | ssh $host sh
+            fail $"($host): nie znalazłem sftp-server"
+        }
+    }
+    { dir: $out.0, sftp: $out.1 }
+}
+
+def browse [host: string, --root] {
+    let mnt = $"($env.HOME)/mnt/($host)(if $root { '-root' } else { '' })"
+    mkdir $mnt
+    # Popup jest modalny, więc mount nie ma drugiego użytkownika; zostaje tylko
+    # po zabitym popupie i wtedy bywa martwy, dlatego zawsze montujemy od nowa.
+    if (do { mountpoint -q $mnt } | complete).exit_code == 0 {
+        fusermount3 -uz $mnt
+    }
+
+    let base = "reconnect,ServerAliveInterval=15,ServerAliveCountMax=3"
+    let src = if $root { $"($host):/" } else { $"($host):" }
+    let stash = if $root {
+        let pw = input -s $"hasło sudo na ($host): "
+        print ''
+        if ($pw | is-empty) { exit 0 }
+        stash-sudo-password $host $pw
+    } else { null }
+    let opts = if $root {
+        $"($base),sftp_server=SUDO_ASKPASS=($stash.dir)/ask /usr/bin/sudo -A ($stash.sftp)"
+    } else { $base }
+
+    let r = do { sshfs $src $mnt -o $opts } | complete
+    # Hasło znika zaraz po zamontowaniu; reconnect po zerwaniu wymaga więc nowego popupu.
+    if $root { $"rm -rf '($stash.dir)'" | ssh $host sh }
+    if $r.exit_code != 0 { fail $"sshfs ($host): ($r.stderr | str trim)" }
+    try { spf $mnt }
+    fusermount3 -u $mnt
+}
+
+def main [] {
+    let host = hosts | input list --fuzzy 'host'
+    if ($host | is-empty) { return }
+    let action = [shell docker files 'files (root)'] | input list 'akcja'
+    match $action {
+        'shell' => { open-shell $host }
+        'docker' => { docker-tunnel $host { lazydocker } }
+        'files' => { browse $host }
+        'files (root)' => { browse $host --root }
+        _ => {}
+    }
+}

@@ -58,8 +58,6 @@ depends = []
 # what dotter picks for a non-UTF-8 file anyway; explicit, so it does not warn.
 "hosts/pc/wallpaper-dark.png" = { target = "~/.config/dotfiles/wallpaper-dark.png", type = "symbolic" }
 "hosts/pc/wallpaper-light.png" = { target = "~/.config/dotfiles/wallpaper-light.png", type = "symbolic" }
-# Per-host: each machine's mirror config names the *other* machine.
-"hosts/pc/herdr-mirror-hosts.toml" = "~/.config/herdr-mirror/hosts.toml"
 # hosts/pc/etc/ (system config for /etc) is deliberately NOT mapped: a root-owned
 # template makes dotter call sudo on every deploy, which locks the account (faillock)
 # when a deploy runs without a terminal. Installed by hand — see README.

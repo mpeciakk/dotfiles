@@ -1,0 +1,9 @@
+#!/usr/bin/env nu
+# Uruchamia program w katalogu panelu, nad którym otwarto popup herdra
+# (`herdr-here lazygit`); popup dostaje tylko HERDR_ACTIVE_PANE_ID.
+
+def --wrapped main [...cmd: string] {
+    let pane = herdr pane get $env.HERDR_ACTIVE_PANE_ID | from json | get result.pane
+    cd ($pane.foreground_cwd? | default $pane.cwd)
+    run-external ...$cmd
+}

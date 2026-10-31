@@ -67,10 +67,19 @@ herdr-lazy restore                           # exact commits from plugins.lock (
 
 `herdr-lazy` is not on `$PATH` — it lives in herdr's plugin dir under a hashed name; run it
 from the manage pane (`prefix+shift+l`) or via `herdr plugin list --json`. Several plugins
-(mirror, navigator, lazy) build from source and herdr builds with a minimal `PATH` that
+(navigator, lazy) build from source and herdr builds with a minimal `PATH` that
 excludes `~/.cargo/bin`, so the host needs a system `cargo`/`rustc` (`/usr/bin`), not just
 rustup. `herdr integration status` should report `claude: current` — it reads that from
 `.claude/hooks/herdr-agent-state.sh`, which this repo already deploys.
+
+Popups in `config/herdr/config.toml`: `prefix+alt+s` runs `bin/herdr-ssh` (pick a
+`~/.ssh/config` host, then a shell tab, `lazydocker` through a local socat socket that
+runs `docker system dial-stdio` over ssh (lazydocker's own `ssh -L` tunnel fails where
+sshd refuses socket forwarding, e.g. Alpine), or superfile on an sshfs mount under
+`~/mnt/<host>`; the root variant asks for the sudo password and hands it to
+`sudo -A` through a 0600 file in the host's `/dev/shm`, deleted right after mounting). `prefix+alt+g` / `prefix+alt+f` run lazygit /
+superfile in the active pane's directory via `bin/herdr-here`; `prefix+alt+d` is local
+lazydocker. Packages: `sshfs socat lazydocker lazygit superfile`.
 
 ## Shared runtime config
 
@@ -103,9 +112,6 @@ deployed by a per-host dotter package selected in the (gitignored) `.dotter/loca
   `config.kdl` does `include "output.kdl"`).
 - `hosts/<name>/uwsm-gpu-env` → `~/.config/uwsm/env.d/gpu` (GPU vars; uwsm
   auto-sources `env*.d/*`).
-- `hosts/pc/herdr-mirror-hosts.toml` → `~/.config/herdr-mirror/hosts.toml` (which
-  machine herdr-mirror mirrors — `target` names the *other* host and its `~/.ssh/config`
-  alias, so this one can never be shared).
 - `hosts/pc/etc/` — source of the pc's system config in `/etc` (sysctl, udev rules,
   modprobe, resolved drop-ins, `warp-split-dns.service`, zram, `doas.conf`). **Not
   deployed by dotter**: these must be root-owned copies (they are read before `/home`

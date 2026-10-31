@@ -18,3 +18,35 @@ key = "prefix+t"
 type = "plugin_action"
 command = "herdr-navigator.open"
 description = "jump to anything"
+
+[[keys.command]]
+key = "prefix+alt+s"
+type = "popup"
+command = "herdr-ssh"
+description = "ssh: shell, docker, files"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
+key = "prefix+alt+g"
+type = "popup"
+command = "herdr-here lazygit"
+description = "lazygit"
+width = "90%"
+height = "90%"
+
+[[keys.command]]
+key = "prefix+alt+f"
+type = "popup"
+command = "herdr-here spf"
+description = "superfile"
+width = "90%"
+height = "90%"
+
+[[keys.command]]
+key = "prefix+alt+d"
+type = "popup"
+command = "lazydocker"
+description = "lazydocker (local)"
+width = "90%"
+height = "90%"
