@@ -183,6 +183,7 @@ check "controller edits .flow/ in the main checkout" allow "$(edit_payload "$REP
 
 echo "=== the state file is not hand-editable ==="
 check "controller writes state.json" deny "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" "" "" Write)"
+check "controller Edits state.json at stage=implement" deny "$(edit_payload "$WT" "$REPO/.flow/run/state.json")"
 check "subagent writes state.json" deny "$(edit_payload "$REPO" "$REPO/.flow/run/state.json" sub-3 general-purpose Write)"
 echo '{"stage":"inline"}' > "$REPO/src/.flow/run/state.json"
 check "decoy state.json deeper in the tree is ignored" deny "$(edit_payload "$REPO/src" "$REPO/.flow/run/state.json" "" "" Write)"
@@ -193,7 +194,7 @@ check "git worktree add" deny "$(bash_payload "$WT" 'git worktree add ../other -
 check "git worktree  add (double space)" deny "$(bash_payload "$WT" 'git worktree  add ../other -b y')"
 check "git worktree add --help (reading docs)" allow "$(bash_payload "$WT" 'git worktree add --help')"
 check "echo mentioning worktree add" allow "$(bash_payload "$WT" 'echo "run git worktree add" >> README.md')"
-check "EnterWorktree for a NEW worktree" deny "$(enter_payload "$WT")"
+check "EnterWorktree for a NEW worktree (stage=implement)" deny "$(enter_payload "$WT")"
 check "EnterWorktree re-entering the recorded path" allow "$(enter_payload "$REPO" "$WT")"
 check "EnterWorktree re-entering via a ../ path" allow "$(enter_payload "$REPO" "$WT/../feat")"
 check "EnterWorktree pointing elsewhere" deny "$(enter_payload "$REPO" "$EXT")"
@@ -306,6 +307,9 @@ avg=$(( (e-s)/10000000 ))
 echo "=== context injection ==="
 c=$(context_of "$(event_payload "$WT" SubagentStart)")
 case "$c" in *"$WT"*feat/x*) report ok "SubagentStart names workspace and branch";; *) report no "SubagentStart: $c";; esac
+case "$c" in *"only writer"*|*BLOCKED*) report no "general-purpose subagent gets writer text" "$c";;
+  *Read-only*) report ok "general-purpose subagent gets the read-only contract";;
+  *) report no "general-purpose contract lacks Read-only" "$c";; esac
 "$STATE" --cwd "$REPO" set branch= >/dev/null
 c=$(context_of "$(event_payload "$WT" SubagentStart)")
 case "$c" in *detached*) report ok "detached run: verifies the tree, no phantom branch";; *) report no "detached contract: $c";; esac
@@ -395,8 +399,8 @@ for f in executing-plans/SKILL.md requesting-code-review/SKILL.md; do
     && report no "$f still has the controller build the review package" || report ok "$f: reviewer builds the package"
 done
 echo "=== controller must not poll a dispatched subagent ==="
-check "short wakeup naming an implementer is denied" deny \
-  "$(wakeup_payload "$REPO" 300 "Waiting on Task 1 implementer to finish before dispatching review" "Check whether the Task 1 implementer has finished.")"
+check "short wakeup naming a subagent is denied" deny \
+  "$(wakeup_payload "$REPO" 300 "Waiting on the search subagent to finish before Task 2" "Check whether the subagent has finished.")"
 check "short wakeup naming a reviewer is denied" deny \
   "$(wakeup_payload "$REPO" 420 "Waiting on whole-branch review of the full 5-task diff")"
 check "short wakeup naming a fixer is denied" deny \
@@ -416,8 +420,8 @@ check "external work the harness cannot report is allowed" allow \
 check "a hyphenated project name is not a dispatch" allow \
   "$(wakeup_payload "$REPO" 300 "Checking whether the agents-sdk install completed")"
 check "a wakeup with no delay is not judged" allow \
-  "$(wakeup_payload "$REPO" "" "Waiting on the Task 1 implementer")"
-r=$(deny_reason "$(wakeup_payload "$REPO" 300 "Waiting on Task 1 implementer")")
+  "$(wakeup_payload "$REPO" "" "Waiting on the branch reviewer")"
+r=$(deny_reason "$(wakeup_payload "$REPO" 300 "Waiting on the branch reviewer")")
 case "$r" in *task-notification*) report ok "deny names the mechanism that replaces polling";;
   *) report no "poll deny message" "$r";; esac
 case "$r" in *ListAgents*) report ok "deny closes the ListAgents workaround";;
@@ -570,11 +574,11 @@ case "$c" in *"complete: 1"*) report ok "a done task is reported to subagents as
 case "$c" in *"in flight: 2"*) report ok "a started task is reported in flight";; *) report no "started task not in flight" "$c";; esac
 "$STATE" --cwd "$CTX" set stage=plan >/dev/null
 c=$(context_of "$(event_payload "$CTX" SessionStart)")
-case "$c" in *"using-git-worktrees, then subagent-driven-development"*) report no "handoff line shown before a plan is written";;
+case "$c" in *"using-git-worktrees, then executing-plans"*) report no "handoff line shown before a plan is written";;
   *) report ok "stage=plan, no plan yet: no go handoff line";; esac
 "$STATE" --cwd "$CTX" set plan="$CTX/p.md" >/dev/null || fixture_fail "ctx stage=plan with plan"
 c=$(context_of "$(event_payload "$CTX" SessionStart)")
-case "$c" in *"using-git-worktrees, then subagent-driven-development"*) report ok "stage=plan with plan written: context says what go starts";;
+case "$c" in *"using-git-worktrees, then executing-plans"*) report ok "stage=plan with plan written: context says what go starts";;
   *) report no "stage=plan with plan context lacks the go handoff" "$c";; esac
 "$STATE" --cwd "$CTX" set stage=implement plan="$CTX/p.md" >/dev/null || fixture_fail "ctx stage=implement"
 c=$(context_of "$(event_payload "$CTX" SessionStart)")
@@ -686,6 +690,55 @@ grep -q 'Above ~1500' "$SK/requesting-code-review/SKILL.md" \
   && report no "requesting-code-review still splits reviewers by size" || report ok "one branch reviewer, no size split"
 awk '/^## After the last task/,/^## Never/' "$SK/executing-plans/SKILL.md" | grep -q 'Spec state' \
   && report ok "spec state is updated before the branch review" || report no "spec state step missing before review"
+
+# ------------------------------------------------- context-check, compact-log
+echo "=== context check after a task, compaction log ==="
+CC=$HERE/context-check
+transcript() { # path main_thread_tokens [sidechain_tokens_after]
+  python3 -c '
+import json, sys
+path, main, side = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+rec = lambda n, sc: json.dumps({"type": "assistant", "isSidechain": sc, "message": {"usage": {
+    "input_tokens": 4, "cache_creation_input_tokens": 1000, "cache_read_input_tokens": n - 1004}}})
+with open(path, "w") as fh:
+    fh.write(rec(10_000, False) + "\n" + rec(main, False) + "\n")
+    if side: fh.write(rec(int(side), True) + "\n")
+    fh.write(json.dumps({"type": "user", "message": {"content": "x"}}) + "\n")' "$1" "$2" "${3:-}"
+}
+cc_payload() { # transcript command
+  python3 -c '
+import json, sys
+print(json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Bash",
+                  "transcript_path": sys.argv[1], "tool_input": {"command": sys.argv[2]}}))' "$1" "$2"
+}
+cc_out() { printf '%s' "$1" | "$CC" 2>/dev/null; }
+DONE_CMD='~/.claude/hooks/flow-state task 3 done "aaa..bbb"'
+transcript "$ROOT/t-high.jsonl" 320000 || fixture_fail "transcript fixture"
+case "$(cc_out "$(cc_payload "$ROOT/t-high.jsonl" "$DONE_CMD")")" in *"/clear"*320k*|*320k*"/clear"*) report ok "context check fires above 300k";;
+  *) report no "context check silent at 320k" "$(cc_out "$(cc_payload "$ROOT/t-high.jsonl" "$DONE_CMD")")";; esac
+transcript "$ROOT/t-low.jsonl" 290000 || fixture_fail "transcript fixture"
+[ -z "$(cc_out "$(cc_payload "$ROOT/t-low.jsonl" "$DONE_CMD")")" ] \
+  && report ok "context check silent below 300k" || report no "context check fired at 290k"
+transcript "$ROOT/t-side.jsonl" 200000 400000 || fixture_fail "transcript fixture"
+[ -z "$(cc_out "$(cc_payload "$ROOT/t-side.jsonl" "$DONE_CMD")")" ] \
+  && report ok "context check ignores a subagent's usage" || report no "sidechain usage counted"
+[ -z "$(cc_out "$(cc_payload "$ROOT/t-high.jsonl" '~/.claude/hooks/flow-state task 3 started')")" ] \
+  && report ok "context check silent on task started" || report no "context check fired on started"
+[ -z "$(cc_out "$(cc_payload "$ROOT/missing.jsonl" "$DONE_CMD")")" ] \
+  && report ok "context check fails open on a missing transcript" || report no "missing transcript output"
+FAKEHOME=$ROOT/home; mkdir -p "$FAKEHOME/.claude"
+pc() { python3 -c '
+import json, sys
+print(json.dumps({"hook_event_name": "PostCompact", "session_id": "s1", "cwd": "/x",
+                  "trigger": "auto", "compact_summary": sys.argv[1]}))' "$1" | HOME=$FAKEHOME "$HERE/compact-log"; }
+pc "first summary"; pc "drugie podsumowanie"
+LOGF=$FAKEHOME/.claude/compact-log.jsonl
+[ "$(wc -l < "$LOGF" 2>/dev/null)" = 2 ] && tail -1 "$LOGF" | grep -q '"compact_summary": "drugie podsumowanie"' \
+  && report ok "PostCompact appends one line per compaction" || report no "compact log" "$(cat "$LOGF" 2>/dev/null)"
+setting 'any(h.get("if") == "Bash(*flow-state task *)" and h["command"].endswith("context-check") for e in cfg["hooks"]["PostToolUse"] if e.get("matcher") == "Bash" for h in e["hooks"])' \
+  && report ok "context-check wired on PostToolUse Bash with an if filter" || report no "context-check wiring"
+setting 'any(h["command"].endswith("compact-log") and "if" not in h for e in cfg["hooks"]["PostCompact"] for h in e["hooks"])' \
+  && report ok "compact-log wired on PostCompact, no if (it would never run)" || report no "compact-log wiring"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

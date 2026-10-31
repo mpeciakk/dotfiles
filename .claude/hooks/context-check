@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""PostToolUse on `flow-state task N done`: ask for /clear when context is large.
+
+The model cannot see its own token count; the transcript can. After each task a
+run records, this reads the last main-thread `usage` from `transcript_path` and,
+above THRESHOLD, tells the session to stop and ask the user for `/clear` +
+"kontynuuj" — the ledger resumes the run, and `/clear` costs nothing where a
+compaction is itself a large request.
+
+Silent below the threshold. Fails open: any error, no output.
+"""
+
+import json
+import os
+import re
+import sys
+
+THRESHOLD = 300_000
+# The last usage record sits near the end; a tail this size holds many turns.
+TAIL_BYTES = 2 * 1024 * 1024
+TASK_DONE = re.compile(r"flow-state\b.*\btask\s+\S+\s+(done|complete)\b")
+
+
+def last_context_tokens(path):
+    with open(path, "rb") as fh:
+        fh.seek(0, os.SEEK_END)
+        fh.seek(max(0, fh.tell() - TAIL_BYTES))
+        lines = fh.read().splitlines()
+    for raw in reversed(lines):
+        try:
+            record = json.loads(raw)
+        except ValueError:
+            continue  # the first line of the tail may be cut
+        if not isinstance(record, dict) or record.get("isSidechain"):
+            continue
+        message = record.get("message")
+        usage = message.get("usage") if isinstance(message, dict) else None
+        if isinstance(usage, dict):
+            return sum(usage.get(k) or 0 for k in
+                       ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+    return None
+
+
+def main():
+    payload = json.load(sys.stdin)
+    command = (payload.get("tool_input") or {}).get("command") or ""
+    if not TASK_DONE.search(command):
+        return
+    tokens = last_context_tokens(payload["transcript_path"])
+    if tokens is None or tokens <= THRESHOLD:
+        return
+    print(json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PostToolUse",
+        "additionalContext": (
+            f"Context is at {round(tokens / 1000)}k tokens, above {THRESHOLD // 1000}k. "
+            "Stop before the next task: ask the user to run `/clear`, then "
+            "\"kontynuuj\" — the run resumes from the ledger at the next task."
+        ),
+    }}))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass  # a context hint is a convenience; never fail a tool call over it

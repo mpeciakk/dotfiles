@@ -2,8 +2,8 @@
 """Carry the run's context to the places that lose it.
 
   **SubagentStart** — a subagent inherits a working directory but no reason.
-  The workspace contract arrives with it instead of depending on the dispatch
-  prompt having spelled it out.
+  The run's location and the read-only rule arrive with it instead of
+  depending on the dispatch prompt having spelled them out.
 
   **SessionStart** — including after compaction. The state file exists because
   conversation memory does not survive compaction; re-injecting it here closes
@@ -21,9 +21,6 @@ import os
 import sys
 
 FLOW_STATE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "flow-state")
-# Roles whose agent definition withholds Edit/Write (see ~/.claude/agents/).
-# Anything unknown is treated as a writer: the writer contract is the safe default.
-READ_ONLY_AGENTS = {"branch-reviewer", "plan-red-team", "Explore"}
 
 
 def load_state(cwd):
@@ -43,34 +40,16 @@ def emit(event, context):
     }))
 
 
-def subagent_context(state, agent_type):
-    """The workspace contract, addressed to what this subagent can actually do.
-
-    Roles whose definition withholds Edit/Write get the location without the
-    writer instructions — telling a reviewer "you are the only writer here" is
-    noise it has to reason past, and it invites a report about a rule that does
-    not apply to it.
-    """
+def subagent_context(state):
+    """Where the run lives. Every subagent is read-only: the session writes."""
     worktree = state.get("worktree")
     if not worktree:
         return None
     branch = state.get("branch")
     where = f"{worktree} on branch {branch}" if branch else f"{worktree} (detached HEAD)"
-
-    if agent_type in READ_ONLY_AGENTS:
-        return (
-            f"This run's workspace is {where}. That is the tree BASE..HEAD lives "
-            "in. Read-only: report what you find, do not change it."
-        )
-
-    checks = "`git rev-parse --show-toplevel`" + (
-        " and `git branch --show-current`" if branch else "")
     return (
-        f"Workspace contract for this run: work in {where}. Verify with {checks} "
-        "before your first edit; if it differs, stop and report BLOCKED with what "
-        "you found rather than switching branches or creating a worktree of your "
-        "own. You are the only writer here: changes in `git status` that you did "
-        "not make mean you stop and report BLOCKED, not commit someone else's work."
+        f"This run's workspace is {where}. That is the tree BASE..HEAD lives "
+        "in. Read-only: report what you find, do not change it."
     )
 
 
@@ -88,13 +67,13 @@ def session_context(state):
         if state.get(field):
             lines.append(f"  {field}: {state[field]}")
     if done:
-        lines.append(f"  complete: {', '.join(done)} — do NOT re-dispatch these")
+        lines.append(f"  complete: {', '.join(done)} — do NOT redo these")
     if open_tasks:
         lines.append(f"  in flight: {', '.join(open_tasks)}")
     if state.get("stage") == "plan" and state.get("plan"):
         lines.append(
             "The plan awaits the user's \"go\". On go: using-git-worktrees, then "
-            "subagent-driven-development — do not re-plan."
+            "executing-plans — do not re-plan."
         )
     lines.append(
         "Trust this and `git log` over recollection: resume at the first task not "
@@ -118,7 +97,7 @@ def main():
         return
     event = payload.get("hook_event_name") or "SessionStart"
     if event == "SubagentStart":
-        context = subagent_context(state, payload.get("agent_type") or "")
+        context = subagent_context(state)
     else:
         context = session_context(state)
     if context:

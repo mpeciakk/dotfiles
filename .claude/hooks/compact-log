@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""PostCompact: append the compaction summary to ~/.claude/compact-log.jsonl.
+
+One JSON line per compaction — when, which session and directory, manual or
+auto, and the summary — so compactions can be counted and their summaries
+checked against what the session needed afterwards.
+
+Fails open: any error, nothing written, the session goes on.
+"""
+
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+LOG = os.path.expanduser("~/.claude/compact-log.jsonl")
+
+
+def main():
+    payload = json.load(sys.stdin)
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "session_id": payload.get("session_id"),
+        "cwd": payload.get("cwd"),
+        "trigger": payload.get("trigger"),
+        "compact_summary": payload.get("compact_summary"),
+    }
+    with open(LOG, "a") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass
