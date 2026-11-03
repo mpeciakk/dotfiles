@@ -17,8 +17,6 @@ binds {
     // Mod+Shift+H → island hide
     // XF86MonBrightnessUp / XF86MonBrightnessDown → brightnessctl set 5%+ / 5%-
 
-    Mod+O repeat=false { toggle-overview; }
-
     Mod+Left  { focus-column-left; }
     Mod+Down  { focus-window-down; }
     Mod+Up    { focus-window-up; }
