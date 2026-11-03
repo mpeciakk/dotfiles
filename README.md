@@ -72,14 +72,16 @@ excludes `~/.cargo/bin`, so the host needs a system `cargo`/`rustc` (`/usr/bin`)
 rustup. `herdr integration status` should report `claude: current` — it reads that from
 `.claude/hooks/herdr-agent-state.sh`, which this repo already deploys.
 
-Popups in `config/herdr/config.toml`: `prefix+alt+s` runs `bin/herdr-ssh` (pick a
-`~/.ssh/config` host, then a shell tab, `lazydocker` through a local socat socket that
-runs `docker system dial-stdio` over ssh (lazydocker's own `ssh -L` tunnel fails where
-sshd refuses socket forwarding, e.g. Alpine), or superfile on an sshfs mount under
-`~/mnt/<host>`; the root variant asks for the sudo password and hands it to
-`sudo -A` through a 0600 file in the host's `/dev/shm`, deleted right after mounting). `prefix+alt+g` / `prefix+alt+f` run lazygit /
-superfile in the active pane's directory via `bin/herdr-here`; `prefix+alt+d` is local
-lazydocker. Packages: `sshfs socat lazydocker lazygit superfile`.
+Keymap in `config/herdr/config.toml`: the prefix is Caps Lock (keyd sends
+`ctrl+alt+space` for it), tapped and followed by one key — `1..9` workspace, `tab` /
+`shift+tab` tab, `space` navigator, `n` new tab, `q` close tab, `a` agent waiting for
+input, `?` help. Popups: `s` runs `bin/herdr-ssh` (pick a `~/.ssh/config` host, then a
+shell tab, `lazydocker` through a local socat socket that runs `docker system
+dial-stdio` over ssh (lazydocker's own `ssh -L` tunnel fails where sshd refuses socket
+forwarding, e.g. Alpine), or superfile on an sshfs mount under `~/mnt/<host>`; the root
+variant asks for the sudo password and hands it to `sudo -A` through a 0600 file on the
+host, deleted right after mounting). `g` / `e` run lazygit / superfile in the active
+pane's directory via `bin/herdr-here`; `d` is local lazydocker. Packages: `sshfs socat lazydocker lazygit superfile`.
 
 ## Shared runtime config
 
@@ -140,6 +142,7 @@ To add a machine: copy an existing `hosts/<host>` dir (e.g. `hosts/mac`) to
   remapped to the matching `Ctrl+key` at the evdev layer by `keyd` (a root systemd
   service), not by niri — so they're deliberately absent from `bindings.kdl`.
   Copy/paste use `Ctrl/Shift+Insert` so terminals copy while `Ctrl+C` stays SIGINT.
+  Caps Lock sends `ctrl+alt+space`, herdr's prefix.
   Needs `keyd` installed and `keyd.service` enabled on a fresh host.
 - **herdr's own state is not in this repo.** Only `config.toml` and the per-plugin configs
   are; `session.json`, `plugins.json`, `plugins/github/*`, the logs and sockets under

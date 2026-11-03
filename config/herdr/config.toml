@@ -13,14 +13,32 @@ show_agent_labels_on_pane_borders = true
 status_indicators = "symbols"
 prompt_new_tab_name = false
 
+# Prefix to Caps Lock: keyd (config/keyd/default.conf) emits ctrl+alt+space for it.
+# Caps, release, then one key. ctrl+b stays free for Claude Code (background task).
+[keys]
+prefix = "ctrl+alt+space"
+switch_workspace = "prefix+1..9"
+switch_tab = ""
+next_tab = "prefix+tab"
+previous_tab = "prefix+shift+tab"
+cycle_pane_next = ""
+cycle_pane_previous = ""
+new_tab = "prefix+n"
+close_tab = "prefix+q"
+detach = "prefix+shift+q"
+open_notification_target = "prefix+a"
+goto = "prefix+slash"
+edit_scrollback = "prefix+shift+e"
+settings = "prefix+comma"
+
 [[keys.command]]
-key = "prefix+t"
+key = "prefix+space"
 type = "plugin_action"
 command = "herdr-navigator.open"
 description = "jump to anything"
 
 [[keys.command]]
-key = "prefix+alt+s"
+key = "prefix+s"
 type = "popup"
 command = "herdr-ssh"
 description = "ssh: shell, docker, files"
@@ -28,7 +46,7 @@ width = "80%"
 height = "80%"
 
 [[keys.command]]
-key = "prefix+alt+g"
+key = "prefix+g"
 type = "popup"
 command = "herdr-here lazygit"
 description = "lazygit"
@@ -36,7 +54,7 @@ width = "90%"
 height = "90%"
 
 [[keys.command]]
-key = "prefix+alt+f"
+key = "prefix+e"
 type = "popup"
 command = "herdr-here spf"
 description = "superfile"
@@ -44,7 +62,7 @@ width = "90%"
 height = "90%"
 
 [[keys.command]]
-key = "prefix+alt+d"
+key = "prefix+d"
 type = "popup"
 command = "lazydocker"
 description = "lazydocker (local)"
